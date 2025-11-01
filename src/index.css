@@ -5200,3 +5200,50 @@ html.dark .form-control::placeholder {
 .calendar-root aside .event-delete-btn:hover {
   background: #fee2e2 !important;
 }
+
+/* ENFORCE: Form controls in dark mode with proper visibility
+   Ensures inputs are readable in both static and interactive states.
+   Placed at the end to win in the cascade. */
+html.dark input:not([type="checkbox"]):not([type="radio"]),
+html.dark textarea,
+html.dark select,
+html.dark .input,
+html.dark .form-control {
+  background: rgba(30, 41, 59, 0.5) !important; /* Subtle dark background */
+  color: rgba(255, 255, 255, 0.95) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(71, 85, 105, 0.5) !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):hover,
+html.dark textarea:hover,
+html.dark select:hover {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(71, 85, 105, 0.7) !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark textarea:focus,
+html.dark select:focus,
+html.dark .input:focus,
+html.dark .form-control:focus {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+html.dark select::placeholder,
+html.dark .input::placeholder,
+html.dark .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.7) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure date/time inputs show their icons in dark mode */
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) !important;
+  opacity: 0.8 !important;
+}

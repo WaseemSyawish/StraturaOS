@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+// Using native <input> for the Event Name field (no styling) per user request
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useModal } from "@/providers/modal-context";
@@ -193,55 +193,9 @@ export default function AddEventModal({
     );
   };
 
-  // Fully reset the form and related local state to either the original
-  // event values (when editing) or to fresh defaults (when creating).
-  const handleFullReset = () => {
-    try {
-      if (eventData) {
-        const color = (eventData as any)?.color || "blue";
-        const type = (eventData as any)?.type || "assignment";
-        reset({
-          title: eventData.title || "",
-          startDate: parseToDate((eventData as any).startDate),
-          endDate: parseToDate((eventData as any).endDate),
-          variant: (typeof eventData.variant === 'string' && (VARIANTS as readonly string[]).includes(eventData.variant)) ? (eventData.variant as Variant) : 'primary',
-          color: color,
-          type: type,
-        });
-        setSelectedColor(color);
-        setSelectedType(type);
-      } else {
-        // New form: clear to sensible defaults
-        reset({
-          title: "",
-          startDate: new Date(),
-          endDate: new Date(),
-          variant: defaultVariant,
-          color: (eventData as any)?.color || "blue",
-          type: (eventData as any)?.type || "assignment",
-        });
-        setSelectedColor((eventData as any)?.color || "blue");
-        setSelectedType((eventData as any)?.type || "assignment");
-      }
-
-      // Clear other UI state for recurrence/materialization/etc.
-      setSelectedByDays([]);
-      setIntervalWeeks(1);
-      setCreateTemplate(false);
-      setMaterializeCount(null);
-      setMaterializeUntil(null);
-      setModalPage(0);
-      setRecurrenceMode('none');
-      setConfirmingDelete(false);
-      setShowDeleteScope(false);
-      setPendingSave(false);
-      setPendingBody(null);
-      setShowEditScope(false);
-      setForceClientBulk(false);
-    } catch (e) {
-      console.warn('[AddEventModal] reset failed', e);
-    }
-  };
+  // NOTE: handleFullReset removed per user request — Reset button and full-reset
+  // behavior were removed. If a programmatic factory reset is needed later,
+  // reimplement here.
 
   // Helper: apply pending body to chosen scope (moved to component scope so modal can call it)
   async function applyPendingBody(scope: string, options: { forceClient?: boolean; confirmApply?: boolean } = {}) {
@@ -1214,17 +1168,14 @@ export default function AddEventModal({
                   </svg>
                   Event Name
                 </Label>
-                <Input 
+                {/* Aggressive inline reset to remove any global CSS influence */}
+                <input 
                   id="title" 
                   {...register("title")} 
                   placeholder="e.g., Team Meeting, Study Session" 
                   className={cn(
-                    // Brighter placeholders than the shared Input defaults so they
-                    // are clearly visible in both light and dark themes.
-                    "h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-600 placeholder:opacity-100 dark:placeholder:text-gray-200 dark:placeholder:opacity-100 text-sm",
-                    // Override any focus/hover effects from the shared Input component
-                    // to keep this field visually static (no hover/focus rings).
-                    "focus:outline-none focus:ring-0 hover:shadow-none",
+                    "h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
+                    "focus:outline-none focus:ring-2 focus:ring-blue-500",
                     errors.title ? "border-red-500" : "border-gray-200 dark:border-gray-700"
                   )} 
                 />
@@ -1471,32 +1422,25 @@ export default function AddEventModal({
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
                 <Button 
                   variant="outline" 
                   type="button" 
                   onClick={() => setClose()}
-                  className="p-3 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
+                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
                 >
                   Cancel
                 </Button>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={handleFullReset}
-                  className="p-3 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
-                >
-                  Reset
-                </Button>
-                <div className="flex items-center rounded-md overflow-hidden">
+                
+                <div className="flex items-center gap-0 rounded-lg overflow-hidden shadow-lg shadow-blue-500/30">
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={submitting}
                     className={cn(
-                      "px-5 py-2 text-sm font-bold text-white rounded-l-lg transition-all duration-200",
-                      "bg-blue-500 hover:bg-blue-600",
-                      "shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50",
+                      "px-6 py-2.5 text-sm font-bold text-white transition-all duration-200",
+                      "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
                       "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
+                      "border-r border-blue-700/30",
                       submitting && "animate-pulse"
                     )}
                   >
@@ -1519,7 +1463,6 @@ export default function AddEventModal({
                   </button>
                   <button
                     onClick={() => {
-                      // Validate form and then prepare pending body to show EditScopeModal
                       handleSubmit((_data) => {
                         const body = buildPendingBody();
                         setPendingBody(body);
@@ -1527,10 +1470,18 @@ export default function AddEventModal({
                       })();
                     }}
                     type="button"
-                    className="px-4 py-2 text-sm bg-blue-600/90 text-white rounded-r-lg hover:bg-blue-700 transition-colors"
+                    disabled={submitting}
+                    className={cn(
+                      "px-3 py-2.5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white",
+                      "hover:from-blue-700 hover:to-blue-800 transition-all duration-200",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
                     aria-label="More save options"
+                    title="Advanced save options"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
                 </div>
               </div>

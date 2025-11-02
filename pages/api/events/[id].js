@@ -12,7 +12,11 @@ function parseDateForStorage(value) {
   if (Object.prototype.toString.call(value) === '[object Date]') return value;
   const s = String(value);
   // Treat date-only strings as local-midnight to avoid timezone shifting the day
-  if (isDateOnly(s)) return new Date(s + 'T00:00:00');
+  // Use local noon for date-only strings to avoid cross-timezone day shifts
+  if (isDateOnly(s)) {
+    const parts = s.split('-').map(Number);
+    return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, 12, 0, 0);
+  }
   const parsed = new Date(s);
   return isNaN(parsed.getTime()) ? null : parsed;
 }

@@ -53,21 +53,26 @@ const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     );
   };
 
-  const setClose = (modalId: string = "default") => {
-    if (canClose[modalId] !== false) {
-      setIsOpen((prev) => ({ ...prev, [modalId]: false }));
-      setData((prev) => ({ ...prev, [modalId]: null }));
-      setModals((prev) => {
-        const newState = { ...prev };
-        delete newState[modalId];
-        return newState;
-      });
-      setCanCloseState((prev) => {
-        const newState = { ...prev };
-        delete newState[modalId];
-        return newState;
-      });
-    }
+  const setClose = (modalId?: string) => {
+    // If no modalId provided, close the last-open modal (most recently added
+    // to the `modals` map that is currently open). This makes calling
+    // setClose() (without args) work from inside modal components like
+    // CustomModal which don't know the external modal id.
+    const openKeys = Object.keys(isOpen).filter((k) => isOpen[k]);
+    const target = modalId ?? (openKeys.length ? openKeys[openKeys.length - 1] : 'default');
+    if (canClose[target] === false) return;
+    setIsOpen((prev) => ({ ...prev, [target]: false }));
+    setData((prev) => ({ ...prev, [target]: null }));
+    setModals((prev) => {
+      const newState = { ...prev };
+      delete newState[target];
+      return newState;
+    });
+    setCanCloseState((prev) => {
+      const newState = { ...prev };
+      delete newState[target];
+      return newState;
+    });
   };
 
   const setCanClose = (modalId: string, value: boolean) => {

@@ -836,8 +836,7 @@ const GradesPage = () => {
                   id="grades-cat-name"
                   placeholder="e.g., Team Meeting, Study Session"
                   ref={catNameRef}
-                  style={isDark ? { color: '#ffffff', WebkitTextFillColor: '#ffffff', caretColor: '#ffffff', textShadow: '0 0 1px rgba(255,255,255,0.02)' } : undefined}
-                  className="w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white dark:!text-white font-semibold caret-white placeholder-gray-400 dark:placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
                 />
@@ -871,7 +870,7 @@ const GradesPage = () => {
                   min="0"
                   max="100"
                   ref={weightRef}
-                  className="w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white dark:!text-white font-semibold caret-white placeholder-gray-400 dark:placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
                   value={newCategory.weight}
                   onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
                 />
@@ -930,8 +929,7 @@ const GradesPage = () => {
                   id="grades-item-name"
                   placeholder="e.g., Quiz 1, Assignment 3, Midterm"
                   ref={itemNameRef}
-                  style={isDark ? { color: '#ffffff', WebkitTextFillColor: '#ffffff', caretColor: '#ffffff', textShadow: '0 0 1px rgba(255,255,255,0.02)' } : undefined}
-                  className="w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white dark:!text-white font-semibold caret-white placeholder-gray-400 dark:placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
                   value={newItem.name}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                 />

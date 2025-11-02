@@ -135,6 +135,8 @@ model Attachment {
 model Assessment {
   id         String    @id @default(uuid())
   name       String
+  // category type (assignment, quiz, exam, project, lab, participation, etc.)
+  type       String?   @default("assignment")
   weight     Float?
   // items is a JSON blob that mirrors the client-side structure: [{ name, grade, maxGrade, weight? }, ...]
   items      Json?

@@ -122,13 +122,12 @@ export default function CalendarPage() {
   const openModal = (mode, ev = null) => {
     // For 'create' open the AddEventModal and pass the selected date as default
     if (mode === 'create') {
-        setOpen(
-          <CustomModal title="Add Event">
-            <AddEventModal />
-          </CustomModal>,
-          async () => ({ default: { date: selectedDate || toYMD(new Date()) } }),
-          'add-event-create'
-        );
+      setOpen(
+        <CustomModal title="Add Event">
+          <AddEventModal />
+        </CustomModal>,
+        async () => ({ default: { date: selectedDate || toYMD(new Date()) } })
+      );
       return;
     }
 
@@ -139,8 +138,7 @@ export default function CalendarPage() {
         <CustomModal title={ev.title || 'Edit Event'}>
           <AddEventModal />
         </CustomModal>,
-        async () => (ev),
-        `add-event-edit-${ev.id}`
+        async () => ({ default: ev })
       );
       return;
     }

@@ -22,7 +22,13 @@ function parseDateForStorage(value) {
   const s = String(value);
   // If it's a pure date like 2025-09-21, anchor it to local midnight to avoid
   // timezone offsets that could move it to the previous/next day.
-  if (isDateOnly(s)) return new Date(s + 'T00:00:00');
+  // Use local noon (12:00) when converting a date-only string to a Date so
+  // that converting to/from UTC is less likely to shift the calendar day
+  // across different server/client timezone environments.
+  if (isDateOnly(s)) {
+    const parts = s.split('-').map(Number);
+    return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, 12, 0, 0);
+  }
   const parsed = new Date(s);
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
@@ -231,12 +237,14 @@ export default async function handler(req, res) {
             } catch (e) {
               dt = new Date(String(dateVal));
             }
-      if (!isNaN(dt.getTime())) {
+              if (!isNaN(dt.getTime())) {
                 const y = dt.getFullYear();
                 const m = dt.getMonth();
                 const day = dt.getDate();
               // time may be stored separately on the row as `time` or `startTime`
-              let hh = 0, mm = 0;
+              // Default to local noon when no explicit time is provided to avoid
+              // off-by-one-day shifts when converting to ISO instants across timezones.
+              let hh = 12, mm = 0;
               try {
                 const t = out.time || out.startTime || null;
                 if (t && typeof t === 'string' && t.indexOf(':') !== -1) {

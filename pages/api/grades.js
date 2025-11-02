@@ -138,6 +138,7 @@ export default async function handler(req, res) {
               assessments: Array.isArray(c.assessments) ? c.assessments.map(a => ({
                 id: a.id,
                 name: a.name,
+                type: a.type || 'assignment',
                 weight: a.weight || 0,
                 items: a.items || [],
                 created_at: a.created_at,
@@ -228,7 +229,7 @@ export default async function handler(req, res) {
 
               // replace assessments: delete existing and recreate
               await prismaClient.assessment.deleteMany({ where: { course_id: courseId, user_id: userId } });
-              const toCreate = Array.isArray(course.assessments) ? course.assessments.map(a => ({ name: a.name || 'Assessment', weight: a.weight !== undefined ? Number(a.weight) : undefined, items: a.items || [], course_id: courseId, user_id: userId })) : [];
+              const toCreate = Array.isArray(course.assessments) ? course.assessments.map(a => ({ name: a.name || 'Assessment', type: a.type || 'assignment', weight: a.weight !== undefined ? Number(a.weight) : undefined, items: a.items || [], course_id: courseId, user_id: userId })) : [];
               console.log('[api/grades] Recreating assessments count=', toCreate.length);
               for (const a of toCreate) {
                 await prismaClient.assessment.create({ data: a });
@@ -245,7 +246,7 @@ export default async function handler(req, res) {
               case 'add_assessment':
                 if (!assessment || !assessment.name) return res.status(400).json({ success: false, error: 'Missing assessment name' });
                   console.log('[api/grades] add_assessment for course', courseId, 'user', userId);
-                  await prismaClient.assessment.create({ data: { name: assessment.name, weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || [], course_id: courseId, user_id: userId } });
+                  await prismaClient.assessment.create({ data: { name: assessment.name, type: assessment.type || 'assignment', weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || [], course_id: courseId, user_id: userId } });
                   // return canonical course
                   const afterAdd = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
                   return res.status(200).json({ success: true, data: afterAdd });
@@ -253,7 +254,7 @@ export default async function handler(req, res) {
               case 'update_assessment':
                 if (!assessment || !assessment.id) return res.status(400).json({ success: false, error: 'Missing assessment id or data' });
                   console.log('[api/grades] update_assessment', assessment.id);
-                  await prismaClient.assessment.updateMany({ where: { id: assessment.id, course_id: courseId, user_id: userId }, data: { name: assessment.name || undefined, weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || undefined } });
+                  await prismaClient.assessment.updateMany({ where: { id: assessment.id, course_id: courseId, user_id: userId }, data: { name: assessment.name || undefined, type: assessment.type || undefined, weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || undefined } });
                   const afterUpdate = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
                   return res.status(200).json({ success: true, data: afterUpdate });
 
@@ -292,7 +293,7 @@ export default async function handler(req, res) {
             if (existingTotal + newWeight > 100) {
               return res.status(400).json({ success: false, error: 'Total assessment weights cannot exceed 100%.' });
             }
-            userCourses[courseIndex].assessments.push({ name: legacyAssessment.name, weight: newWeight, items: [] });
+            userCourses[courseIndex].assessments.push({ name: legacyAssessment.name, type: legacyAssessment.type || 'assignment', weight: newWeight, items: [] });
             break;
 
           case 'update_assessment':
@@ -308,7 +309,8 @@ export default async function handler(req, res) {
                 updated.items = updated.items.map(it => ({ ...it, weight: it.weight !== undefined && it.weight !== '' ? parseFloat(it.weight) : undefined, grade: it.grade === '' || it.grade === undefined ? it.grade : parseFloat(it.grade), maxGrade: it.maxGrade === '' || it.maxGrade === undefined ? it.maxGrade : parseFloat(it.maxGrade) }));
               }
               updated.weight = isNaN(updatedWeight) ? userCourses[courseIndex].assessments[legacyIndex].weight : updatedWeight;
-              userCourses[courseIndex].assessments[legacyIndex] = updated;
+              // ensure type is preserved or defaulted
+              userCourses[courseIndex].assessments[legacyIndex] = { ...userCourses[courseIndex].assessments[legacyIndex], ...updated, type: updated.type || userCourses[courseIndex].assessments[legacyIndex].type || 'assignment' };
             }
             break;
 

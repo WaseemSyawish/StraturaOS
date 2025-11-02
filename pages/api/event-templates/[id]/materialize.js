@@ -18,7 +18,12 @@ function parseDateForStorage(value) {
   if (!value) return new Date();
   if (Object.prototype.toString.call(value) === '[object Date]') return value;
   const s = String(value);
-  if (isDateOnly(s)) return new Date(s + 'T00:00:00');
+  // Use local noon for date-only strings to reduce the chance of shifting the
+  // calendar day when different environments interpret ISO strings as UTC/local.
+  if (isDateOnly(s)) {
+    const parts = s.split('-').map(Number);
+    return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, 12, 0, 0);
+  }
   const parsed = new Date(s);
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }

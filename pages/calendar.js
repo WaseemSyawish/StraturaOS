@@ -12,9 +12,8 @@ const HEADER_HEIGHT_TAILWIND = 'h-16';
 const ASIDE_WIDTH_CLASS = 'w-96';
 // slightly less wide than before; tweak: slightly narrower
 const CONTAINER_MAX_WIDTH_CLASS = 'max-w-[1450px]';
-const DAYS_GRID_TEMPLATE_ROWS = 'repeat(6, 1fr)';
+// grid rows will be determined dynamically (5 or 6) based on month length
 const DAYS_GRID_AUTO_ROWS = '1fr';
-const DAYS_GRID_STYLE = { gridTemplateRows: DAYS_GRID_TEMPLATE_ROWS };
 
 function toYMD(d) {
   if (!d) return '';
@@ -61,23 +60,29 @@ export default function CalendarPage() {
       days.push({ date: next, isCurrentMonth: false });
     }
 
-    // Ensure we always have 6 rows (42 cells) so the calendar height is consistent
-    // across months. If days length is less than 42, pad with additional next-month days.
-    if (days.length < 42) {
+    // Ensure we always have 5 rows (35 cells) so the calendar height is consistent
+    // across months. If days length is less than 35, pad with additional next-month days.
+    if (days.length < 35) {
       // Start padding from the day after the last trailing day we already added.
-      // trailingDays already added covers 1..trailingDays, so start at trailingDays + 1
-      let nextDay = trailingDays + 1 || 1;
-      while (days.length < 42) {
+      let nextDay = (trailingDays || 0) + 1;
+      while (days.length < 35) {
         const next = new Date(year, month + 1, nextDay);
         days.push({ date: next, isCurrentMonth: false });
         nextDay += 1;
       }
     }
 
+    // If the month would normally occupy 6 rows (more than 35 cells), keep them.
+    // We no longer trim; the grid will expand to 6 rows when needed.
+
     return days;
   };
 
   const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
+
+  // choose 6 rows when month requires more than 35 cells, otherwise 5 rows
+  const gridRowsCount = days.length > 35 ? 6 : 5;
+  const gridStyle = { gridTemplateRows: `repeat(${gridRowsCount}, 1fr)` };
 
   const getEventsForDate = (date) => {
     const ymd = toYMD(date);
@@ -99,9 +104,31 @@ export default function CalendarPage() {
     setSelectedDate(ymd);
   };
 
-  const handleDeleteEvent = (id) => {
-    setEvents(prev => prev.filter(ev => ev.id !== id));
+  // Fetch events from server and normalize
+  const loadEvents = async () => {
+    try {
+      const res = await fetch('/api/events');
+      if (!res.ok) return;
+      const payload = await res.json().catch(() => null);
+      const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
+      const normalized = list.map(e => ({
+        id: String(e.id),
+        title: e.title || 'Untitled',
+        date: (e.date && typeof e.date === 'string') ? (e.date.length >= 10 ? e.date.slice(0, 10) : e.date) : (e.date ? e.date : ''),
+        startTime: e.time || e.startTime || '',
+        endTime: e.endTime || '',
+        type: e.type || 'event',
+        location: e.location || '',
+        description: e.description || '',
+        color: (e.type === 'class' || e.type === 'lecture') ? '#8B5CF6' : (e.type === 'deadline' ? '#EF4444' : (e.color || '#3B82F6'))
+      }));
+      setEvents(normalized);
+    } catch (err) {
+      console.warn('Could not load events from server', err);
+    }
   };
+
+  useEffect(() => { loadEvents(); }, []);
 
   // use the project's modal provider so we can open the existing AddEventModal
   const modalCtx = useModal();
@@ -151,31 +178,6 @@ export default function CalendarPage() {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   };
 
-  // Fetch events from server and normalize
-  const loadEvents = async () => {
-    try {
-      const res = await fetch('/api/events');
-      if (!res.ok) return;
-      const payload = await res.json().catch(() => null);
-      const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
-      const normalized = list.map(e => ({
-        id: String(e.id),
-        title: e.title || 'Untitled',
-        date: (e.date && typeof e.date === 'string') ? (e.date.length >= 10 ? e.date.slice(0, 10) : e.date) : (e.date ? e.date : ''),
-        startTime: e.time || e.startTime || '',
-        endTime: e.endTime || '',
-        type: e.type || 'event',
-        location: e.location || '',
-        description: e.description || '',
-        color: (e.type === 'class' || e.type === 'lecture') ? '#8B5CF6' : (e.type === 'deadline' ? '#EF4444' : (e.color || '#3B82F6'))
-      }));
-      setEvents(normalized);
-    } catch (err) {
-      console.warn('Could not load events from server', err);
-    }
-  };
-
-  useEffect(() => { loadEvents(); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,7 +217,7 @@ export default function CalendarPage() {
         </div>
       </header>
 
-  <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-4 min-h-[calc(100vh-3rem)] h-[calc(100vh-3rem)]`}>
+      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-4 h-[calc(100vh-4rem)]`}>
         <div className="flex gap-6 h-full">
           <div className="flex-1 flex flex-col h-full">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col h-full dark:bg-slate-900/80 dark:border-slate-800">
@@ -244,15 +246,15 @@ export default function CalendarPage() {
                 </button>
               </div>
 
-              <div className="p-6 flex-1 overflow-hidden flex flex-col">
-                <div className="grid grid-cols-7 gap-4 mb-4">
+              <div className="p-6 flex-1 flex flex-col min-h-0">
+                <div className="grid grid-cols-7 gap-4 mb-4 flex-shrink-0">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                     <div key={d} className="text-center text-sm font-semibold uppercase tracking-wider text-slate-600 py-2 dark:text-slate-400">
                       {d}
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-3 flex-1 h-full" style={DAYS_GRID_STYLE}>
+                <div className="grid grid-cols-7 gap-3 flex-1 min-h-0" style={{ gridAutoRows: '1fr', ...gridStyle }}>
                   {days.map((day, idx) => {
                     const dayEvents = getEventsForDate(day.date);
                     const holiday = isHoliday(day.date);
@@ -263,7 +265,7 @@ export default function CalendarPage() {
                       <div
                         key={idx}
                         onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                        className={`p-3 border-2 rounded-xl cursor-pointer transition-all duration-150 flex flex-col h-full ${
+                        className={`p-2 border-2 rounded-xl cursor-pointer transition-all duration-150 flex flex-col min-h-0 overflow-hidden ${
                           day.isCurrentMonth
                             ? (isSelected
                               ? 'bg-white border-purple-400 shadow-md shadow-purple-100/50 dark:bg-slate-800 dark:border-purple-500 dark:shadow-purple-500/20'
@@ -271,7 +273,7 @@ export default function CalendarPage() {
                             : 'bg-slate-50/50 border-slate-100 dark:bg-slate-900/30 dark:border-slate-800'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-2 flex-shrink-0">
                           <div className={`text-base font-bold ${
                             !day.isCurrentMonth ? 'text-slate-400 dark:text-slate-600' :
                             today ? 'text-white bg-gradient-to-br from-purple-600 to-purple-700 w-7 h-7 rounded-lg flex items-center justify-center shadow-md text-sm' :
@@ -282,16 +284,16 @@ export default function CalendarPage() {
                         </div>
 
                         {holiday && (
-                          <div className="mb-2">
+                          <div className="mb-2 flex-shrink-0">
                             <div className="w-2 h-2 bg-amber-500 rounded-full" />
                           </div>
                         )}
 
-                        <div className="flex-1 flex flex-wrap gap-1.5 overflow-auto">
+                        <div className="flex flex-wrap gap-1.5 overflow-hidden">
                           {dayEvents.slice(0, 3).map((item) => (
                             <div
                               key={item.id}
-                              className="w-2 h-2 rounded-full border border-white shadow-sm dark:border-slate-700"
+                              className="w-2 h-2 rounded-full border border-white shadow-sm dark:border-slate-700 flex-shrink-0"
                               style={{ backgroundColor: item.color }}
                               title={item.title}
                             />
@@ -310,7 +312,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <aside className={`${ASIDE_WIDTH_CLASS} flex-shrink-0`}>
+          <aside className="w-96 flex-shrink-0">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden sticky top-24 dark:bg-slate-900/80 dark:border-slate-800">
               <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 text-white">
                 <div className="text-sm font-medium opacity-90 mb-1">Selected Day</div>
@@ -353,8 +355,11 @@ export default function CalendarPage() {
                           {evs.map(ev => (
                             <div 
                               key={ev.id} 
-                              className="group p-4 rounded-xl border-l-4 bg-white hover:bg-slate-50 transition-all duration-200 shadow-sm hover:shadow-md dark:bg-slate-800/50 dark:hover:bg-slate-800"
-                              style={{ borderLeftColor: ev.color }}
+                              className="group p-4 rounded-xl border-2 hover:shadow-lg transition-all duration-200 dark:hover:shadow-slate-900/50"
+                              style={{ 
+                                borderColor: ev.color,
+                                backgroundColor: `${ev.color}${typeof document !== 'undefined' && document.documentElement.classList.contains('dark') ? '15' : '08'}`
+                              }}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
@@ -406,4 +411,3 @@ export default function CalendarPage() {
     </div>
   );
 }
-

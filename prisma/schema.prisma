@@ -17,9 +17,9 @@ model User {
   created_at          DateTime?           @default(now())
   updated_at          DateTime?           @default(now())
   archived_events     ArchivedEvent[]
+  assessments         Assessment[]
   attendance_sessions AttendanceSession[]
   courses             Course[]
-  assessments         Assessment[]
   events              Event[]
 
   @@map("users")
@@ -38,10 +38,10 @@ model Course {
   created_at          DateTime?           @default(now())
   updated_at          DateTime?           @default(now())
   archived_events     ArchivedEvent[]
+  assessments         Assessment[]
   attendance_sessions AttendanceSession[]
   users               User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   events              Event[]
-  assessments         Assessment[]
 
   @@map("courses")
 }
@@ -66,7 +66,6 @@ model AttendanceSession {
 
 model Event {
   id          String       @id @default(uuid())
-  template_id String?      @db.Uuid
   title       String
   type        String       @default("assignment")
   archived    Boolean      @default(false)
@@ -81,6 +80,7 @@ model Event {
   color       String?
   meta        Json?        @db.Json
   end_date    DateTime?    @db.Timestamp(6)
+  template_id String?      @db.Uuid
   attachments Attachment[]
   courses     Course?      @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users       User         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -95,7 +95,6 @@ model Event {
 model ArchivedEvent {
   id                String    @id @default(uuid())
   original_event_id String?   @unique
-  template_id       String?   @db.Uuid
   title             String
   type              String    @default("assignment")
   archived          Boolean   @default(true)
@@ -109,6 +108,7 @@ model ArchivedEvent {
   updated_at        DateTime? @default(now())
   color             String?
   end_date          DateTime? @db.Timestamp(6)
+  template_id       String?   @db.Uuid
   courses           Course?   @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users             User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -135,18 +135,15 @@ model Attachment {
 model Assessment {
   id         String    @id @default(uuid())
   name       String
-  // category type (assignment, quiz, exam, project, lab, participation, etc.)
-  type       String?   @default("assignment")
   weight     Float?
-  // items is a JSON blob that mirrors the client-side structure: [{ name, grade, maxGrade, weight? }, ...]
+  type       String?   @default("assignment")  // ← ADD THIS LINE
   items      Json?
   course_id  String
   user_id    String
   created_at DateTime? @default(now())
   updated_at DateTime? @default(now())
-
-  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course     Course    @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id, course_id], map: "idx_assessments_user_course")
   @@map("assessments")

@@ -10,15 +10,24 @@ export default function CustomModal({ title, children }) {
   if (typeof window === 'undefined') return null
 
   return createPortal(
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+  <div className="fixed inset-0 z-[99999] flex items-center justify-center">
       <div
-        // Use a theme-aware overlay: dark mode uses a subtle light overlay (white/5) so
-        // the modal content doesn't get an extra heavy black wash on top of a dark background.
-  className="absolute inset-0 bg-black/40 dark:bg-white/5 backdrop-blur-md"
-        onClick={() => setClose()}
+        // Use a theme-aware overlay. Use onMouseDown so clicks that begin
+        // inside the panel won't accidentally close the modal due to timing
+        // differences between mousedown/click handlers in some browsers.
+        className="absolute inset-0 bg-black/40 dark:bg-white/5 backdrop-blur-md"
+        onMouseDown={() => setClose()}
       />
 
-  <div className="relative w-full max-w-[520px] cozy rounded-md shadow-2xl ring-1 ring-white/6 overflow-visible max-h-[90vh] bg-white dark:bg-slate-900 dark:ring-white/6 mx-4">
+  <div
+    // Prevent pointer events on the overlay from reaching the panel and
+    // ensure the panel itself receives pointer events. Stop propagation on
+    // mouse down so child interactive elements remain responsive.
+    className="relative w-full max-w-[520px] cozy rounded-md shadow-2xl ring-1 ring-white/6 overflow-visible max-h-[90vh] bg-white dark:bg-slate-900 dark:ring-white/6 mx-4 z-[100000]"
+    onMouseDown={(e) => e.stopPropagation()}
+    role="dialog"
+    aria-modal="true"
+  >
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <h2 className="text-xl font-semibold leading-tight text-slate-900 dark:text-slate-100">{title}</h2>
           <button

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { createPortal } from 'react-dom';
 
 interface ModalContextType {
   data: Record<string, any>;
@@ -33,6 +34,7 @@ const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
   const [data, setData] = useState<Record<string, any>>({});
   const [modals, setModals] = useState<Record<string, React.ReactNode>>({});
   const [canClose, setCanCloseState] = useState<Record<string, boolean>>({});
+  const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
 
   const setOpen = async (
     modal: React.ReactNode,
@@ -76,14 +78,43 @@ const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     });
   };
 
+  // Create a top-level modal root element and attach it to document.body.
+  // We do this on the client only so SSR is unaffected.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let root = document.getElementById('up-modal-root');
+    let created = false;
+    if (!root) {
+      root = document.createElement('div');
+      root.setAttribute('id', 'up-modal-root');
+      // Keep it at the end of body so it's outside app containers that might
+      // create containing blocks (transforms/filters).
+      document.body.appendChild(root);
+      created = true;
+    }
+    setModalRoot(root as HTMLElement);
+    return () => {
+      if (created && root && root.parentNode) root.parentNode.removeChild(root);
+    };
+  }, []);
+
   return (
     <ModalContext.Provider
       value={{ data, isOpen, canClose, setOpen, setClose, setCanClose }}
     >
       {children}
-      {Object.entries(modals).map(
-        ([id, modal]) =>
-          isOpen[id] && <React.Fragment key={id}>{modal}</React.Fragment>
+      {/* Render modals into a top-level portal so fixed positioning is
+          always relative to the viewport (avoids issues when page
+          containers create stacking/containing contexts). */}
+      {typeof window !== 'undefined' && modalRoot ? createPortal(
+        Object.entries(modals).map(
+          ([id, modal]) => isOpen[id] && <React.Fragment key={id}>{modal}</React.Fragment>
+        ), modalRoot
+      ) : (
+        // fallback: render inline during SSR (should be rare)
+        Object.entries(modals).map(
+          ([id, modal]) => isOpen[id] && <React.Fragment key={id}>{modal}</React.Fragment>
+        )
       )}
     </ModalContext.Provider>
   );

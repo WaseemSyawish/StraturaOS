@@ -9,7 +9,23 @@ export default async function handler(req, res) {
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
     const updated = await prisma.event.update({ where: { id }, data: { completed: !event.completed } });
-    return res.status(200).json({ success: true, event: updated });
+    // Normalize response so clients see consistent local dates
+    const normalize = (ev) => {
+      try {
+        const dt = (ev && ev.date) ? new Date(String(ev.date)) : null;
+        const dateStr = dt && !isNaN(dt.getTime()) ? `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}` : ev.date;
+        const out = { ...ev, date: dateStr };
+        if (!out.startDate && out.date) {
+          const parts = String(out.date).split('-').map(Number);
+          out.startDate = new Date(parts[0], (parts[1]||1)-1, parts[2]||1, 12, 0, 0).toISOString();
+        }
+        if (out.end_date && !out.endDate) {
+          const ed = new Date(String(out.end_date)); if (!isNaN(ed.getTime())) out.endDate = ed.toISOString();
+        }
+        return out;
+      } catch (e) { return ev; }
+    };
+    return res.status(200).json({ success: true, event: normalize(updated) });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Failed to toggle event' });

@@ -128,7 +128,7 @@ export default async function handler(req, res) {
           if (!event) {
             return res.status(404).json({ code: 'NOT_FOUND', message: 'Event not found' });
           }
-          return res.status(200).json({ success: true, event });
+          return res.status(200).json({ success: true, event: normalizeEventRow(event) });
         } catch (err) {
           console.error(`[events/:id] GET prisma error for id=${id}:`, err && err.message ? err.message : err);
           // Prisma unreachable -> fallback to file store
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
             try {
               const local = fallback.find(id);
               if (!local) return res.status(404).json({ code: 'NOT_FOUND', message: 'Event not found' });
-              return res.status(200).json({ success: true, event: local });
+              return res.status(200).json({ success: true, event: normalizeEventRow(local) });
             } catch (fe) {
               console.error('[events/:id] fallback.find error:', fe && fe.message ? fe.message : fe);
             }
@@ -222,7 +222,7 @@ export default async function handler(req, res) {
           // Delete original
           await prisma.event.delete({ where: { id } });
 
-          return res.status(200).json({ success: true, event: created });
+          return res.status(200).json({ success: true, event: normalizeEventRow(created) });
         }
 
         if (wantsArchived === false) {
@@ -234,7 +234,7 @@ export default async function handler(req, res) {
             // Ensure we don't try to overwrite immutable fields
             delete dataToApply.id; delete dataToApply.created_at; delete dataToApply.user_id;
             const updated = await safeUpdateEvent(id, dataToApply, true);
-            return res.status(200).json({ success: true, event: updated });
+            return res.status(200).json({ success: true, event: normalizeEventRow(updated) });
           }
 
           // Move from ArchivedEvent -> Event
@@ -271,7 +271,7 @@ export default async function handler(req, res) {
           // Delete archived copy using the resolved key
           await prisma.archivedEvent.delete({ where: deleteKey });
 
-          return res.status(200).json({ success: true, event: created });
+          return res.status(200).json({ success: true, event: normalizeEventRow(created) });
         }
 
   // Otherwise, update in whichever table the event currently resides
@@ -911,14 +911,14 @@ export default async function handler(req, res) {
 
           const dataToApply = pickPrismaFields(updateData);
           const updated = await safeUpdateEvent(id, dataToApply, true);
-          return res.status(200).json({ success: true, event: updated });
+          return res.status(200).json({ success: true, event: normalizeEventRow(updated) });
         } catch (err) {
           console.error(`[events/:id] prisma.event.update error for id=${id}:`, err && err.message ? err.message : err);
 
           // Try the file-backed fallback for any update error so UI doesn't break when Prisma/DB is flaky
           try {
             const local = fallback.update(id, updateData);
-            if (local) return res.status(200).json({ success: true, event: local, fallback: true });
+            if (local) return res.status(200).json({ success: true, event: normalizeEventRow(local), fallback: true });
           } catch (fe) {
             console.error('[events/:id] fallback.update error:', fe && fe.message ? fe.message : fe);
           }
@@ -929,12 +929,12 @@ export default async function handler(req, res) {
             // Archived rows may be keyed by original_event_id or by their own id; try both.
             try {
               const archivedUpdate = await prisma.archivedEvent.update({ where: { original_event_id: id }, data: pickPrismaFields(updateData), include: { courses: true } });
-              return res.status(200).json({ success: true, event: archivedUpdate });
+              return res.status(200).json({ success: true, event: normalizeEventRow(archivedUpdate) });
             } catch (err2) {
               console.info(`[events/:id] archivedEvent.update by original_event_id failed for id=${id}, trying by archived id`);
               try {
                   const archivedUpdate2 = await prisma.archivedEvent.update({ where: { id }, data: pickPrismaFields(updateData), include: { courses: true } });
-                return res.status(200).json({ success: true, event: archivedUpdate2 });
+                return res.status(200).json({ success: true, event: normalizeEventRow(archivedUpdate2) });
               } catch (err3) {
                 console.error(`[events/:id] archivedEvent.update error for id=${id}:`, err3 && err3.message ? err3.message : err3);
                 // Add attempted keys to error for debugging
@@ -1151,4 +1151,64 @@ export default async function handler(req, res) {
 
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: 'Internal server error', details: error.message });
   }
+}
+
+// Normalize an event row for API consumers: return date as YYYY-MM-DD (local)
+// and compute `startDate` and `endDate` ISO instants based on local wall-clock
+// components (date + time) so clients render the intended calendar day.
+function localDateOnlyString(d) {
+  if (!d) return null;
+  const dt = (Object.prototype.toString.call(d) === '[object Date]') ? d : new Date(String(d));
+  if (isNaN(dt.getTime())) return null;
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeEventRow(ev) {
+  if (!ev) return ev;
+  const out = { ...ev };
+  try {
+    if (out && out.date) out.date = localDateOnlyString(out.date);
+  } catch (e) {}
+
+  try {
+    // compute startDate from date + time (local)
+    const dateVal = out.date || out.created_at || null;
+    if (dateVal && !out.startDate) {
+      let dt = null;
+      try {
+        const sVal = String(dateVal);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+          const parts = sVal.split('-').map(Number);
+          dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+        } else {
+          dt = new Date(sVal);
+        }
+      } catch (e) { dt = new Date(String(dateVal)); }
+      if (!isNaN(dt.getTime())) {
+        let hh = 12, mm = 0;
+        try {
+          const t = out.time || out.startTime || null;
+          if (t && typeof t === 'string' && t.indexOf(':') !== -1) {
+            const parts = String(t).split(':').map(Number);
+            hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+            mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+          }
+        } catch (e) {}
+        try {
+          out.startDate = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), hh, mm, 0).toISOString();
+        } catch (e) { out.startDate = new Date(String(dateVal)).toISOString(); }
+      }
+    }
+
+    if (out.end_date && !out.endDate) {
+      try {
+        const ed = (Object.prototype.toString.call(out.end_date) === '[object Date]') ? out.end_date : new Date(String(out.end_date));
+        if (!isNaN(ed.getTime())) out.endDate = ed.toISOString();
+      } catch (e) {}
+    }
+  } catch (e) {}
+  return out;
 }

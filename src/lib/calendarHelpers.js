@@ -1,16 +1,16 @@
-const {
+import {
   addDays,
   endOfMonth,
   startOfMonth,
   startOfDay,
   eachDayOfInterval,
-  parseISO,
   isSameDay,
   format,
   differenceInDays,
-} = require('date-fns');
+} from 'date-fns';
+import { parseDatePreserveLocal } from './dateHelpers';
 
-exports.getCalendarCells = function getCalendarCells(selectedDate) {
+export function getCalendarCells(selectedDate) {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
 
@@ -40,7 +40,7 @@ exports.getCalendarCells = function getCalendarCells(selectedDate) {
   return [...prevMonthCells, ...currentMonthCells, ...nextMonthCells];
 };
 
-exports.calculateMonthEventPositions = function calculateMonthEventPositions(
+export function calculateMonthEventPositions(
   multiDayEvents,
   singleDayEvents,
   selectedDate,
@@ -57,19 +57,19 @@ exports.calculateMonthEventPositions = function calculateMonthEventPositions(
 
   const sortedEvents = [
     ...multiDayEvents.sort((a, b) => {
-      const aDuration = differenceInDays(parseISO(a.endDate), parseISO(a.startDate));
-      const bDuration = differenceInDays(parseISO(b.endDate), parseISO(b.startDate));
+      const aDuration = differenceInDays(parseDatePreserveLocal(a.endDate), parseDatePreserveLocal(a.startDate));
+      const bDuration = differenceInDays(parseDatePreserveLocal(b.endDate), parseDatePreserveLocal(b.startDate));
       return (
         bDuration - aDuration ||
-        parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()
+        parseDatePreserveLocal(a.startDate).getTime() - parseDatePreserveLocal(b.startDate).getTime()
       );
     }),
-    ...singleDayEvents.sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()),
+    ...singleDayEvents.sort((a, b) => parseDatePreserveLocal(a.startDate).getTime() - parseDatePreserveLocal(b.startDate).getTime()),
   ];
 
   sortedEvents.forEach((event) => {
-    const eventStart = parseISO(event.startDate);
-    const eventEnd = parseISO(event.endDate);
+    const eventStart = parseDatePreserveLocal(event.startDate);
+    const eventEnd = parseDatePreserveLocal(event.endDate);
     const eventDays = eachDayOfInterval({
       start: eventStart < monthStart ? monthStart : eventStart,
       end: eventEnd > monthEnd ? monthEnd : eventEnd,
@@ -99,13 +99,13 @@ exports.calculateMonthEventPositions = function calculateMonthEventPositions(
   });
 
   return eventPositions;
-};
+}
 
-exports.getMonthCellEvents = function getMonthCellEvents(date, events, eventPositions) {
+export function getMonthCellEvents(date, events, eventPositions) {
   const dayStart = startOfDay(date);
   const eventsForDate = events.filter((event) => {
-    const eventStart = parseISO(event.startDate);
-    const eventEnd = parseISO(event.endDate);
+    const eventStart = parseDatePreserveLocal(event.startDate);
+    const eventEnd = parseDatePreserveLocal(event.endDate);
     return (
       (dayStart >= eventStart && dayStart <= eventEnd) ||
       isSameDay(dayStart, eventStart) ||
@@ -124,18 +124,18 @@ exports.getMonthCellEvents = function getMonthCellEvents(date, events, eventPosi
       if (!a.isMultiDay && b.isMultiDay) return 1;
       return a.position - b.position;
     });
-};
+}
 
-exports.formatTime = function formatTime(dateOrString) {
-  const parsed = typeof dateOrString === 'string' ? parseISO(dateOrString) : dateOrString;
+export function formatTime(dateOrString) {
+  const parsed = typeof dateOrString === 'string' ? parseDatePreserveLocal(dateOrString) : dateOrString;
   try {
     return format(parsed, 'h:mm a');
   } catch (e) {
     return '';
   }
-};
+}
 
-exports.getColorClass = function getColorClass(color) {
+export function getColorClass(color) {
   const map = {
     red: 'bg-red-100 border-red-300 text-red-700',
     yellow: 'bg-yellow-100 border-yellow-300 text-yellow-700',
@@ -145,4 +145,4 @@ exports.getColorClass = function getColorClass(color) {
     purple: 'bg-purple-100 border-purple-300 text-purple-700',
   };
   return map[color] || 'bg-slate-100 border-slate-300 text-slate-700';
-};
+}

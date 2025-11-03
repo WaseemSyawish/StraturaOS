@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import clsx from "clsx";
 import { cn } from "@/lib/utils";
+import { parseDatePreserveLocal } from '@/lib/dateHelpers';
 
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
@@ -117,7 +118,7 @@ export default function MonthView({
 
   function handleShowMoreEvents(dayEvents: Event[]) {
     const title = dayEvents && dayEvents[0]
-      ? new Date(dayEvents[0].startDate).toDateString()
+      ? ((parseDatePreserveLocal(dayEvents[0].startDate) || new Date(String(dayEvents[0].startDate))).toDateString())
       : "";
 
     setOpen(

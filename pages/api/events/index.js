@@ -10,9 +10,14 @@ function localDateOnlyString(d) {
   if (!d) return null;
   const dt = (Object.prototype.toString.call(d) === '[object Date]') ? d : new Date(String(d));
   if (isNaN(dt.getTime())) return null;
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const day = String(dt.getDate()).padStart(2, '0');
+  // NOTE: use the UTC date components here (getUTCFullYear/getUTCMonth/getUTCDate)
+  // instead of local getters. This ensures the API `date` reflects the stored
+  // Y-M-D components as they were materialized in the DB (the DB stores an
+  // instant that may include a timezone offset). Using the UTC components
+  // prevents the runtime/server timezone from shifting the displayed day.
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(dt.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 

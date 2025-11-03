@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Maximize2, ChevronLeft, Maximize } from "lucide-react";
 import clsx from "clsx";
 import { cn } from "@/lib/utils";
+import { parseDatePreserveLocal } from '@/lib/dateHelpers';
 import { Event, CustomEventModal } from "@/types";
 import CustomModal from "@/components/ui/custom-modal";
 
@@ -178,7 +179,7 @@ export default function WeeklyView({
 
   const computeMinaStyle = React.useCallback((event: Event, allDayEvents: Event[] | undefined) => {
     const ROW_PX_PER_HOUR = 64;
-    const ensureDate = (d: any) => (d instanceof Date ? d : new Date(d));
+  const ensureDate = (d: any) => (d instanceof Date ? d : (parseDatePreserveLocal(d) || new Date(String(d))));
 
     const items = (allDayEvents || [])
       .filter((ev) => ev && ev.startDate && ev.endDate)
@@ -377,10 +378,10 @@ export default function WeeklyView({
                                   
                                   <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                                     {dayEvents
-                                      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+                                      .sort((a, b) => (parseDatePreserveLocal(a.startDate) || new Date(String(a.startDate))).getTime() - (parseDatePreserveLocal(b.startDate) || new Date(String(b.startDate))).getTime())
                                       .map((event) => {
-                                        const startTime = new Date(event.startDate);
-                                        const endTime = new Date(event.endDate);
+                                        const startTime = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
+                                        const endTime = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
                                         const formatTime = (date: Date) => {
                                           const hours = date.getHours();
                                           const minutes = date.getMinutes();

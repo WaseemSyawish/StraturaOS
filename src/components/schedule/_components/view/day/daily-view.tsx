@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { parseDatePreserveLocal } from '@/lib/dateHelpers';
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
@@ -71,15 +72,16 @@ const pageTransitionVariants = {
 const groupEventsByTimePeriod = (events: Event[] | undefined) => {
   if (!events || events.length === 0) return [];
   
+  const ensureDate = (d: any) => (d instanceof Date ? d : (parseDatePreserveLocal(d) || new Date(String(d))));
   const sortedEvents = [...events].sort((a, b) => 
-    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    ensureDate(a.startDate).getTime() - ensureDate(b.startDate).getTime()
   );
   
-  const eventsOverlap = (event1: Event, event2: Event) => {
-    const start1 = new Date(event1.startDate).getTime();
-    const end1 = new Date(event1.endDate).getTime();
-    const start2 = new Date(event2.startDate).getTime();
-    const end2 = new Date(event2.endDate).getTime();
+    const eventsOverlap = (event1: Event, event2: Event) => {
+    const start1 = ensureDate(event1.startDate).getTime();
+    const end1 = ensureDate(event1.endDate).getTime();
+    const start2 = ensureDate(event2.startDate).getTime();
+    const end2 = ensureDate(event2.endDate).getTime();
     
     return (start1 < end2 && start2 < end1);
   };
@@ -139,7 +141,7 @@ const groupEventsByTimePeriod = (events: Event[] | undefined) => {
   
   return timeGroups.map(group => 
     group.sort((a, b) => 
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      ensureDate(a.startDate).getTime() - ensureDate(b.startDate).getTime()
     )
   );
 };

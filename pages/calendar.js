@@ -3,6 +3,7 @@ import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
+import { toYMDLocal } from '@/lib/dateHelpers';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -15,19 +16,7 @@ const CONTAINER_MAX_WIDTH_CLASS = 'max-w-[1450px]';
 // grid rows will be determined dynamically (5 or 6) based on month length
 const DAYS_GRID_AUTO_ROWS = '1fr';
 
-function toYMD(d) {
-  if (!d) return '';
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  try {
-    const date = d instanceof Date ? d : new Date(d);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  } catch (e) {
-    return '';
-  }
-}
+const toYMD = (d) => toYMDLocal(d);
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -111,17 +100,28 @@ export default function CalendarPage() {
       if (!res.ok) return;
       const payload = await res.json().catch(() => null);
       const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
-      const normalized = list.map(e => ({
-        id: String(e.id),
-        title: e.title || 'Untitled',
-        date: (e.date && typeof e.date === 'string') ? (e.date.length >= 10 ? e.date.slice(0, 10) : e.date) : (e.date ? e.date : ''),
-        startTime: e.time || e.startTime || '',
-        endTime: e.endTime || '',
-        type: e.type || 'event',
-        location: e.location || '',
-        description: e.description || '',
-        color: (e.type === 'class' || e.type === 'lecture') ? '#8B5CF6' : (e.type === 'deadline' ? '#EF4444' : (e.color || '#3B82F6'))
-      }));
+      const normalized = list.map(e => {
+        // Prefer the server-provided `date` (YYYY-MM-DD) when available. If not,
+        // derive from startDate (ISO) using the local-preserving helper to avoid
+        // timezone-induced shifts.
+        let dateStr = '';
+        try {
+          if (e && typeof e.date === 'string' && e.date.length >= 10) dateStr = e.date.slice(0,10);
+          else if (e && e.startDate) dateStr = toYMD(e.startDate);
+          else if (e && e.date) dateStr = String(e.date).slice(0,10);
+        } catch (err) { dateStr = e && e.date ? String(e.date).slice(0,10) : ''; }
+        return {
+          id: String(e.id),
+          title: e.title || 'Untitled',
+          date: dateStr,
+          startTime: e.time || e.startTime || '',
+          endTime: e.endTime || '',
+          type: e.type || 'event',
+          location: e.location || '',
+          description: e.description || '',
+          color: (e.type === 'class' || e.type === 'lecture') ? '#8B5CF6' : (e.type === 'deadline' ? '#EF4444' : (e.color || '#3B82F6'))
+        };
+      });
       setEvents(normalized);
     } catch (err) {
       console.warn('Could not load events from server', err);

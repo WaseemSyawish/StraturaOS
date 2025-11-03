@@ -10,14 +10,15 @@ function localDateOnlyString(d) {
   if (!d) return null;
   const dt = (Object.prototype.toString.call(d) === '[object Date]') ? d : new Date(String(d));
   if (isNaN(dt.getTime())) return null;
-  // NOTE: use the UTC date components here (getUTCFullYear/getUTCMonth/getUTCDate)
-  // instead of local getters. This ensures the API `date` reflects the stored
-  // Y-M-D components as they were materialized in the DB (the DB stores an
-  // instant that may include a timezone offset). Using the UTC components
-  // prevents the runtime/server timezone from shifting the displayed day.
-  const y = dt.getUTCFullYear();
-  const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(dt.getUTCDate()).padStart(2, '0');
+  // Use local date components (getFullYear/getMonth/getDate) so the API's
+  // `date` field corresponds to the wall-clock Y-M-D that clients expect
+  // when they reconstruct a local Date from a YYYY-MM-DD plus a time string.
+  // Previously this used UTC getters which could produce a different Y-M-D
+  // for instants that sit near midnight UTC and therefore led to mismatches
+  // when clients computed start/end from `date` + `time`.
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -213,7 +214,35 @@ export default async function handler(req, res) {
         } catch (e) {
           // swallow extraction errors
         }
-        if (out && out.date) out.date = localDateOnlyString(out.date);
+        // Normalize `date` to the creator's wall-clock Y-M-D. Prefer deriving
+        // it from `startDate` when present (startDate is a deterministic ISO
+        // representing local components converted to an instant). This mirrors
+        // client parsing and avoids server timezone-dependent Date parsing.
+        try {
+          if (out && out.startDate && typeof out.startDate === 'string') {
+            const m = String(out.startDate).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+            if (m) {
+              const y = Number(m[1]);
+              const mo = Number(m[2]) - 1;
+              const d = Number(m[3]);
+              const hh = Number(m[4]);
+              const mm = Number(m[5]);
+              try {
+                const localDt = new Date(y, mo, d, hh, mm, 0);
+                const y2 = localDt.getFullYear();
+                const m2 = String(localDt.getMonth() + 1).padStart(2, '0');
+                const day2 = String(localDt.getDate()).padStart(2, '0');
+                out.date = `${y2}-${m2}-${day2}`;
+              } catch (e) {
+                // ignore and fall back to the existing date handling
+              }
+            }
+          } else if (out && out.date) {
+            out.date = localDateOnlyString(out.date);
+          }
+        } catch (e) {
+          // best-effort only
+        }
 
         // Compute deterministic ISO startDate and endDate fields so clients
         // don't have to rely on parsing date-only strings (which can be
@@ -267,6 +296,25 @@ export default async function handler(req, res) {
               } catch (e) {
                 out.startDate = (new Date(String(dateVal))).toISOString();
               }
+              // Derive a stable local YYYY-MM-DD `date` from the newly-computed
+              // startDate so API consumers receive the intended wall-clock day.
+              try {
+                if (out.startDate && typeof out.startDate === 'string') {
+                  const mmatch = String(out.startDate).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+                  if (mmatch) {
+                    const yy = Number(mmatch[1]);
+                    const momo = Number(mmatch[2]) - 1;
+                    const dd = Number(mmatch[3]);
+                    const hh2 = Number(mmatch[4]);
+                    const mm2 = Number(mmatch[5]);
+                    const localDt2 = new Date(yy, momo, dd, hh2, mm2, 0);
+                    const y2 = localDt2.getFullYear();
+                    const m2s = String(localDt2.getMonth() + 1).padStart(2, '0');
+                    const d2s = String(localDt2.getDate()).padStart(2, '0');
+                    out.date = `${y2}-${m2s}-${d2s}`;
+                  }
+                }
+              } catch (e) { /* best-effort only */ }
             }
             }
           }
@@ -542,7 +590,12 @@ export default async function handler(req, res) {
                       hh = Number(parts[0] || 0);
                       mm = Number(parts[1] || 0);
                     }
-                    occStart = new Date(Date.UTC(y, m, day, Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0));
+                    // Build occStart as a local wall-clock Date so the HH:MM refers
+                    // to the creator's intended local time. Using Date.UTC here
+                    // previously produced an instant interpreted as UTC which can
+                    // shift the local calendar day when clients rehydrate the
+                    // ISO instant. Use the local Date constructor instead.
+                    occStart = new Date(y, m, day, Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0);
                   } catch (e) {
                     occStart = (d instanceof Date) ? new Date(d) : new Date(String(d));
                   }
@@ -679,7 +732,10 @@ export default async function handler(req, res) {
                       hh = Number(parts[0] || 0);
                       mm = Number(parts[1] || 0);
                     }
-                    occStart = new Date(Date.UTC(y, m, day, Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0));
+                    // See note above: construct occStart using local components
+                    // so materialized occurrences are anchored to the correct
+                    // wall-clock time and do not shift by a timezone offset.
+                    occStart = new Date(y, m, day, Number.isFinite(hh) ? hh : 0, Number.isFinite(mm) ? mm : 0, 0);
                   } catch (e) {
                     occStart = (d instanceof Date) ? new Date(d) : new Date(String(d));
                   }

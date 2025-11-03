@@ -18,23 +18,12 @@ export function parseDatePreserveLocal(input) {
   // Match ISO-like instants that end in Z or a +00:00/-00:00 offset.
   // Some servers serialize dates as e.g. 2025-10-04T00:00:00+00:00 which should
   // be treated as a local date+time when the intent was a local midnight.
-  const isoZ = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+\-]00:00)$/);
-    if (isoZ) {
-      try {
-        const datePart = isoZ[1];
-        const hh = Number(isoZ[2]);
-        const mm = Number(isoZ[3]);
-        const m = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (m) {
-          const y = Number(m[1]);
-          const mo = Number(m[2]) - 1;
-          const d = Number(m[3]);
-          return new Date(y, mo, d, hh, mm, 0);
-        }
-      } catch (e) {
-        // fall through to default parsing below
-      }
-    }
+    // (removed special-case for Z-ended ISO strings) prefer native Date parsing below
+    // If it looks like an ISO instant ending with Z or an offset, prefer the
+    // native Date parser - this preserves the instant and lets the runtime
+    // convert it into the client's local clock when displayed. Treat only
+    // timezone-less ISO strings (YYYY-MM-DDTHH:MM) as local by appending
+    // seconds so they are parsed as local times.
     const dt = new Date(input);
     if (!isNaN(dt.getTime())) return dt;
     return null;

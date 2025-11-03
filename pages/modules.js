@@ -12,6 +12,7 @@ const ModulesManager = () => {
   const [notification, setNotification] = useState(null);
   const [editingCourse, setEditingCourse] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [colorOpen, setColorOpen] = useState(false);
   
   // Authenticated user id is resolved server-side via next-auth; fetch current user
   const [currentUser, setCurrentUser] = useState(null);
@@ -484,145 +485,257 @@ const ModulesManager = () => {
         {/* Add/Edit Modal */}
         {showAddForm && (
           <div
-            className={`fixed inset-0 z-40 flex items-center justify-center px-4 sm:px-6 ${modalVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
-            aria-hidden={!modalVisible}
+            className={`fixed inset-0 z-50 flex items-center justify-center px-4 transition-opacity duration-300 ${
+              modalVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
           >
+            <style dangerouslySetInnerHTML={{__html: `
+            @keyframes popIn {
+              from { opacity: 0; transform: scale(0.96); }
+              to { opacity: 1; transform: scale(1); }
+            }
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateY(-8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .animate-in {
+              animation: slideIn 0.2s ease-out;
+            }
+            .dropdown-scroll {
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            .dropdown-scroll::-webkit-scrollbar {
+              width: 0px;
+              height: 0px;
+              background: transparent;
+            }
+          `}} />
+            
+            {/* Backdrop */}
             <div
-              className={`absolute inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${modalVisible ? 'opacity-100' : 'opacity-0'}`}
-              onMouseDown={closeModal}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeModal}
             />
 
+            {/* Modal */}
             <div
               ref={modalRef}
               role="dialog"
               aria-modal="true"
-              className={`relative w-full max-w-3xl mx-auto transform transition-all duration-300 ${modalVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-6 scale-95'}`}
+              style={{ transformOrigin: 'center', animation: 'popIn 160ms cubic-bezier(.2,.9,.25,1)' }}
+              className={`relative w-full max-w-2xl max-h-[85vh] bg-slate-900 rounded-2xl shadow-2xl transform transition-all duration-300 overflow-y-auto ${
+                modalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+              }`}
             >
-              <div className="cozy rounded-xl shadow-2xl ring-1 ring-black/5 overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b">
-                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 px-2">
-                    {editingCourse ? <Edit size={18} /> : <Plus size={18} />}
-                    <span className="ml-1">{editingCourse ? 'Edit Module' : 'Add New Module'}</span>
-                  </h2>
-                  <button onClick={closeModal} aria-label="Close" className="text-gray-500 hover:text-gray-700 rounded p-2">
-                    <X size={18} />
+              {/* Content wrapper */}
+              <div className="p-5">
+                {/* Header */}
+                <div className="mb-4 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-0.5">
+                      {editingCourse ? 'Edit Module' : 'Create Module'}
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      {editingCourse ? 'Update module details' : 'Add a new module to your schedule'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={closeModal}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-1">Module Name *</label>
-                      <input
-                        type="text"
-                        value={courseForm.name}
-                        onChange={(e) => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
-                        className={`w-full px-3 py-2 border-0 border-b ${formErrors.name ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:border-indigo-400 rounded-sm`}
-                        placeholder="e.g., Web Technologies"
-                        maxLength={100}
-                      />
-                      {formErrors.name && (<p className="mt-1 text-sm text-red-600">{formErrors.name}</p>)}
-                    </div>
+                {/* Form */}
+                <div className="space-y-4">
+                  {/* Module Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      Module Name
+                    </label>
+                    <input
+                      type="text"
+                      value={courseForm.name}
+                      onChange={(e) => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Web Technologies, Database Systems"
+                      className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                        formErrors.name ? 'border-red-500' : 'border-slate-700'
+                      }`}
+                      maxLength={100}
+                    />
+                    {formErrors.name && (
+                      <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {formErrors.name}
+                      </p>
+                    )}
+                  </div>
 
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-1">Module Code</label>
+                  {/* Module Code & Credits Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+                        Module Code
+                      </label>
                       <input
                         type="text"
                         value={courseForm.code}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, code: e.target.value }))}
-                        className={`w-full px-3 py-2 border-0 border-b ${formErrors.code ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:border-indigo-400 rounded-sm`}
                         placeholder="e.g., CS301"
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.code ? 'border-red-500' : 'border-slate-700'
+                        }`}
                         maxLength={20}
                       />
-                      {formErrors.code && (<p className="mt-1 text-sm text-red-600">{formErrors.code}</p>)}
+                      {formErrors.code && (
+                        <p className="text-xs text-red-400 mt-1">{formErrors.code}</p>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-1">Credits *</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Credits
+                      </label>
                       <input
                         type="number"
                         min="1"
                         max="20"
                         value={courseForm.credits}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, credits: e.target.value }))}
-                        className={`w-full px-3 py-2 border-0 border-b ${formErrors.credits ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:border-indigo-400 rounded-sm`}
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.credits ? 'border-red-500' : 'border-slate-700'
+                        }`}
                       />
-                      {formErrors.credits && (<p className="mt-1 text-sm text-red-600">{formErrors.credits}</p>)}
+                      {formErrors.credits && (
+                        <p className="text-xs text-red-400 mt-1">{formErrors.credits}</p>
+                      )}
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-1">Semester *</label>
-                      <select
-                        value={courseForm.semester}
-                        onChange={(e) => setCourseForm(prev => ({ ...prev, semester: e.target.value }))}
-                        className="w-full px-3 py-2 border-0 border-b border-gray-200 focus:outline-none focus:border-indigo-400 rounded-sm"
-                      >
-                        {semesterOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-1">Instructor</label>
+                  {/* Instructor & Semester Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Instructor
+                      </label>
                       <input
                         type="text"
                         value={courseForm.instructor}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, instructor: e.target.value }))}
-                        className={`w-full px-3 py-2 border-0 border-b ${formErrors.instructor ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:border-indigo-400 rounded-sm`}
                         placeholder="e.g., Dr. Smith"
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.instructor ? 'border-red-500' : 'border-slate-700'
+                        }`}
                         maxLength={100}
                       />
-                      {formErrors.instructor && (<p className="mt-1 text-sm text-red-600">{formErrors.instructor}</p>)}
+                      {formErrors.instructor && (
+                        <p className="text-xs text-red-400 mt-1">{formErrors.instructor}</p>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm text-gray-500 mb-2">Color</label>
-                      <div role="radiogroup" aria-label="Module color" className="grid grid-cols-8 gap-2">
-                        {colorOptions.map(color => {
-                          const selected = courseForm.color === color;
-                          return (
-                            <button
-                              key={color}
-                              type="button"
-                              role="radio"
-                              aria-checked={selected}
-                              onClick={() => setCourseForm(prev => ({ ...prev, color }))}
-                              className={`relative w-7 h-7 rounded-full transition transform focus:outline-none focus:ring-2 focus:ring-indigo-400 ${selected ? 'ring-2 ring-offset-1 ring-indigo-500 scale-105' : 'ring-1 ring-gray-200'}`}
-                              style={{ backgroundColor: color }}
-                              aria-label={`Select color ${color}`}
-                            >
-                              {selected && (<span className="absolute inset-0 flex items-center justify-center text-white text-[10px] font-semibold">✓</span>)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm text-gray-500 mb-1">Description</label>
-                      <textarea
-                        value={courseForm.description}
-                        onChange={(e) => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
-                        rows={3}
-                        className={`w-full px-3 py-2 border-0 border-b ${formErrors.description ? 'border-red-300' : 'border-gray-200'} focus:outline-none focus:border-indigo-400 rounded-sm`}
-                        placeholder="Brief description of the module..."
-                        maxLength={500}
-                      />
-                      <div className="flex justify-between mt-1">
-                        {formErrors.description && (<p className="text-sm text-red-600">{formErrors.description}</p>)}
-                        <p className="text-xs text-gray-500 ml-auto">{courseForm.description.length}/500</p>
-                      </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Semester
+                      </label>
+                      <select
+                        value={courseForm.semester}
+                        onChange={(e) => setCourseForm(prev => ({ ...prev, semester: e.target.value }))}
+                        className="w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-700 appearance-none cursor-pointer"
+                      >
+                        {semesterOptions.map(option => (
+                          <option key={option.value} value={option.value} className="bg-slate-800">
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-100 mt-6 pt-4 flex justify-end gap-3 px-6 pb-6">
-                    <button onClick={closeModal} className="px-4 py-2 rounded text-gray-700 bg-gray-50 hover:bg-gray-100">Cancel</button>
-                    <button onClick={handleSaveCourse} disabled={saving || !courseForm.name.trim()} className="ml-2 px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
-                      {saving ? <Loader2 className="animate-spin mr-2 inline-block" size={16} /> : <Save size={16} className="mr-2 inline-block" />}
-                      {saving ? 'Saving...' : (editingCourse ? 'Update Module' : 'Save Module')}
-                    </button>
+                    {/* Color Selector - Inline Grid */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                      Color
+                    </label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {colorOptions.map(color => {
+                        const isSelected = courseForm.color === color;
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setCourseForm(prev => ({ ...prev, color }))}
+                            className={`h-10 rounded-lg transition-all ${
+                              isSelected 
+                                ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900 scale-105' 
+                                 : 'hover:scale-105'
+                              }`}                              style={{ backgroundColor: color }}
+                            title={color}
+                          >
+                            {isSelected && (
+                              <svg className="w-4 h-4 text-white mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                     </div>
                   </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-800">
+                  <button
+                    onClick={closeModal}
+                    className="px-6 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveCourse}
+                    disabled={saving || !courseForm.name?.trim()}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        {editingCourse ? 'Update Module' : 'Save Module'}
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

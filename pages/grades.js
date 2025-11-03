@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../src/components/CustomSelect';
-import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin } from 'lucide-react';
+import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Head from 'next/head';
 
@@ -570,25 +570,26 @@ const GradesPage = () => {
           opacity: 1 !important;
         }
       `}} />
-      {/* Navbar: use the exact Calendar header markup/styles for consistency */}
-      <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 px-6 py-4 sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+      {/* Navbar: consistent with Calendar/Overview styling */}
+      <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
+        <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
+              <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Academic Grades</h1>
-              <p className="text-xs text-slate-700 dark:text-slate-300">Track your course assessments</p>
-            </div>
+            <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Academic Grades</h1>
           </div>
-          <Button className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg shadow-purple-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-purple-500/35 px-5 h-10 rounded-xl font-medium" onClick={() => { /* visual-only */ }}>
-            <Plus className="w-4 h-4 mr-2" />Create Category
-          </Button>
+
+          <button 
+            onClick={() => { /* Export grades functionality */ }}
+            className="h-10 px-4 flex items-center gap-2 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium"
+            title="Export Grades"
+          >
+            <Download className="w-4 h-4" />
+            <span className="text-sm">Export</span>
+          </button>
         </div>
       </header>
-
-      {/* Hero Section removed to match Calendar header — page now flows directly into the stats/cards */}
 
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Stats Cards */}

@@ -96,8 +96,11 @@ export default function UniversityOverview() {
           }
         } finally { setIsLoadingUser(false); }
 
-        const coursesBody = await safeFetchJson('/api/courses');
-        if (mounted && coursesBody && Array.isArray(coursesBody.courses)) setCourses(coursesBody.courses);
+  const coursesBody = await safeFetchJson('/api/courses');
+  if (mounted && coursesBody && Array.isArray(coursesBody.courses)) setCourses(coursesBody.courses);
+  // resolvedCourses prefers the freshly fetched payload so we can use it
+  // immediately within this effect without waiting for state to update.
+  const resolvedCourses = Array.isArray(coursesBody?.courses) ? coursesBody.courses : (Array.isArray(courses) ? courses : []);
 
         setIsLoadingClasses(true);
         try {
@@ -172,7 +175,7 @@ export default function UniversityOverview() {
                   try {
                     const dd = buildLocalDateFromParts(dYmd);
                     const ddY = toLocalYmd(dd);
-                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || (c.subject||'').split(' ')[0] || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
+                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
                     if (dd && !isNaN(dd.getTime())) {
                       const ddMid = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
                       if (ddMid >= startWeek && ddMid <= endWeek && isLectureItem(c)) weekCount++;
@@ -183,7 +186,7 @@ export default function UniversityOverview() {
 
                 const dow = (typeof c.dayOfWeek === 'number') ? c.dayOfWeek : (c.repeatOption === 'weekly' && typeof c.dayOfWeek === 'number' ? c.dayOfWeek : null);
                 if (dow != null) {
-                  if (dow === currentDate.getDay() && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dow}-${start}`, code: c.code || c.module || (c.subject||'').split(' ')[0] || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
+                  if (dow === currentDate.getDay() && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dow}-${start}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
                   if (isLectureItem(c)) weekCount++;
                   continue;
                 }
@@ -193,7 +196,7 @@ export default function UniversityOverview() {
                   try {
                     const dd = buildLocalDateFromParts(dYmd);
                     const ddY = toLocalYmd(dd);
-                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || (c.subject||'').split(' ')[0] || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
+                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
                     if (dd && !isNaN(dd.getTime())) {
                       const ddMid = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
                       if (ddMid >= startWeek && ddMid <= endWeek && isLectureItem(c)) weekCount++;
@@ -205,24 +208,97 @@ export default function UniversityOverview() {
           } else {
             try {
               const evs = await safeFetchJson('/api/events');
-              if (evs && Array.isArray(evs.events)) {
-                todayList = evs.events.filter(e => {
-                  const t = (e && (e.type || (e.raw && e.raw.type) || '')).toString().toLowerCase();
-                  if (t !== 'lecture') return false;
-                  if (!e.date) return false;
+                if (evs && Array.isArray(evs.events)) {
+                // Build today's classes by checking event start/end datetimes (overlap with today's window).
+                const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0, 0);
+                const dayEnd = new Date(dayStart.getTime() + 24*60*60*1000 - 1);
+
+                function parseEventStartEnd(ev) {
+                  // Returns { start: Date|null, end: Date|null, timeStr }
                   try {
-                    const ed = parseDatePreserveLocal(e.date) || buildLocalDateFromParts(String(e.date).slice(0,10));
-                    const edY = toLocalYmd(ed);
-                    return edY && todayYmd && edY === todayYmd;
+                    // 1) Prefer explicit ISO startDate / endDate
+                    let s = null, e = null;
+                    if (ev.startDate) s = parseDatePreserveLocal(ev.startDate) || new Date(String(ev.startDate));
+                    if (ev.endDate) e = parseDatePreserveLocal(ev.endDate) || new Date(String(ev.endDate));
+
+                    // 2) Fall back to event.date + startTime / endTime
+                    if (!s && ev.date && (ev.startTime || ev.time)) {
+                      const startTime = ev.startTime || (typeof ev.time === 'string' ? (ev.time.split('-')[0] || '').trim() : '');
+                      if (startTime) s = buildLocalDateFromParts(String(ev.date).slice(0,10), startTime);
+                    }
+                    if (!e && ev.date && (ev.endTime || ev.time)) {
+                      const endTime = ev.endTime || (typeof ev.time === 'string' ? (ev.time.split('-')[1] || '').trim() : '');
+                      if (endTime) e = buildLocalDateFromParts(String(ev.date).slice(0,10), endTime);
+                    }
+
+                    // 3) If we have a start and a duration field, compute end
+                    if (s && !e) {
+                      const durMin = Number(ev.durationMinutes || ev.duration || 0);
+                      if (!Number.isNaN(durMin) && durMin > 0) e = new Date(s.getTime() + Math.round(durMin) * 60000);
+                    }
+
+                    // 4) If only a date exists (no times), treat as whole-day event
+                    if (!s && ev.date) {
+                      const d = (typeof ev.date === 'string' && ev.date.length >= 10) ? ev.date.slice(0,10) : toYMDLocal(ev.date);
+                      if (d) s = buildLocalDateFromParts(d);
+                      if (s && !e) e = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59, 999);
+                    }
+
+                    // Format time string
+                    let timeStr = '';
+                    try {
+                      if (s) {
+                        const t0 = s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        if (e) {
+                          const t1 = e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          timeStr = `${t0} - ${t1}`;
+                        } else {
+                          timeStr = t0;
+                        }
+                      } else if (ev.time) {
+                        timeStr = ev.time;
+                      } else if (ev.startTime || ev.endTime) {
+                        timeStr = `${ev.startTime || ''}${ev.endTime ? ' - ' + ev.endTime : ''}`;
+                      }
+                    } catch (e) { timeStr = ev.time || '' }
+
+                    return { start: s || null, end: e || null, timeStr };
+                  } catch (err) { return { start: null, end: null, timeStr: ev.time || '' }; }
+                }
+
+                const lectures = evs.events.filter(ev => {
+                  try {
+                    const t = (ev && (ev.type || (ev.raw && ev.raw.type) || '')).toString().toLowerCase();
+                    if (t !== 'lecture' && t !== 'class') return false;
+                    const { start, end } = parseEventStartEnd(ev);
+                    // If no start/end but a date exists, include if date equals today
+                    if (!start && !end && ev.date) {
+                      const ed = parseDatePreserveLocal(ev.date) || buildLocalDateFromParts(String(ev.date).slice(0,10));
+                      const edY = ed ? toYMDLocal(ed) : null;
+                      return edY && todayYmd && edY === todayYmd;
+                    }
+                    // Consider overlap: event.start <= dayEnd && event.end >= dayStart
+                    const sTime = start ? start.getTime() : (end ? end.getTime() : null);
+                    const eTime = end ? end.getTime() : (start ? start.getTime() : null);
+                    if (sTime == null || eTime == null) return false;
+                    return (sTime <= dayEnd.getTime() && eTime >= dayStart.getTime());
                   } catch (er) { return false; }
-                }).map((e,i) => ({
-                  id: e.id || `ev-${i}`,
-                  code: e.course || e.module || (e.title||e.name||'').split(' ')[0] || 'TBA',
-                  name: e.title || e.name || e.subject || 'Lecture',
-                  time: e.time || `${e.startTime || ''} - ${e.endTime || ''}`,
-                  instructor: e.instructor || '',
-                  location: e.location || ''
-                }));
+                });
+
+                todayList = lectures.map((e, i) => {
+                  const { start, end, timeStr } = parseEventStartEnd(e);
+          return {
+            id: e.id || `ev-${i}`,
+            code: e.code || e.course || e.module || extractModuleCode(e.title || e.name || e.subject, resolvedCourses) || 'TBA',
+                      name: e.title || e.name || e.subject || 'Lecture',
+                      time: timeStr || `${e.startTime || ''}${e.endTime ? ' - ' + e.endTime : ''}`,
+                      instructor: e.instructor || '',
+                      location: e.location || '' ,
+                      // expose parsed start/end for potential UI use
+                      _start: start,
+                      _end: end
+                    };
+                });
 
                 try {
                   const startWeek = new Date(currentDate);
@@ -305,7 +381,7 @@ export default function UniversityOverview() {
                     date: e.date,
                     time: e.time,
                     name: e.title || e.name || e.subject || 'Class',
-                    code: e.course || (e.title||'').split(' ')[0] || 'TBA',
+                    code: e.code || e.course || e.module || extractModuleCode(e.title || e.name || e.subject, resolvedCourses) || 'TBA',
                     location: e.location || '',
                     instructor: e.instructor || ''
                   }))
@@ -519,15 +595,15 @@ export default function UniversityOverview() {
                       const ymd = cls.date || cls.dateStr || toYMDLocal(currentDate);
                       const goto = () => { window.location.href = `/calendar?date=${encodeURIComponent(String(ymd).slice(0,10))}`; };
                       return (
-                        <div key={cls.id} tabIndex={0} role="button" onClick={goto} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goto(); }} className="group bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 border border-transparent hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-700">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-start gap-4 flex-1">
+                        <div key={cls.id} tabIndex={0} role="button" onClick={goto} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goto(); }} className="group bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 border border-transparent hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-700 flex items-center">
+              <div className="w-full flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 flex-1">
                               <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm border border-gray-200 dark:border-gray-600 group-hover:border-purple-300 dark:group-hover:border-purple-700 transition-colors">
                                 <GraduationCap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">{cls.code}</span>
+                                <div className="flex items-center gap-2 mb-2 pt-1">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">{cls.code || extractModuleCode(cls.name, courses)}</span>
                                   <span className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{cls.name}</span>
                                 </div>
                                 <div className="flex flex-col gap-1.5 text-sm">
@@ -781,4 +857,45 @@ export default function UniversityOverview() {
       </div>
     </div>
   );
+}
+
+// Try to extract a module code from a title like "CS101 Embedded Systems" or "MATH123".
+function extractModuleCode(str, courses) {
+  try {
+    if (!str) return null;
+    const s = String(str);
+    // 1) regex patterns: ABC123, ABC 123, ABC-1234
+    const m = s.match(/\b([A-Z]{2,6}\s?-?\s?\d{2,4})\b/);
+    if (m && m[1]) return m[1].replace(/\s+/g, '');
+    const m2 = s.match(/\b([A-Z]{2,6}\d{2,4})\b/);
+    if (m2 && m2[1]) return m2[1];
+
+    // 2) If a courses list is provided, try to find a canonical match.
+    if (Array.isArray(courses) && courses.length) {
+      const low = s.toLowerCase();
+      // exact name/title match
+      for (const c of courses) {
+        const names = [c.name, c.title, c.module, c.courseName, c.course].filter(Boolean);
+        for (const n of names) {
+          if (String(n).toLowerCase() === low) return c.code || c.courseCode || c.course || null;
+        }
+      }
+      // substring match (lecture title contains module name)
+      for (const c of courses) {
+        const names = [c.name, c.title, c.module, c.courseName, c.course].filter(Boolean);
+        for (const n of names) {
+          if (String(n).length > 2 && (low.includes(String(n).toLowerCase()) || String(n).toLowerCase().includes(low))) return c.code || c.courseCode || c.course || null;
+        }
+      }
+      // code appears in string
+      for (const c of courses) {
+        const code = (c.code || c.courseCode || c.course || '').toString();
+        if (code && s.includes(code)) return code;
+      }
+    }
+
+    // 3) fallback: return first token
+    const first = s.split(/\s+/)[0];
+    return first || null;
+  } catch (e) { return null; }
 }

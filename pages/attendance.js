@@ -204,10 +204,16 @@ const AttendanceTracker = () => {
 
   // Small inline dark-mode overrides specific to Attendance page
   // Keep minimal and rely on global src/index.css for broader coverage
-  const attendanceDarkStyles = `
+    const attendanceDarkStyles = `
     html.dark .attendance-root { background: #071023; color: rgba(255,255,255,0.92); }
     html.dark .attendance-card { background: #071423; border-color: rgba(255,255,255,0.04); box-shadow: none; }
     html.dark .attendance-card .card-header, html.dark .attendance-card .card-body { color: rgba(255,255,255,0.92); }
+    
+    /* Enhanced card borders and outlines for better definition */
+    html.dark .cozy { border: 1px solid rgba(139, 92, 246, 0.15); }
+    html.dark .attendance-table-wrapper { border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 0.75rem; }
+    html.dark .summary-panel { border: 1px solid rgba(139, 92, 246, 0.2); box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
+    
   /* Table header surface and cells */
   html.dark .attendance-table thead { background: rgba(255,255,255,0.02) !important; }
   html.dark .attendance-table thead th { background: rgba(255,255,255,0.02) !important; color: rgba(255,255,255,0.92) !important; border-bottom-color: rgba(255,255,255,0.04) !important; }

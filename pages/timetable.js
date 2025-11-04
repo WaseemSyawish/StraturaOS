@@ -7,7 +7,63 @@ import EditScopeModal from '@/components/Timetable/EditScopeModal';
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
+  const nowTs = Date.now();
+
+  const computeFinalInstant = (ev) => {
+    try {
+      const rawEnd = ev.endDate || ev.end_date || (ev.raw && (ev.raw.endDate || ev.raw.end_date));
+      if (rawEnd) {
+        const s = String(rawEnd);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          const [y, m, d] = s.split('-').map(Number);
+          return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
+        }
+        const d = new Date(String(rawEnd));
+        if (!isNaN(d.getTime())) return d;
+      }
+
+      const endTime = ev.endTime || (typeof ev.time === 'string' && ev.time.includes('-') ? (ev.time.split('-')[1] || '').trim() : null);
+      const dateStr = ev.date || (ev.startDate ? String(ev.startDate).slice(0, 10) : null);
+      if (endTime && dateStr) {
+        const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+        const [hh, mm] = String(endTime).split(':').map(Number);
+        return new Date(y, (m || 1) - 1, d, Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
+      }
+
+      if (ev.startDate && (typeof ev.durationMinutes !== 'undefined' || typeof ev.duration !== 'undefined')) {
+        const s = new Date(String(ev.startDate));
+        if (!isNaN(s.getTime())) {
+          const dur = Number(ev.durationMinutes ?? ev.duration ?? 0);
+          if (!Number.isNaN(dur) && dur > 0) return new Date(s.getTime() + Math.round(dur) * 60000);
+          return s;
+        }
+      }
+
+      if (dateStr) {
+        const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+        return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
+      }
+
+      if (endTime) {
+        const now = new Date();
+        const [hh, mm] = String(endTime).split(':').map(Number);
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
+      }
+
+      return null;
+    } catch (err) { return null; }
+  };
+
   return list.map((e) => {
+    // If this is a deadline/assignment and it's expired, return null to exclude it
+    try {
+  const final = computeFinalInstant(e);
+  const isExpired = final ? (final.getTime() <= nowTs) : false;
+  // hide expired or completed deadlines/assignments from timetable scheduler
+  if ((e && (e.type === 'deadline' || e.type === 'assignment')) && (isExpired || !!e.completed)) return null;
+    } catch (err) { }
+
+    // continue mapping
     const dateStr = e.date || e.startDate || e.start_date || ''
     const timeStr = e.time || e.startTime || e.start_time || '09:00'
     let start = new Date()
@@ -92,7 +148,7 @@ function mapToSchedulerEvents(list) {
       color: color || (e.color ?? null),
       variant: variant || (e.variant ?? null),
     }
-  })
+  }).filter(Boolean)
 }
 
 const SchedulerProviderComp = dynamic(

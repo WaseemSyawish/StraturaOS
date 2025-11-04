@@ -237,6 +237,23 @@ html.dark body {
   color: var(--brand-900);
 }
 
+/* Broader dark-mode backdrop: ensure top-level page containers (headers, main
+   containers and footers) adopt the dark surface so non-widget areas appear
+   consistently dark. Widgets and cards are explicitly excluded by design and
+   keep their own surfaces (see .cozy/.card rules). */
+html.dark .min-h-screen,
+html.dark .page-root,
+html.dark .site-root,
+html.dark .max-w-7xl,
+html.dark .container,
+html.dark main,
+html.dark header,
+html.dark footer,
+html.dark .page {
+  background: linear-gradient(180deg, var(--surface), #071423) !important;
+  color: var(--brand-900) !important;
+}
+
 /* Ensure cards and panels invert to dark surface in dark mode */
 .dark .card,
 .dark .modal-dialog,

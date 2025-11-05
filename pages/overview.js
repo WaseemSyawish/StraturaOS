@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target } from 'lucide-react';
 
 function CalendarHeader({ userName }) {
   return (
@@ -12,13 +12,13 @@ function CalendarHeader({ userName }) {
           <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Overview</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => window.location.href = '/settings'}
-            className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400"
+            className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
             title="Settings"
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4.5 h-4.5" />
           </button>
 
           <button 
@@ -30,10 +30,10 @@ function CalendarHeader({ userName }) {
                 window.location.href = '/signout';
               }
             }}
-            className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+            className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
             title="Sign Out"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4.5 h-4.5" />
           </button>
         </div>
       </div>
@@ -41,16 +41,16 @@ function CalendarHeader({ userName }) {
   );
 }
 
-function StatCard({ icon, label, value, loading }) {
+function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-700 transition-colors">
+    <div className="group bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/10 rounded-xl flex items-center justify-center">
-          {icon}
+        <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${bgColor} group-hover:scale-105 transition-transform duration-300`}>
+          {React.cloneElement(icon, { className: `w-5 h-5 ${iconColor}`, strokeWidth: 2 })}
         </div>
       </div>
       <p className="text-slate-600 dark:text-slate-400 text-sm mb-1">{label}</p>
-      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+      <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
         {loading ? (
           <span className="inline-block w-20 h-8 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></span>
         ) : (
@@ -61,718 +61,369 @@ function StatCard({ icon, label, value, loading }) {
   );
 }
 
-function Skeleton({ width = 'w-24', height = 'h-6' }) {
-  return <div className={`rounded bg-slate-200 dark:bg-slate-700 ${width} ${height} animate-pulse`} />;
-}
-
 export default function UniversityOverview() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [userName, setUserName] = useState('');
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [currentDate] = useState(new Date());
+  const [userName] = useState('Waseem');
 
-  const [todayClasses, setTodayClasses] = useState([]);
-  const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
-  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
-  const [isLoadingDeadlines, setIsLoadingDeadlines] = useState(true);
-
+  // Data fetched from backend
+  const [events, setEvents] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [quickStats, setQuickStats] = useState({ gpa: null, credits: null, attendanceRate: null });
-  const [isLoadingQuickStats, setIsLoadingQuickStats] = useState(true);
+  const [gradesData, setGradesData] = useState([]);
 
-  const [nextClassAlert, setNextClassAlert] = useState(null);
+  // UI state
   const [completedDeadlines, setCompletedDeadlines] = useState(new Set());
-  const [showCompletedDeadlines, setShowCompletedDeadlines] = useState(false);
-  const [completedList, setCompletedList] = useState([]);
   const [hiddenCompleted, setHiddenCompleted] = useState(new Set());
-  const hideTimersRef = React.useRef({});
+  const hideTimersRef = useRef({});
 
-  // Cleanup any pending timers when this component unmounts
-  React.useEffect(() => {
-    return () => {
-      try { Object.values(hideTimersRef.current || {}).forEach(t => { try { clearTimeout(t); } catch(e){} }); } catch (e) {}
-      hideTimersRef.current = {};
-    };
-  }, []);
-
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ gpa: null, credits: null, attendanceRate: null });
   const [weekClassesCount, setWeekClassesCount] = useState(0);
   const [assignmentsDueCount, setAssignmentsDueCount] = useState(0);
   const [studyHoursLogged, setStudyHoursLogged] = useState(0);
-  const [nextClasses, setNextClasses] = useState([]);
-
-  const [refreshCounter, setRefreshCounter] = useState(0);
-
-  function refreshData() {
-    setRefreshCounter((c) => c + 1);
-  }
-
-  async function toggleCompletedOnServer(id, nextValue) {
-    try {
-      const res = await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !!nextValue }) });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => null);
-        throw new Error(txt || `PATCH failed ${res.status}`);
-      }
-      const json = await res.json().catch(() => null);
-      return json && json.event ? json.event : null;
-    } catch (e) {
-      console.warn('Failed to persist completed state', e);
-      return null;
-    }
-  }
-
-  async function toggleCompleted(id, nextValue) {
-    const sid = String(id);
-    // If marking completed: show check immediately, then hide the item after a brief animation, then persist
-    if (nextValue) {
-      // show checked state immediately
-      setCompletedDeadlines(prev => { const n = new Set(prev); n.add(sid); return n; });
-
-      // schedule hide animation then persist
-      if (hideTimersRef.current[sid]) clearTimeout(hideTimersRef.current[sid]);
-      hideTimersRef.current[sid] = setTimeout(async () => {
-        // hide from upcoming list
-        setHiddenCompleted(prev => { const n = new Set(prev); n.add(sid); return n; });
-
-        const result = await toggleCompletedOnServer(id, true);
-        if (!result) {
-          // revert both completed and hidden states
-          setCompletedDeadlines(prev => { const n = new Set(prev); n.delete(sid); return n; });
-          setHiddenCompleted(prev => { const n = new Set(prev); n.delete(sid); return n; });
-        } else {
-          if (showCompletedDeadlines) await loadCompletedList();
-        }
-
-        delete hideTimersRef.current[sid];
-      }, 260);
-
-      return true;
-    }
-
-    // If unchecking: cancel any hide timer, unhide immediately and persist
-    if (hideTimersRef.current[sid]) {
-      clearTimeout(hideTimersRef.current[sid]);
-      delete hideTimersRef.current[sid];
-    }
-    // unhide immediately (so it can reappear in upcoming list)
-    setHiddenCompleted(prev => { const n = new Set(prev); n.delete(sid); return n; });
-    // optimistic remove from completed set
-    setCompletedDeadlines(prev => { const n = new Set(prev); n.delete(sid); return n; });
-
-    const result = await toggleCompletedOnServer(id, false);
-    if (!result) {
-      // revert optimistic change
-      setCompletedDeadlines(prev => { const n = new Set(prev); n.add(sid); return n; });
-      setHiddenCompleted(prev => { const n = new Set(prev); n.add(sid); return n; });
-      return false;
-    }
-
-    if (showCompletedDeadlines) await loadCompletedList();
-    return true;
-  }
-
-  async function loadCompletedList() {
-    try {
-      const payload = await safeFetchJson('/api/events');
-      const list = Array.isArray(payload?.events) ? payload.events : [];
-      const items = list.filter(ev => ev && (ev.type === 'deadline' || ev.type === 'assignment') && ev.completed).map((e, i) => {
-        const due = e.date ? (parseDatePreserveLocal(e.date) || buildLocalDateFromParts(String(e.date).slice(0, 10)) || new Date(String(e.date))) : null;
-        return {
-          id: e.id || `ev-${i}`,
-          title: `${e.course ? e.course + ' - ' : ''}${e.title || e.name}`,
-          dueDate: due ? due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
-          daysLeft: due ? Math.max(0, Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0
-        };
-      });
-      setCompletedList(items);
-    } catch (e) {
-      console.warn('Failed to load completed list', e);
-      setCompletedList([]);
-    }
-  }
-
-  async function safeFetchJson(url) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function parseDatePreserveLocal(v) {
-    try {
-      if (!v) return null;
-      if (v instanceof Date) return v;
-      const s = String(v);
-      if (s.length >= 10) {
-        const [y, m, d] = s.slice(0, 10).split('-').map(Number);
-        return new Date(y, m - 1, d);
-      }
-      return new Date(s);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function buildLocalDateFromParts(ymd, time) {
-    try {
-      const [y, m, d] = String(ymd).split('-').map(Number);
-      if (time) {
-        const [h, min] = String(time).split(':').map(Number);
-        return new Date(y, m - 1, d, h, min);
-      }
-      return new Date(y, m - 1, d);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function toYMDLocal(date) {
-    try {
-      const d = date instanceof Date ? date : new Date(date);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        setIsLoadingUser(true);
-            // Helper to compute final instant for an event (tries multiple fallbacks)
-            const computeFinalInstant = (ev) => {
-              try {
-                // Prefer explicit endDate (ISO)
-                const rawEnd = ev.endDate || ev.end_date || (ev.raw && (ev.raw.endDate || ev.raw.end_date));
-                if (rawEnd) {
-                  // If date-only (YYYY-MM-DD) treat as that date at 00:00 -> interpret as end of day
-                  const s = String(rawEnd);
-                  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-                    const [y, m, d] = s.split('-').map(Number);
-                    // end of that day
-                    return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
-                  }
-                  const d = new Date(String(rawEnd));
-                  if (!isNaN(d.getTime())) return d;
-                }
-
-                // If there's an endTime and a date, build local date from parts
-                const endTime = ev.endTime || (typeof ev.time === 'string' && ev.time.includes('-') ? (ev.time.split('-')[1] || '').trim() : null);
-                const dateStr = ev.date || (ev.startDate ? String(ev.startDate).slice(0, 10) : null);
-                if (endTime && dateStr) {
-                  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
-                  const [hh, mm] = String(endTime).split(':').map(Number);
-                  return new Date(y, (m || 1) - 1, d, Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
-                }
-
-                // If startDate and duration exist
-                if (ev.startDate && (typeof ev.durationMinutes !== 'undefined' || typeof ev.duration !== 'undefined')) {
-                  const s = new Date(String(ev.startDate));
-                  if (!isNaN(s.getTime())) {
-                    const dur = Number(ev.durationMinutes ?? ev.duration ?? 0);
-                    if (!Number.isNaN(dur) && dur > 0) return new Date(s.getTime() + Math.round(dur) * 60000);
-                    return s;
-                  }
-                }
-
-                // If only date present, treat as end of that day
-                if (dateStr) {
-                  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
-                  return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
-                }
-
-                // Fallback: try to use endTime alone on today's date
-                if (endTime) {
-                  const now = new Date();
-                  const [hh, mm] = String(endTime).split(':').map(Number);
-                  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
-                }
-
-                return null;
-              } catch (err) { return null; }
-            };
-
-        try {
-          async function fetchMe() {
-            let res = await safeFetchJson('/api/auth/me');
-            if (!res && typeof window !== 'undefined') {
-
-              const host = window.location.hostname;
-              if (host === 'localhost' || host === '127.0.0.1' || host === '') {
-                res = await safeFetchJson('/api/auth/me?userId=smoke_user');
-              }
-            }
-            return res;
-          }
-
-          const me = await fetchMe();
-          if (mounted && me) {
-            const payloadUser = (me.user && typeof me.user === 'object') ? me.user : me;
-            const resolvedName = payloadUser?.name || payloadUser?.firstName || payloadUser?.username || '';
-            if (resolvedName) setUserName(resolvedName);
-          }
-        } finally { setIsLoadingUser(false); }
-
-        const coursesBody = await safeFetchJson('/api/courses');
-        if (mounted && coursesBody && Array.isArray(coursesBody.courses)) setCourses(coursesBody.courses);
-        const resolvedCourses = Array.isArray(coursesBody?.courses) ? coursesBody.courses : (Array.isArray(courses) ? courses : []);
-
-
-        setIsLoadingClasses(true);
-
-        try {
-          async function tryFetchTimetable(path) {
-            let res = await safeFetchJson(path);
-            if (!res && typeof window !== 'undefined') {
-              const host = window.location.hostname;
-              if (host === 'localhost' || host === '127.0.0.1' || host === '') {
-                res = await safeFetchJson(path + (path.includes('?') ? '&' : '?') + 'userId=smoke_user');
-              }
-            }
-            return res;
-          }
-
-          const raw = await tryFetchTimetable('/api/timetable');
-          let classesSrc = [];
-
-          if (!raw) classesSrc = [];
-          else if (Array.isArray(raw)) {
-            if (raw.length && raw[0] && Array.isArray(raw[0].payload)) {
-              classesSrc = raw.flatMap(tpl => (Array.isArray(tpl.payload) ? tpl.payload.map(p => ({ ...p, _templateId: tpl.id })) : []));
-            } else classesSrc = raw;
-          } else if (raw.templates && Array.isArray(raw.templates)) {
-            classesSrc = raw.templates.flatMap(tpl => (Array.isArray(tpl.payload) ? tpl.payload.map(p => ({ ...p, _templateId: tpl.id })) : []));
-          } else classesSrc = [];
-
-          if ((!Array.isArray(classesSrc) || classesSrc.length === 0)) {
-            try {
-              const tpls = await tryFetchTimetable('/api/timetables');
-              if (tpls && Array.isArray(tpls.templates)) {
-                const evSrc = tpls.templates.flatMap(t => Array.isArray(t.events) ? t.events : []);
-                if (evSrc && evSrc.length) classesSrc = evSrc;
-              }
-            } catch (e) { /* ignore */ }
-          }
-
-          let todayList = [];
-          let weekCount = 0;
-          const isLectureItem = (it) => {
-            try {
-              const t = (it && (it.type || (it.raw && it.raw.type) || it.eventType || '')).toString().toLowerCase();
-              return t === 'lecture';
-            } catch (e) { return false; }
-          };
-          const toLocalYmd = (v) => {
-            try { const r = toYMDLocal(v); return r || null; } catch (e) { return null; }
-          };
-          const todayYmd = toLocalYmd(currentDate);
-          if (Array.isArray(classesSrc) && classesSrc.length) {
-            try {
-              const startWeek = new Date(currentDate);
-              startWeek.setDate(currentDate.getDate() - currentDate.getDay());
-              startWeek.setHours(0, 0, 0, 0);
-              const endWeek = new Date(startWeek);
-              endWeek.setDate(startWeek.getDate() + 6);
-
-              for (const c of classesSrc) {
-                const start = c.time || '';
-                const duration = c.duration || c.durationMinutes || 1;
-                const end = start ? (() => {
-                  try {
-                    const [hh, mm] = String(start).split(':').map(Number);
-                    const total = (hh || 0) * 60 + (mm || 0) + Math.round(Number(duration) * 60);
-                    const endH = Math.floor((total % (24 * 60)) / 60);
-                    const endM = total % 60;
-                    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-                  } catch (e) { return '' }
-                })() : '';
-
-                if (c.date && !c.repeat && c.repeatOption !== 'weekly' && c.dayOfWeek == null) {
-                  const dYmd = (typeof c.date === 'string' && c.date.length >= 10) ? c.date.slice(0, 10) : toYMDLocal(c.date);
-                  try {
-                    const dd = buildLocalDateFromParts(dYmd);
-                    const ddY = toLocalYmd(dd);
-                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
-                    if (dd && !isNaN(dd.getTime())) {
-                      const ddMid = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
-                      if (ddMid >= startWeek && ddMid <= endWeek && isLectureItem(c)) weekCount++;
-                    }
-                  } catch (e) { }
-                  continue;
-                }
-
-                const dow = (typeof c.dayOfWeek === 'number') ? c.dayOfWeek : (c.repeatOption === 'weekly' && typeof c.dayOfWeek === 'number' ? c.dayOfWeek : null);
-                if (dow != null) {
-                  if (dow === currentDate.getDay() && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dow}-${start}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
-                  if (isLectureItem(c)) weekCount++;
-                  continue;
-                }
-
-                if (c.date) {
-                  const dYmd = (typeof c.date === 'string' && c.date.length >= 10) ? c.date.slice(0, 10) : toYMDLocal(c.date);
-                  try {
-                    const dd = buildLocalDateFromParts(dYmd);
-                    const ddY = toLocalYmd(dd);
-                    if (ddY && todayYmd && ddY === todayYmd && isLectureItem(c)) todayList.push({ id: c.id || `tt-${dYmd}`, code: c.code || c.module || extractModuleCode(c.title || c.subject || c.module, resolvedCourses) || 'TBA', name: c.title || c.subject || c.module || 'Lecture', time: start ? `${start} - ${end}` : '', instructor: c.instructor || c.lecturer || '', location: c.location || '' });
-                    if (dd && !isNaN(dd.getTime())) {
-                      const ddMid = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate());
-                      if (ddMid >= startWeek && ddMid <= endWeek && isLectureItem(c)) weekCount++;
-                    }
-                  } catch (e) { }
-                }
-              }
-            } catch (e) { }
-          } else {
-            try {
-              const evs = await safeFetchJson('/api/events');
-              if (evs && Array.isArray(evs.events)) {
-                const dayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0, 0);
-                const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
-
-                function parseEventStartEnd(ev) {
-                  try {
-                    let s = null, e = null;
-                    if (ev.startDate) s = parseDatePreserveLocal(ev.startDate) || new Date(String(ev.startDate));
-                    if (ev.endDate) e = parseDatePreserveLocal(ev.endDate) || new Date(String(ev.endDate));
-
-                    if (!s && ev.date && (ev.startTime || ev.time)) {
-                      const startTime = ev.startTime || (typeof ev.time === 'string' ? (ev.time.split('-')[0] || '').trim() : '');
-                      if (startTime) s = buildLocalDateFromParts(String(ev.date).slice(0, 10), startTime);
-                    }
-                    if (!e && ev.date && (ev.endTime || ev.time)) {
-                      const endTime = ev.endTime || (typeof ev.time === 'string' ? (ev.time.split('-')[1] || '').trim() : '');
-                      if (endTime) e = buildLocalDateFromParts(String(ev.date).slice(0, 10), endTime);
-                    }
-
-                    if (s && !e) {
-                      const durMin = Number(ev.durationMinutes || ev.duration || 0);
-                      if (!Number.isNaN(durMin) && durMin > 0) e = new Date(s.getTime() + Math.round(durMin) * 60000);
-                    }
-
-                    if (!s && ev.date) {
-                      const d = (typeof ev.date === 'string' && ev.date.length >= 10) ? ev.date.slice(0, 10) : toYMDLocal(ev.date);
-                      if (d) s = buildLocalDateFromParts(d);
-                      if (s && !e) e = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59, 999);
-                    }
-
-                    let timeStr = '';
-                    try {
-                      if (s) {
-                        const t0 = s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        if (e) {
-                          const t1 = e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                          timeStr = `${t0} - ${t1}`;
-                        } else {
-                          timeStr = t0;
-                        }
-                      } else if (ev.time) {
-                        timeStr = ev.time;
-                      } else if (ev.startTime || ev.endTime) {
-                        timeStr = `${ev.startTime || ''}${ev.endTime ? ' - ' + ev.endTime : ''}`;
-                      }
-                    } catch (e) { timeStr = ev.time || '' }
-
-                    return { start: s || null, end: e || null, timeStr };
-                  } catch (err) { return { start: null, end: null, timeStr: ev.time || '' }; }
-                }
-
-                const lectures = evs.events.filter(ev => {
-                  try {
-                    const t = (ev && (ev.type || (ev.raw && ev.raw.type) || '')).toString().toLowerCase();
-                    if (t !== 'lecture' && t !== 'class') return false;
-                    const { start, end } = parseEventStartEnd(ev);
-                    if (!start && !end && ev.date) {
-                      const ed = parseDatePreserveLocal(ev.date) || buildLocalDateFromParts(String(ev.date).slice(0, 10));
-                      const edY = ed ? toYMDLocal(ed) : null;
-                      return edY && todayYmd && edY === todayYmd;
-                    }
-                    const sTime = start ? start.getTime() : (end ? end.getTime() : null);
-                    const eTime = end ? end.getTime() : (start ? start.getTime() : null);
-                    if (sTime == null || eTime == null) return false;
-                    return (sTime <= dayEnd.getTime() && eTime >= dayStart.getTime());
-                  } catch (er) { return false; }
-                });
-
-                todayList = lectures.map((e, i) => {
-                  const { start, end, timeStr } = parseEventStartEnd(e);
-                  return {
-                    id: e.id || `ev-${i}`,
-                    code: e.code || e.course || e.module || extractModuleCode(e.title || e.name || e.subject, resolvedCourses) || 'TBA',
-                    name: e.title || e.name || e.subject || 'Lecture',
-                    time: timeStr || `${e.startTime || ''}${e.endTime ? ' - ' + e.endTime : ''}`,
-                    instructor: e.instructor || '',
-                    location: e.location || '',
-                    _start: start,
-                    _end: end
-                  };
-                });
-
-                try {
-                  const startWeek = new Date(currentDate);
-                  startWeek.setDate(currentDate.getDate() - currentDate.getDay());
-                  startWeek.setHours(0, 0, 0, 0);
-                  const endWeek = new Date(startWeek);
-                  endWeek.setDate(startWeek.getDate() + 6);
-                  weekCount = evs.events.reduce((cnt, ev) => {
-                    if (!ev.date) return cnt;
-                    const d = parseDatePreserveLocal(ev.date) || buildLocalDateFromParts(String(ev.date).slice(0, 10));
-                    if (!d || isNaN(d.getTime())) return cnt;
-                    const dMid = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                    const t = (ev && (ev.type || (ev.raw && ev.raw.type) || '')).toString().toLowerCase();
-                    return (dMid >= startWeek && dMid <= endWeek && t === 'lecture') ? cnt + 1 : cnt;
-                  }, 0);
-                } catch (e) { weekCount = 0; }
-              }
-            } catch (e) { }
-          }
-
-          if (mounted) {
-            const parseStartMinutes = (t) => {
-              try {
-                if (!t) return Number.MAX_SAFE_INTEGER;
-                const m = String(t).match(/^(\d{1,2}):(\d{2})/);
-                if (!m) return Number.MAX_SAFE_INTEGER;
-                const hh = parseInt(m[1], 10);
-                const mm = parseInt(m[2], 10);
-                if (Number.isNaN(hh) || Number.isNaN(mm)) return Number.MAX_SAFE_INTEGER;
-                return hh * 60 + mm;
-              } catch (e) { return Number.MAX_SAFE_INTEGER; }
-            };
-
-            (todayList || []).sort((a, b) => parseStartMinutes(a.time) - parseStartMinutes(b.time));
-
-            const finalToday = (todayList || []).slice(0, 6);
-            setTodayClasses(finalToday);
-            setWeekClassesCount(weekCount || 0);
-
-            const now = new Date();
-            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-            let alertClass = null;
-            for (const cls of finalToday) {
-              if (!cls.time) continue;
-              const timeMatch = cls.time.match(/^(\d{1,2}):(\d{2})/);
-              if (!timeMatch) continue;
-
-              const [_, hours, minutes] = timeMatch;
-              const classTime = new Date(now);
-              classTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-              if (classTime > now && classTime <= oneHourFromNow) {
-                const minsUntil = Math.round((classTime - now) / 60000);
-                alertClass = { ...cls, minutesUntil: minsUntil };
-                break;
-              }
-            }
-            setNextClassAlert(alertClass);
-
-            try {
-              const toLocalMidnight = (d) => {
-                try {
-                  const dt = new Date(d);
-                  if (isNaN(dt.getTime())) return null;
-                  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-                } catch (e) { return null; }
-              };
-
-              const todayMid = toLocalMidnight(new Date());
-              const upcomingLimit = 3;
-
-              const evs = await safeFetchJson('/api/events');
-              if (evs && Array.isArray(evs.events)) {
-                const allUpcoming = evs.events
-                  .filter(e => e && (e.type === 'lecture' || e.type === 'class') && e.date)
-                  .map(e => ({
-                    id: e.id,
-                    date: e.date,
-                    time: e.time,
-                    name: e.title || e.name || e.subject || 'Class',
-                    code: e.code || e.course || e.module || extractModuleCode(e.title || e.name || e.subject, resolvedCourses) || 'TBA',
-                    location: e.location || '',
-                    instructor: e.instructor || ''
-                  }))
-                  .map(e => ({ ...e, _dateObj: toLocalMidnight(e.date) }))
-                  .filter(e => e._dateObj && e._dateObj.getTime() > todayMid.getTime())
-                  .sort((a, b) => a._dateObj - b._dateObj)
-                  .slice(0, 12)
-                  .map(({ _dateObj, ...rest }) => ({ ...rest, _dateObj }));
-
-                const upcomingRest = allUpcoming
-                  .map(({ _dateObj, ...rest }) => rest)
-                  .slice(0, upcomingLimit);
-
-                setNextClasses(upcomingRest);
-              } else {
-                setNextClasses([]);
-              }
-            } catch (e) { setNextClasses([]); }
-          }
-        } finally { setIsLoadingClasses(false); }
-
-        setIsLoadingDeadlines(true);
-        try {
-          const eventsPayload = await safeFetchJson('/api/events');
-          if (mounted && eventsPayload && Array.isArray(eventsPayload.events)) {
-            // Helper to compute final instant for an event (tries multiple fallbacks)
-            const computeFinalInstant = (ev) => {
-              try {
-                // Prefer explicit endDate (ISO)
-                const rawEnd = ev.endDate || ev.end_date || (ev.raw && (ev.raw.endDate || ev.raw.end_date));
-                if (rawEnd) {
-                  // If date-only (YYYY-MM-DD) treat as that date at 00:00 -> interpret as end of day
-                  const s = String(rawEnd);
-                  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-                    const [y, m, d] = s.split('-').map(Number);
-                    // end of that day
-                    return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
-                  }
-                  const d = new Date(String(rawEnd));
-                  if (!isNaN(d.getTime())) return d;
-                }
-
-                // If there's an endTime and a date, build local date from parts
-                const endTime = ev.endTime || (typeof ev.time === 'string' && ev.time.includes('-') ? (ev.time.split('-')[1] || '').trim() : null);
-                const dateStr = ev.date || (ev.startDate ? String(ev.startDate).slice(0, 10) : null);
-                if (endTime && dateStr) {
-                  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
-                  const [hh, mm] = String(endTime).split(':').map(Number);
-                  return new Date(y, (m || 1) - 1, d, Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
-                }
-
-                // If startDate and duration exist
-                if (ev.startDate && (typeof ev.durationMinutes !== 'undefined' || typeof ev.duration !== 'undefined')) {
-                  const s = new Date(String(ev.startDate));
-                  if (!isNaN(s.getTime())) {
-                    const dur = Number(ev.durationMinutes ?? ev.duration ?? 0);
-                    if (!Number.isNaN(dur) && dur > 0) return new Date(s.getTime() + Math.round(dur) * 60000);
-                    return s;
-                  }
-                }
-
-                // If only date present, treat as end of that day
-                if (dateStr) {
-                  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
-                  return new Date(y, (m || 1) - 1, d, 23, 59, 59, 999);
-                }
-
-                // Fallback: try to use endTime alone on today's date
-                if (endTime) {
-                  const now = new Date();
-                  const [hh, mm] = String(endTime).split(':').map(Number);
-                  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number.isFinite(hh) ? hh : 23, Number.isFinite(mm) ? mm : 59, 59, 999);
-                }
-
-                return null;
-              } catch (err) { return null; }
-            };
-
-            const nowTs = Date.now();
-
-              // Seed completed sets from server-side persisted flags so already-completed
-              // deadlines are hidden immediately.
-              const serverCompletedIds = new Set((eventsPayload.events || []).filter(ev => ev && (ev.type === 'deadline' || ev.type === 'assignment') && ev.completed).map(e => String(e.id)));
-              if (serverCompletedIds.size) {
-                setCompletedDeadlines(new Set(serverCompletedIds));
-                setHiddenCompleted(new Set(serverCompletedIds));
-              }
-
-              const deadlines = eventsPayload.events
-              .filter(e => e && (e.type === 'deadline' || e.type === 'assignment'))
-              .map((e, i) => {
-                const final = computeFinalInstant(e);
-                const isExpired = final ? (final.getTime() <= nowTs) : false;
-                return { ev: e, isExpired };
-              })
-              // hide expired deadlines from the upcoming list (soft-hide)
-              .filter(x => !x.isExpired)
-              .slice(0, 8)
-              .map((x, i) => {
-                const e = x.ev;
-                const due = e.date ? (parseDatePreserveLocal(e.date) || buildLocalDateFromParts(String(e.date).slice(0, 10)) || new Date(String(e.date))) : null;
-                return {
-                  id: e.id || `ev-${i}`,
-                  title: `${e.course ? e.course + ' - ' : ''}${e.title || e.name}`,
-                  dueDate: due ? due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
-                  type: e.type || 'assignment',
-                  course: e.course || '',
-                  daysLeft: due ? Math.max(0, Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0
-                };
-              });
-
-            if (mounted) {
-              setUpcomingDeadlines(deadlines);
-              setAssignmentsDueCount(deadlines.length);
-            }
-          }
-        } finally { setIsLoadingDeadlines(false); }
-
-        setIsLoadingQuickStats(true);
-        try {
-          const courseList = Array.isArray(coursesBody?.courses) ? coursesBody.courses : (Array.isArray(courses) ? courses : []);
-          const creditsSum = courseList.reduce((s, c) => s + (Number(c.credits || c.credit || 0)), 0);
-
-          const gradesForStats = await safeFetchJson('/api/grades') || { data: [] };
-          let avgPercentage = null;
-          if (gradesForStats && Array.isArray(gradesForStats.data) && gradesForStats.data.length) {
-            const percents = gradesForStats.data.map((c) => {
-              const cats = c.categories || c.assessments || [];
-              if (!cats || !cats.length) return null;
-              let totalWeight = 0;
-              let weighted = 0;
-              for (const cat of cats) {
-                const weight = Number(cat.weight || 0);
-                totalWeight += weight;
-                const items = cat.items || [];
-                if (!items.length) continue;
-                const avg = items.reduce((ss, it) => ss + ((it.score || it.grade || 0) / (it.maxScore || it.maxGrade || 100) * 100), 0) / items.length;
-                weighted += (avg * weight) / 100;
-              }
-              if (totalWeight === 0) return null;
-              return (weighted / totalWeight) * 100;
-            }).filter(p => p !== null && !isNaN(p));
-            if (percents.length) avgPercentage = percents.reduce((s, v) => s + v, 0) / percents.length;
-          }
-
-          const gpa = avgPercentage !== null ? Math.round(((avgPercentage / 100) * 4) * 100) / 100 : null;
-
-          let attendanceRate = null;
-          try {
-            if (courseList && courseList.length) {
-              const courseIds = courseList.map(c => c && c.id).filter(Boolean);
-              if (courseIds.length) {
-                const promises = courseIds.map(id => safeFetchJson(`/api/attendance?courseId=${id}`));
-                const results = await Promise.all(promises);
-                let totalSessions = 0;
-                let totalPresent = 0;
-                for (const att of results) {
-                  if (att && Array.isArray(att.sessions) && att.sessions.length) {
-                    totalSessions += att.sessions.length;
-                    totalPresent += att.sessions.filter(s => String(s.status).toUpperCase() === 'PRESENT').length;
-                  }
-                }
-                if (totalSessions > 0) {
-                  attendanceRate = Math.round((totalPresent / totalSessions) * 100);
-                  try { setStudyHoursLogged(totalSessions); } catch (e) { setStudyHoursLogged(0); }
-                }
-              }
-            }
-          } catch (e) { }
-
-          if (mounted) setQuickStats({ gpa, credits: creditsSum, attendanceRate });
-        } finally { setIsLoadingQuickStats(false); }
-
-      } catch (e) { }
-    })();
-
-    return () => { mounted = false; };
-  }, [currentDate, refreshCounter]);
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+
+  // Derived lists from fetched data
+  const isSameDay = (a, b) => {
+    try {
+      if (!a || !b) return false;
+      const da = new Date(String(a));
+      const db = new Date(String(b));
+      return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+    } catch (e) { return false; }
+  };
+
+  const formatTime = (v) => {
+    try {
+      if (!v) return '';
+      // v may be 'HH:MM' or an ISO string
+      if (/^\d{2}:\d{2}$/.test(String(v))) return String(v);
+      const d = new Date(String(v));
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ''; }
+  };
+
+  const formatDue = (ev) => {
+    try {
+      if (!ev) return '';
+      if (ev.startDate) return new Date(ev.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      if (ev.date) return typeof ev.date === 'string' ? ev.date : new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      return '';
+    } catch (e) { return ''; }
+  };
+
+  const todayClasses = events.filter(ev => {
+    if (!ev) return false;
+    const t = (ev.type || '').toString().toLowerCase();
+    if (t !== 'class' && t !== 'lecture' && t !== 'event') return false;
+    if (ev.startDate) return isSameDay(ev.startDate, currentDate);
+    if (ev.date) return isSameDay(ev.date, currentDate);
+    return false;
+  }).map(ev => {
+    // derive start/end times and a numeric timestamp (startTs) for sorting
+    let startTime = '';
+    let endTime = '';
+    let startTs = null;
+    try {
+      if (ev.startDate) startTime = formatTime(ev.startDate);
+      else if (ev.time) startTime = formatTime(ev.time);
+      if (ev.endDate) endTime = formatTime(ev.endDate);
+      else if (ev.durationMinutes && ev.startDate) {
+        const s = new Date(ev.startDate);
+        if (!isNaN(s.getTime())) {
+          const e = new Date(s.getTime() + (Number(ev.durationMinutes) || 0) * 60000);
+          endTime = formatTime(e.toISOString());
+        }
+      }
+      // compute numeric timestamp for sorting (prefer startDate, then time)
+      if (ev.startDate) {
+        const d = new Date(ev.startDate);
+        if (!isNaN(d.getTime())) startTs = d.getTime();
+      } else if (ev.time) {
+        // ev.time may be 'HH:MM' — create a Date for today at that time
+        const m = String(ev.time).match(/(\d{1,2}):(\d{2})/);
+        if (m) {
+          const d = new Date(currentDate);
+          d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+          startTs = d.getTime();
+        }
+      }
+    } catch (e) {}
+    // resolve module code from courses list when possible
+    let moduleCode = ev.course_id || (ev.meta && (ev.meta.course || ev.meta.courseCode)) || '';
+    try {
+      if ((!moduleCode || moduleCode === '') && Array.isArray(courses)) {
+        // try matching by id
+        let found = courses.find(c => c && String(c.id) === String(ev.course_id));
+        // if not found, try matching by code string
+        if (!found) found = courses.find(c => c && (String(c.code) === String(ev.course_id) || String(c.courseCode) === String(ev.course_id)));
+        if (found && (found.code || found.courseCode)) moduleCode = found.code || found.courseCode;
+      }
+      // final fallback: try extracting code from title/name/description
+      if ((!moduleCode || moduleCode === '') && (ev.title || ev.name || ev.description)) {
+        const extracted = extractModuleCode(ev.title || ev.name || ev.description, courses);
+        if (extracted) moduleCode = extracted;
+      }
+      if (!moduleCode) moduleCode = '';
+    } catch (e) {}
+    return {
+      id: ev.id,
+      code: moduleCode || '',
+      name: ev.title || ev.name || '',
+      startTime,
+      startTs,
+      endTime,
+      time: (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || ev.time || ''),
+      instructor: ev.instructor || (ev.meta && ev.meta.instructor) || '',
+      location: ev.location || ''
+    };
+  });
+
+  // sort classes by the computed timestamp (startTs). Items without a timestamp go last.
+  todayClasses.sort((a, b) => {
+    const ta = a.startTs || 0;
+    const tb = b.startTs || 0;
+    if (!ta && !tb) return 0;
+    if (!ta) return 1;
+    if (!tb) return -1;
+    return ta - tb;
+  });
+
+  const upcomingDeadlines = events.filter(ev => {
+    if (!ev) return false;
+    const t = (ev.type || '').toString().toLowerCase();
+    return (t === 'deadline' || t === 'assignment') && !ev.completed;
+  }).map(ev => {
+    const daysLeft = (() => {
+      const d = ev.startDate ? new Date(ev.startDate) : (ev.date ? new Date(ev.date) : null);
+      if (!d || isNaN(d.getTime())) return 9999;
+      return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
+    })();
+    return {
+      id: ev.id,
+      title: ev.title || ev.name || '',
+      dueDate: formatDue(ev),
+      daysLeft: typeof daysLeft === 'number' ? daysLeft : null,
+      type: ev.type || 'assignment'
+    };
+  }).sort((a, b) => (a.daysLeft || 9999) - (b.daysLeft || 9999));
+
+  const visibleUpcomingDeadlines = upcomingDeadlines.filter(d => !hiddenCompleted.has(String(d.id)));
+
+  // --- Data loading and actions ---
+  const safeFetchJson = async (url, opts) => {
+    try {
+      const fetchOpts = Object.assign({ credentials: 'same-origin', headers: { 'Accept': 'application/json' } }, opts || {});
+      const r = await fetch(url, fetchOpts);
+      const text = await r.text();
+      try {
+        const parsed = text ? JSON.parse(text) : null;
+        return parsed;
+      } catch (e) {
+        // non-JSON response
+        return { success: r.ok, status: r.status, body: text };
+      }
+    } catch (e) { return null; }
+  };
+
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    const evJson = await safeFetchJson('/api/events');
+    const fetchedEvents = evJson && Array.isArray(evJson.events) ? evJson.events : [];
+    setEvents(fetchedEvents || []);
+
+    const coursesJson = await safeFetchJson('/api/courses');
+    if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) setCourses(coursesJson.courses);
+
+    const gradesJson = await safeFetchJson('/api/grades');
+    if (gradesJson && gradesJson.success && Array.isArray(gradesJson.data)) setGradesData(gradesJson.data);
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  useEffect(() => {
+    try {
+      // Seed completed set
+      const completedIds = new Set(events.filter(e => e && (e.completed === true)).map(e => String(e.id)));
+      setCompletedDeadlines(prev => { const next = new Set(prev); completedIds.forEach(id => next.add(id)); return next; });
+
+      // Assignments due count
+      setAssignmentsDueCount(events.filter(e => e && (String(e.type || '').toLowerCase() === 'assignment' || String(e.type || '').toLowerCase() === 'deadline') && !e.completed).length);
+
+      // Week classes
+      const start = new Date(startOfWeek);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+      setWeekClassesCount(events.filter(e => e && (String(e.type || '').toLowerCase() === 'class' || String(e.type || '').toLowerCase() === 'lecture') && e.startDate).filter(ev => {
+        const d = new Date(ev.startDate);
+        return d >= start && d < end;
+      }).length);
+
+      // Credits & GPA best-effort
+      let credits = null;
+      if (Array.isArray(gradesData) && gradesData.length) credits = gradesData.reduce((s, c) => s + (Number(c.credits) || 0), 0) || null;
+      if (!credits && Array.isArray(courses) && courses.length) credits = courses.reduce((s, c) => s + (Number(c.credits) || 0), 0) || null;
+
+      let gpa = null;
+      try {
+        const gradeItems = [];
+        if (Array.isArray(gradesData)) {
+          for (const c of gradesData) {
+            if (Array.isArray(c.assessments)) {
+              for (const a of c.assessments) {
+                if (Array.isArray(a.items)) {
+                  for (const it of a.items) {
+                    if (typeof it.grade === 'number' && typeof it.maxGrade === 'number' && it.maxGrade > 0) {
+                      gradeItems.push(it.grade / it.maxGrade);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (gradeItems.length) {
+          const avg = gradeItems.reduce((s, v) => s + v, 0) / gradeItems.length;
+          gpa = Math.round(((avg * 4) + Number.EPSILON) * 100) / 100;
+        }
+      } catch (e) { gpa = null; }
+
+      setStats({ gpa, credits: credits || null, attendanceRate: null });
+    } catch (e) {}
+  }, [events, courses, gradesData, startOfWeek]);
+
+  // Attendance aggregation: compute average attendance across courses
+  useEffect(() => {
+    let mounted = true;
+    const loadAttendance = async () => {
+      try {
+        if (!Array.isArray(courses) || courses.length === 0) {
+          setStats(prev => ({ ...prev, attendanceRate: null }));
+          return;
+        }
+        // fetch attendance for each course in parallel. Try multiple param fallbacks when necessary.
+        const fetchForCourse = async (c) => {
+          try {
+            // try by course id
+            if (c && c.id) {
+              const id = encodeURIComponent(String(c.id));
+              const r = await safeFetchJson(`/api/attendance?courseId=${id}`);
+              if (r && r.success && Array.isArray(r.sessions)) return r;
+            }
+            // try by known course code fields
+            const code = (c && (c.code || c.courseCode || c.course)) ? String(c.code || c.courseCode || c.course) : null;
+            if (code) {
+              const r2 = await safeFetchJson(`/api/attendance?courseCode=${encodeURIComponent(code)}`);
+              if (r2 && r2.success && Array.isArray(r2.sessions)) return r2;
+              const r3 = await safeFetchJson(`/api/attendance?course=${encodeURIComponent(code)}`);
+              if (r3 && r3.success && Array.isArray(r3.sessions)) return r3;
+            }
+            return null;
+          } catch (e) { return null; }
+        };
+
+        const promises = courses.map(c => fetchForCourse(c));
+        const results = await Promise.all(promises);
+        // Debug: show which courses returned nothing (dev only)
+        try {
+          if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+            results.forEach((r, idx) => {
+              if (!r || !r.success || !Array.isArray(r.sessions)) {
+                console.debug('Attendance fetch empty for course:', courses[idx] && (courses[idx].id || courses[idx].code || courses[idx].name), 'response:', r);
+              }
+            });
+          }
+        } catch (e) {}
+        const perCourseRates = [];
+        for (const r of results) {
+          if (!r || !r.success || !Array.isArray(r.sessions)) continue;
+          const sessions = r.sessions || [];
+          if (sessions.length === 0) continue;
+          const present = sessions.filter(s => String((s.status || '').toUpperCase()) === 'PRESENT').length;
+          const rate = Math.round((present / sessions.length) * 100);
+          perCourseRates.push(rate);
+        }
+        if (mounted) {
+          if (perCourseRates.length === 0) setStats(prev => ({ ...prev, attendanceRate: null }));
+          else {
+            const avg = Math.round((perCourseRates.reduce((s, v) => s + v, 0) / perCourseRates.length));
+            setStats(prev => ({ ...prev, attendanceRate: avg }));
+          }
+        }
+      } catch (e) {
+        if (mounted) setStats(prev => ({ ...prev, attendanceRate: null }));
+      }
+    };
+    loadAttendance();
+    return () => { mounted = false; };
+  }, [courses]);
+
+  // Toggle completed with optimistic update and persist to server
+  const toggleCompletedOnServer = async (id, nextValue) => {
+    try {
+      const res = await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !!nextValue }) });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json && (json.event || json) ? (json.event || json) : null;
+    } catch (e) { return null; }
+  };
+
+  const toggleCompleted = async (id, nextValue) => {
+    setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.add(id); else n.delete(id); return n; });
+    if (nextValue) {
+      if (hideTimersRef.current[id]) clearTimeout(hideTimersRef.current[id]);
+      hideTimersRef.current[id] = setTimeout(() => { setHiddenCompleted(prev => { const n = new Set(prev); n.add(id); return n; }); }, 260);
+    } else {
+      if (hideTimersRef.current[id]) { clearTimeout(hideTimersRef.current[id]); delete hideTimersRef.current[id]; }
+      setHiddenCompleted(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }
+
+    const server = await toggleCompletedOnServer(id, nextValue);
+    if (!server) {
+      // revert
+      setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.delete(id); else n.add(id); return n; });
+      setHiddenCompleted(prev => { const n = new Set(prev); if (nextValue) n.delete(id); return n; });
+    } else {
+      setEvents(prev => prev.map(e => (e && String(e.id) === String(id) ? { ...e, completed: !!nextValue } : e)));
+    }
+  };
+
+  const [showCompleted, setShowCompleted] = useState(false);
+  const completedList = (() => {
+    try {
+      const seen = new Set();
+      const list = [];
+      for (const e of events) {
+        if (!e) continue;
+        const id = String(e.id);
+        if ((e.completed === true || completedDeadlines.has(id)) && !seen.has(id)) {
+          seen.add(id);
+          list.push(e);
+        }
+      }
+      // Also include any completed ids that don't have an event object yet (rare)
+      for (const id of Array.from(completedDeadlines)) {
+        if (seen.has(String(id))) continue;
+        const found = events.find(ev => String(ev.id) === String(id));
+        if (found) { list.push(found); seen.add(String(id)); }
+        else list.push({ id, title: 'Completed item', date: null });
+      }
+      return list.sort((a, b) => {
+        const da = a.startDate ? new Date(a.startDate) : (a.date ? new Date(a.date) : null);
+        const db = b.startDate ? new Date(b.startDate) : (b.date ? new Date(b.date) : null);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da - db;
+      });
+    } catch (e) { return []; }
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -780,274 +431,233 @@ export default function UniversityOverview() {
       
       <div className="max-w-[1450px] mx-auto px-6 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            {isLoadingUser ? <Skeleton width="w-64" height="h-9" /> : `Welcome back, ${userName || 'Student'}`}
+        <div className="mb-10 md:ml-12">
+          <h2 className="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+            Good morning, {userName}
           </h2>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
             {currentDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
 
-        {/* Next Class Alert */}
-        {nextClassAlert && (
-          <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
-                  Next class in {nextClassAlert.minutesUntil} minute{nextClassAlert.minutesUntil !== 1 ? 's' : ''}
-                </p>
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  {nextClassAlert.code} • {nextClassAlert.name} {nextClassAlert.location && `• ${nextClassAlert.location}`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
-            icon={<TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />}
+            icon={<TrendingUp />}
             label="Current GPA"
-            value={quickStats.gpa !== null ? quickStats.gpa.toFixed(2) : '—'}
-            loading={isLoadingQuickStats}
+            loading={loading}
+            value={stats.gpa !== null ? (typeof stats.gpa === 'number' ? stats.gpa.toFixed(2) : stats.gpa) : '—'}
+            bgColor="bg-indigo-100 dark:bg-indigo-900/30"
+            iconColor="text-indigo-700 dark:text-indigo-400"
           />
           <StatCard
-            icon={<BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />}
+            icon={<BookOpen />}
             label="Total Credits"
-            value={quickStats.credits !== null ? quickStats.credits : '—'}
-            loading={isLoadingQuickStats}
+            loading={loading}
+            value={stats.credits !== null ? stats.credits : '—'}
+            bgColor="bg-blue-100 dark:bg-blue-900/30"
+            iconColor="text-blue-700 dark:text-blue-400"
           />
           <StatCard
-            icon={<Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />}
+            icon={<Users />}
             label="Attendance Rate"
-            value={quickStats.attendanceRate !== null ? `${quickStats.attendanceRate}%` : '—'}
-            loading={isLoadingQuickStats}
+            loading={loading}
+            value={stats.attendanceRate !== null ? `${stats.attendanceRate}%` : '—'}
+            bgColor="bg-emerald-100 dark:bg-emerald-900/30"
+            iconColor="text-emerald-700 dark:text-emerald-400"
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Today's Classes */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-shadow duration-300 hover:shadow-lg">
+              <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Today's Classes</h3>
+                    <Calendar className="w-5 h-5 text-white" strokeWidth={2} />
+                    <h3 className="text-lg font-semibold text-white">Today's Classes</h3>
                   </div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                  <span className="text-sm text-purple-100">
                     {currentDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               </div>
 
               <div className="p-6">
-                {isLoadingClasses ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 animate-pulse">
-                        <div className="w-12 h-12 bg-slate-200 dark:bg-slate-600 rounded-xl"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-slate-200 dark:bg-slate-600 rounded w-1/3"></div>
-                          <div className="h-3 bg-slate-200 dark:bg-slate-600 rounded w-2/3"></div>
+                {todayClasses.length > 0 ? (
+                  <div className="space-y-3">
+                    {todayClasses.map((cls) => (
+                      <div
+                        key={cls.id}
+                        className="group flex items-center gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+                      >
+                        <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                          <GraduationCap className="w-6 h-6 text-indigo-700 dark:text-indigo-400" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 rounded">
+                              {cls.code}
+                            </span>
+                            <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{cls.name}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-3 text-xs text-slate-600 dark:text-slate-400">
+                            {cls.time && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{cls.time}</span>
+                              </div>
+                            )}
+                            {cls.location && (
+                              <div className="flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>{cls.location}</span>
+                              </div>
+                            )}
+                            {cls.instructor && (
+                              <div className="flex items-center gap-1">
+                                <Users className="w-3.5 h-3.5" />
+                                <span>{cls.instructor}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : todayClasses.length > 0 ? (
-                  <div className="space-y-3">
-                    {todayClasses.map((cls) => {
-                      const ymd = cls.date || cls.dateStr || toYMDLocal(currentDate);
-                      const goto = () => { window.location.href = `/calendar?date=${encodeURIComponent(String(ymd).slice(0, 10))}`; };
-                      return (
-                        <div
-                          key={cls.id}
-                          tabIndex={0}
-                          role="button"
-                          onClick={goto}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goto(); }}
-                          className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-transparent hover:border-purple-200 dark:hover:border-purple-800 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-600"
-                        >
-                          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <GraduationCap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-500/20 px-2 py-0.5 rounded">
-                                {cls.code || extractModuleCode(cls.name, courses)}
-                              </span>
-                              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{cls.name}</span>
-                            </div>
-                            <div className="flex flex-col gap-1 text-xs text-slate-600 dark:text-slate-400">
-                              {cls.time && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span>{cls.time}</span>
-                                </div>
-                              )}
-                              {cls.location && (
-                                <div className="flex items-center gap-1.5">
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  </svg>
-                                  <span>{cls.location}</span>
-                                </div>
-                              )}
-                              {cls.instructor && (
-                                <div className="flex items-center gap-1.5">
-                                  <Users className="w-3.5 h-3.5" />
-                                  <span>{cls.instructor}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
                 ) : (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Calendar className="w-8 h-8 text-slate-400 dark:text-slate-500" />
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 mb-1 font-medium">No classes today</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-500 mb-4">Enjoy your day off!</p>
+                    <p className="text-slate-900 dark:text-slate-100 mb-1 font-medium">No classes today</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Enjoy your free time!</p>
                     <button
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-xl transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors"
                       onClick={() => window.location.href = '/timetable'}
                     >
+                      <Calendar className="w-4 h-4" />
                       View Timetable
                     </button>
-                    {nextClasses && nextClasses.length > 0 && (
-                      <div className="mt-8 text-left">
-                        <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3">
-                          Upcoming Classes
-                        </h4>
-                        <div className="space-y-2">
-                          {nextClasses.map(nc => (
-                            <div key={nc.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-sm">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-500/20 px-2 py-0.5 rounded">{nc.code}</span>
-                                <span className="text-slate-900 dark:text-slate-100 truncate">{nc.name}</span>
-                              </div>
-                              <span className="text-xs text-slate-600 dark:text-slate-400 ml-2">
-                                {new Date(nc.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Upcoming Deadlines (simplified) */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <div className="border-b border-slate-200 dark:border-slate-700 px-6 py-4">
+            {/* Upcoming Deadlines */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-shadow duration-300 hover:shadow-lg">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Upcoming Deadlines</h3>
+                    <Target className="w-5 h-5 text-white" strokeWidth={2} />
+                    <h3 className="text-lg font-semibold text-white">Upcoming Deadlines</h3>
                   </div>
-                  <button
-                    className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
-                    onClick={() => window.location.href = '/calendar'}
-                  >
-                    View All
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="text-sm text-blue-100 hover:text-white transition-colors"
+                      onClick={() => window.location.href = '/calendar'}
+                    >
+                      View All
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-2 text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-full transition-colors"
+                      onClick={() => setShowCompleted(s => !s)}
+                      aria-pressed={showCompleted}
+                    >
+                      <Check className="w-4 h-4" />
+                      {showCompleted ? 'Hide Completed' : `Show Completed (${completedList.length})`}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="p-6">
-                {isLoadingDeadlines ? (
-                  <div className="text-sm text-slate-500">Loading deadlines...</div>
-                ) : (
-                  upcomingDeadlines.length > 0 ? (
-                    <div className="space-y-3">
-                      {upcomingDeadlines
-                        .filter(d => !hiddenCompleted.has(d.id))
-                        .map(d => (
-                        <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+                {visibleUpcomingDeadlines.length > 0 ? (
+                  <div className="space-y-3">
+                    {visibleUpcomingDeadlines.map(d => {
+                      const isUrgent = d.daysLeft <= 2;
+                      const isWarning = d.daysLeft > 2 && d.daysLeft <= 5;
+                      const bgColor = isUrgent ? 'bg-red-100 dark:bg-red-900/30' : isWarning ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30';
+                      const iconColor = isUrgent ? 'text-red-700 dark:text-red-400' : isWarning ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400';
+                      const badgeBg = isUrgent ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' : isWarning ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300';
+                      
+                      return (
+                        <div key={d.id} className="group flex items-center gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
                           <label className="inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={completedDeadlines.has(d.id)} onChange={async () => await toggleCompleted(d.id, !completedDeadlines.has(d.id))} className="sr-only peer" aria-checked={completedDeadlines.has(d.id)} />
-                            <span className="w-5 h-5 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 peer-checked:bg-purple-600 peer-checked:text-white peer-checked:border-transparent transition-colors transform peer-checked:scale-105 peer-checked:shadow-md peer-checked:[&>svg]:opacity-100 peer-checked:[&>svg]:scale-95">
-                              <Check className="w-3.5 h-3.5 text-white opacity-0 transition-opacity transform" />
+                            <input 
+                              type="checkbox" 
+                              checked={completedDeadlines.has(d.id)} 
+                              onChange={() => { toggleCompleted(d.id, !completedDeadlines.has(d.id)); }}
+                              className="sr-only peer" 
+                            />
+                            <span className="w-5 h-5 flex items-center justify-center rounded border-2 border-slate-300 dark:border-slate-600 peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500 peer-checked:border-transparent transition-all">
+                              <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={2.5} />
                             </span>
                           </label>
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-700/20 dark:to-purple-800/10">
-                            <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor} group-hover:scale-105 transition-transform duration-300`}>
+                            <AlertCircle className={`w-5 h-5 ${iconColor}`} strokeWidth={2} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium mb-0.5 text-slate-900 dark:text-slate-100 truncate">{d.title}</p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">{d.dueDate}</p>
+                            <p className={`text-sm font-medium mb-1 ${completedDeadlines.has(d.id) ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'} truncate`}>
+                              {d.title}
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">Due {d.dueDate}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">{d.daysLeft}d</span>
+                          <div className={`px-2.5 py-1 rounded text-xs font-semibold ${badgeBg}`}>
+                            {d.daysLeft}d
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <p className="text-slate-900 dark:text-slate-100 mb-1 font-medium">All caught up!</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">No upcoming deadlines</p>
+                    <button
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 rounded-lg transition-colors"
+                      onClick={() => window.location.href = '/calendar'}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Event
+                    </button>
+                  </div>
+                )}
 
-                      {completedDeadlines && completedDeadlines.size > 0 && (
-                        <div className="mt-3">
-                          <button
-                            aria-pressed={showCompletedDeadlines}
-                            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 hover:bg-purple-100 dark:bg-purple-700/20 dark:hover:bg-purple-700/30 text-purple-700 dark:text-purple-300 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
-                            onClick={async () => { const next = !showCompletedDeadlines; setShowCompletedDeadlines(next); if(next) await loadCompletedList(); }}
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            {showCompletedDeadlines ? 'Hide completed' : `Show completed (${completedDeadlines.size})`}
-                          </button>
-                      {showCompletedDeadlines && (
-                        <div className="mt-3 space-y-2">
-                          {completedList.length === 0 ? (
-                            <div className="text-sm text-slate-500">No completed deadlines.</div>
-                          ) : (
-                            completedList.map(cd => (
-                              <div key={cd.id} className="flex items-center gap-3 p-3 rounded-xl border bg-slate-50 dark:bg-slate-700/30 border-slate-200 dark:border-slate-700">
-                                <label className="inline-flex items-center cursor-pointer">
-                                  <input type="checkbox" checked={true} onChange={async () => { await toggleCompleted(cd.id, false); }} className="sr-only peer" />
-                                  <span className="w-5 h-5 flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-600 peer-checked:bg-purple-600 peer-checked:border-transparent peer-checked:text-white transition-colors transform peer-checked:scale-105 peer-checked:shadow-md peer-checked:[&>svg]:opacity-100 peer-checked:[&>svg]:scale-95">
-                                    <Check className="w-3.5 h-3.5 text-white opacity-0 transition-opacity transform" />
-                                  </span>
-                                </label>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium mb-0.5 line-through text-slate-500 truncate">{cd.title}</p>
-                                      <p className="text-xs text-slate-400">{cd.dueDate}</p>
-                                    </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                {/* Completed list (toggle) */}
+                {showCompleted && (
+                  <div className="mt-6 border-t pt-4">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Completed</h4>
+                    {completedList.length > 0 ? (
+                      <div className="space-y-2">
+                        {completedList.map(ev => (
+                          <div key={ev.id} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700">
+                            <label className="inline-flex items-center cursor-pointer">
+                              <input type="checkbox" checked={true} onChange={() => { toggleCompleted(ev.id, false); }} className="sr-only peer" />
+                              <span className="w-5 h-5 flex items-center justify-center rounded border-2 border-slate-300 dark:border-slate-600 bg-indigo-600 text-white">
+                                <Check className="w-3.5 h-3.5" />
+                              </span>
+                            </label>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{ev.title || ev.name || 'Completed item'}</div>
+                              <div className="text-xs text-slate-600 dark:text-slate-400">{ev.startDate ? new Date(ev.startDate).toLocaleString() : (ev.date ? String(ev.date) : '')}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <p className="text-slate-600 dark:text-slate-400 mb-1 font-medium">All caught up!</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-500 mb-4">No upcoming deadlines</p>
-                      <button
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-xl transition-colors"
-                        onClick={() => window.location.href = '/calendar'}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Create Event
-                      </button>
-                    </div>
-                  )
+                    ) : (
+                      <div className="text-sm text-slate-500">No completed items</div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1056,10 +666,12 @@ export default function UniversityOverview() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* This Week */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 transition-shadow duration-300 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">This Week</h3>
+                <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-4.5 h-4.5 text-purple-700 dark:text-purple-400" strokeWidth={2} />
+                </div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">This Week</h3>
               </div>
               
               <div className="grid grid-cols-7 gap-2 mb-6">
@@ -1073,7 +685,7 @@ export default function UniversityOverview() {
                       <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">{day}</div>
                       <div className={`w-9 h-9 mx-auto rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
                         isToday
-                          ? 'bg-purple-600 dark:bg-purple-500 text-white'
+                          ? 'bg-indigo-600 text-white dark:bg-indigo-500'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}>
                         {date.getDate()}
@@ -1083,64 +695,58 @@ export default function UniversityOverview() {
                 })}
               </div>
               
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between py-2 border-t border-slate-200 dark:border-slate-700">
-                  <span className="text-slate-600 dark:text-slate-400">Classes this week</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{weekClassesCount ?? 0}</span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Classes this week</span>
+                  <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{weekClassesCount}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-t border-slate-200 dark:border-slate-700">
-                  <span className="text-slate-600 dark:text-slate-400">Assignments due</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{assignmentsDueCount ?? 0}</span>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Assignments due</span>
+                  <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{assignmentsDueCount}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-t border-slate-200 dark:border-slate-700">
-                  <span className="text-slate-600 dark:text-slate-400">Study hours</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{studyHoursLogged ?? 0}</span>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Study hours</span>
+                  <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{studyHoursLogged}</span>
                 </div>
               </div>
             </div>
 
             {/* Active Modules */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 transition-shadow duration-300 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-6">
-                <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Active Modules</h3>
+                <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-4.5 h-4.5 text-blue-700 dark:text-blue-400" strokeWidth={2} />
+                </div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Active Modules</h3>
               </div>
               
-              {courses.length > 0 ? (
-                <div className="space-y-2">
-                  {courses.slice(0, 5).map((course, idx) => (
+              <div className="space-y-2.5">
+                {courses.map((course) => {
+                  const colors = [
+                    { dot: 'bg-blue-500', hover: 'hover:bg-blue-50 dark:hover:bg-blue-900/20' },
+                    { dot: 'bg-emerald-500', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' },
+                    { dot: 'bg-violet-500', hover: 'hover:bg-violet-50 dark:hover:bg-violet-900/20' }
+                  ];
+                  const color = colors[courses.indexOf(course) % colors.length];
+                  
+                  return (
                     <div 
-                      key={course.id || idx}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-transparent hover:border-purple-200 dark:hover:border-purple-800 transition-colors cursor-pointer"
+                      key={course.id}
+                      className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}
                       onClick={() => window.location.href = '/courses'}
                     >
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        idx % 3 === 0 ? 'bg-blue-500' : 
-                        idx % 3 === 1 ? 'bg-green-500' : 
-                        'bg-purple-500'
-                      }`}></div>
+                      <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-0.5">{course.code || course.courseCode}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{course.name || course.title || course.module || course.courseName}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{course.code}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{course.name}</p>
                       </div>
+                      <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <BookOpen className="w-7 h-7 text-slate-400 dark:text-slate-500" />
-                  </div>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-3">No modules yet</p>
-                  <button
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-xl transition-colors"
-                    onClick={() => window.location.href = '/courses'}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Modules
-                  </button>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

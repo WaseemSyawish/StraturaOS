@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Download, Loader2, AlertCircle, Settings, BookOpen, ArrowRight, X } from 'lucide-react';
+import { Plus, Trash2, Download, Loader2, AlertCircle, Calendar, Settings, BookOpen, ArrowRight, X } from 'lucide-react';
 import CustomSelect from '../src/components/CustomSelect';
 // WeekView (timetable grid) removed from Attendance page per UI request
 import Notification from '../src/components/Notification';
@@ -9,6 +9,9 @@ import AddSessionModal from '../src/components/attendance/AddSessionModal';
 const AttendanceTracker = () => {
   const [sessions, setSessions] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const modalRef = useRef(null);
+  const modalCloseTimerRef = useRef(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -16,6 +19,7 @@ const AttendanceTracker = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [showAddSessionModal, setShowAddSessionModal] = useState(false);
   
   const [editingSession, setEditingSession] = useState(null);
@@ -137,6 +141,101 @@ const AttendanceTracker = () => {
     return () => clearTimeout(t);
   }, [notification]);
 
+  useEffect(() => {
+  if (successMessage) {
+    const timer = setTimeout(() => setSuccessMessage(null), 5000);
+    return () => clearTimeout(timer);
+  }
+}, [successMessage]);
+
+useEffect(() => {
+  let mounted = true;
+  const prevActive = typeof document !== 'undefined' ? document.activeElement : null;
+  
+  if (showAddSessionModal) {
+    // Trigger enter animation
+    setTimeout(() => { if (mounted) setModalVisible(true); }, 10);
+    
+    // Focus first input
+    setTimeout(() => {
+      try {
+        const root = modalRef.current;
+        if (root) {
+          const el = root.querySelector('input, select, textarea, button');
+          if (el && el.focus) el.focus();
+        }
+      } catch (e) {}
+    }, 50);
+
+    // Keyboard handling
+      const onKey = (ev) => {
+      if (ev.key === 'Escape') {
+        closeModal();
+      }
+      if (ev.key === 'Tab') {
+        const root = modalRef.current;
+        if (!root) return;
+        const focusable = root.querySelectorAll('a[href], button:not([disabled]), textarea, input, select');
+        if (!focusable || focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (ev.shiftKey && document.activeElement === first) {
+          ev.preventDefault(); 
+          last.focus();
+        } else if (!ev.shiftKey && document.activeElement === last) {
+          ev.preventDefault(); 
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', onKey);
+    return () => {
+      mounted = false;
+      document.removeEventListener('keydown', onKey);
+      if (prevActive && prevActive.focus) prevActive.focus();
+    };
+  }
+  return () => { mounted = false; };
+}, [showAddSessionModal]);
+
+  // Close modal with exit animation then hide
+  const closeModal = () => {
+    try {
+      // start exit animation
+      setModalVisible(false);
+      // clear any previous timer
+      if (modalCloseTimerRef.current) {
+        clearTimeout(modalCloseTimerRef.current);
+        modalCloseTimerRef.current = null;
+      }
+      modalCloseTimerRef.current = setTimeout(() => {
+        setShowAddSessionModal(false);
+        setEditingSession(null);
+        modalCloseTimerRef.current = null;
+      }, 320);
+    } catch (e) {
+      // fallback: hide immediately
+      setShowAddSessionModal(false);
+      setEditingSession(null);
+    }
+  };
+
+  // Handler used by modal to save a session and close with success message
+  const handleSaveSession = async (payload) => {
+    try {
+      // await existing addSessionWithPayload helper which manages saving
+      await addSessionWithPayload(payload);
+      const course = courses.find(c => c.id === (payload.courseId || selectedCourseId));
+      const formattedDate = new Date(payload.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      setSuccessMessage(`Session added for ${course ? course.code : selectedCourse} on ${formattedDate}`);
+      closeModal();
+    } catch (e) {
+      // addSessionWithPayload already surfaces errors; keep modal open for correction
+      console.error('Error in handleSaveSession:', e);
+    }
+  };
+
   // Helper to sort sessions by date (oldest first)
   const sortSessionsByDate = (sessionsArray) => {
     return (sessionsArray || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -152,20 +251,37 @@ const AttendanceTracker = () => {
     const excused = sessions.filter(s => s.status === 'EXCUSED').length;
     const late = sessions.filter(s => s.status === 'LATE').length;
     
-    // FIXED: Calculate attendance EXCLUDING holidays entirely
-    // Only count sessions that actually required attendance (not holidays)
+    // FIXED: Calculate attendance USING weighted points and EXCLUDING holidays entirely
+    // Weighted points: PRESENT=2, LATE=1, EXCUSED=1, ABSENT=0, HOLIDAY excluded
     const attendableSessions = sessions.filter(s => s.status !== 'HOLIDAY');
     const eligibleSessions = attendableSessions.length;
-    
-    // Count only sessions where student was actually present
-    const actuallyPresent = sessions.filter(s => s.status === 'PRESENT').length;
-    
-    // Attendance percentage based only on non-holiday sessions
-    const attendancePercentage = eligibleSessions > 0 ? (actuallyPresent / eligibleSessions) * 100 : 0;
-    
-    const totalPointsEarned = sessions.reduce((sum, session) => sum + (session.points || 0), 0);
-    // Maximum possible points only for attendable sessions (excluding holidays)
-    const totalPointsPossible = eligibleSessions * 2;
+
+    const MAX_POINTS = 2;
+    const derivePoints = (session) => {
+      if (!session) return 0;
+      // prefer explicit numeric points when provided
+      if (typeof session.points === 'number') return session.points;
+      const st = (session.status || '').toString().toUpperCase();
+      switch (st) {
+        case 'PRESENT': return 2;
+        case 'LATE': return 1;
+        case 'EXCUSED': return 1;
+        case 'ABSENT': return 0;
+        case 'HOLIDAY': return null; // excluded
+        default: return 0;
+      }
+    };
+
+    let totalPointsEarned = 0;
+    let countedSessions = 0;
+    for (const s of sessions) {
+      const pts = derivePoints(s);
+      if (pts === null || pts === undefined) continue; // exclude holidays
+      totalPointsEarned += Number(pts) || 0;
+      countedSessions++;
+    }
+    const totalPointsPossible = countedSessions * MAX_POINTS;
+    const attendancePercentage = totalPointsPossible > 0 ? (totalPointsEarned / totalPointsPossible) * 100 : 0;
     
     // Capping system calculations
     const requiredAttendancePercentage = 80; // 80% minimum required
@@ -291,10 +407,21 @@ const AttendanceTracker = () => {
       setSaving(true);
       setError(null);
 
+      const derivePoints = (st) => {
+        switch ((st || '').toUpperCase()) {
+          case 'PRESENT': return 2;
+          case 'EXCUSED': return 1;
+          case 'LATE': return 1;
+          case 'ABSENT': return 0;
+          case 'HOLIDAY': return null;
+          default: return 0;
+        }
+      };
+      const status = (payload.status || 'PRESENT').toUpperCase();
       const body = {
         date: payload.date,
-        status: payload.status || 'PRESENT',
-        points: typeof payload.points === 'number' ? payload.points : (payload.status === 'PRESENT' ? 2 : 0),
+        status,
+        points: (payload.points !== undefined ? payload.points : derivePoints(status)),
         courseId: payload.courseId || selectedCourseId
       };
 
@@ -357,7 +484,7 @@ const AttendanceTracker = () => {
                 updated.points = 0;
                 break;
               case 'HOLIDAY':
-                updated.points = 0; // Holidays don't affect attendance
+                updated.points = null; // Holidays don't affect attendance
                 break;
               default:
                 updated.points = 0;
@@ -662,6 +789,17 @@ const AttendanceTracker = () => {
         html.dark .text-gray-600 { color: rgba(255,255,255,0.72) !important; }
         html.dark .bg-red-50 { background: rgba(255,0,0,0.04) !important; }
         ${attendanceDarkStyles}
+        @keyframes popIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-down {
+          animation: slideDown 0.3s ease-out;
+        }
         `}</style>
       {/* Top-right compact toasts */}
       <div className="fixed top-6 right-6 z-50">
@@ -670,73 +808,87 @@ const AttendanceTracker = () => {
   <div className="max-w-7xl mx-auto">
   <div className={`attendance-content ${showAddSessionModal ? 'blur-md pointer-events-none' : ''}`}>
     {/* Header */}
-  <div className="cozy rounded-xl shadow-lg p-10 mt-6 mb-8" style={{ padding: '2.5rem' }}>
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-              <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
-              <span className="text-red-700 flex-1">{error}</span>
-              <button
-                onClick={() => setError(null)}
-                className="ml-auto text-red-500 hover:text-red-700 text-lg font-bold"
-                aria-label="Dismiss error"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">Attendance Tracker</h1>
-              <p className="text-gray-600 dark:text-slate-100">University Planner - Track your class attendance</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => window.location.href = '/modules'} // Adjust path as needed
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                title="Manage your courses"
-              >
-                <Settings size={20} />
-                Manage Courses
-              </button>
-              <button
-                onClick={exportData}
-                disabled={loading || sessions.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download size={20} />
-                Export
-              </button>
-              <button
-                onClick={() => setShowAddSessionModal(true)}
-                disabled={saving || loading || !selectedCourseId}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                Add Session
-              </button>
-            </div>
-          </div>
-          
-          {/* Course Selector */}
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">Course:</label>
-            <CustomSelect
-              value={selectedCourseId}
-              onChange={(val) => handleCourseChange(val)}
-              options={courses.map(course => ({ value: course.id, label: `${course.name} ${course.code ? `(${course.code})` : ''} - ${course.semester}` }))}
-              placeholder="Select a course..."
-              className="attendance-course-select w-full sm:w-[28rem] max-w-full"
-            />
-            {courses.length > 0 && (
-              <span className="text-sm text-gray-500">
-                {courses.length} course{courses.length !== 1 ? 's' : ''} available
-              </span>
-            )}
-      
-            {/* AddSessionModal intentionally rendered outside the blurred content so it stays crisp and interactive */}
-          </div>
+  <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95">
+  <div className="max-w-7xl mx-auto px-6 py-5">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+          <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
         </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Attendance Tracker</h1>
+          <p className="text-sm text-slate-600">University Planner - Track your class attendance</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => window.location.href = '/courses'}
+          className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+        >
+          <Settings className="w-4 h-4" />
+          <span className="hidden sm:inline font-medium">Manage Courses</span>
+        </button>
+        <button className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm">
+          <Download className="w-4 h-4" />
+          <span className="hidden sm:inline font-medium">Export</span>
+        </button>
+        <button 
+          onClick={() => setShowAddSessionModal(true)}
+          className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="font-semibold">Add Session</span>
+        </button>
+      </div>
+    </div>
+
+    {/* Success Banner */}
+    {successMessage && (
+      <div className="max-w-7xl mx-auto px-6 pt-6 animate-slide-down">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="text-emerald-600 w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-emerald-900 font-semibold text-sm">Session Added Successfully</p>
+            <p className="text-emerald-700 text-sm">{successMessage}</p>
+          </div>
+          <button
+            onClick={() => setSuccessMessage(null)}
+            className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 p-2 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Course selector - keep your existing custom dropdown */}
+    <div className="flex items-center gap-4 bg-slate-50 px-5 py-3.5 rounded-xl border border-slate-200">
+      <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+        <BookOpen className="w-4 h-4" />
+        Course:
+      </label>
+      {/* YOUR EXISTING CUSTOM DROPDOWN COMPONENT HERE */}
+      {/* Just paste your current custom dropdown code */}
+      <div className="flex-1">
+        <CustomSelect
+          options={courses.map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
+          value={selectedCourseId}
+          onChange={(val) => handleCourseChange(val)}
+          placeholder="Select a course"
+          className="w-full"
+          id="course-select"
+        />
+      </div>
+      <span className="text-sm text-slate-600 bg-white px-4 py-2 rounded-lg border border-slate-200 font-medium whitespace-nowrap">
+        {courses.length} courses available
+      </span>
+    </div>
+  </div>
+</header>
 
         {selectedCourseId && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -816,14 +968,9 @@ const AttendanceTracker = () => {
                             </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-slate-100">
-                            <input
-                              type="number"
-                              value={session.points || 0}
-                              onChange={(e) => updateSession(session.id, 'points', parseInt(e.target.value) || 0)}
-                              className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white attendance-points-input"
-                              min="0"
-                              max="2"
-                            />
+                            <div className="w-16 text-sm font-medium text-gray-800 dark:text-white">
+                              {session.points === null || session.points === undefined ? '—' : session.points}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <button
@@ -988,12 +1135,13 @@ const AttendanceTracker = () => {
       <React.Fragment>
         <div
           className="fixed inset-0 z-40 bg-black/20"
-          onClick={() => { setShowAddSessionModal(false); setEditingSession(null); }}
+          onClick={() => { closeModal(); }}
         />
         <AddSessionModal
           open={showAddSessionModal}
-          onClose={() => { setShowAddSessionModal(false); setEditingSession(null); }}
-          onSave={addSessionWithPayload}
+          visible={modalVisible}
+          onClose={() => { closeModal(); }}
+          onSave={handleSaveSession}
           onUpdate={updateSessionFull}
           onDelete={deleteSessionFull}
           defaultCourseId={selectedCourseId}

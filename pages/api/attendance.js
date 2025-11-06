@@ -209,7 +209,9 @@ async function handleGet(req, res) {
       id: session.id,
       date: (typeof session.date === 'string' ? session.date.split('T')[0] : session.date.toISOString().split('T')[0]),
       status: session.status,
-      points: session.points || 0,
+      // Treat HOLIDAY sessions as null points regardless of stored value so
+      // clients can exclude them from averages.
+      points: (String(session.status || '').toUpperCase() === 'HOLIDAY') ? null : ((session.points === null || session.points === undefined) ? null : session.points),
       notes: session.notes || '',
       course: {
         name: session.courses ? session.courses.name : course.name,
@@ -352,7 +354,7 @@ async function handlePost(req, res) {
       id: newSession.id,
       date: (typeof newSession.date === 'string' ? newSession.date.split('T')[0] : newSession.date.toISOString().split('T')[0]),
       status: newSession.status,
-      points: newSession.points || 0,
+      points: (newSession.status && String(newSession.status).toUpperCase() === 'HOLIDAY') ? null : (newSession.points === null || newSession.points === undefined ? null : newSession.points),
       notes: newSession.notes || '',
       course: { name: newSession.courses ? newSession.courses.name : course.name, code: newSession.courses ? newSession.courses.code : course.code, color: newSession.courses ? newSession.courses.color : course.color },
       createdAt: newSession.created_at,
@@ -480,7 +482,9 @@ async function handlePut(req, res) {
     }
     
     if (points !== undefined) {
-      updateData.points = parseInt(points) || 0;
+      // Allow explicit null to clear/mark HOLIDAY; otherwise coerce to int with fallback 0
+      if (points === null) updateData.points = null;
+      else updateData.points = parseInt(points) || 0;
     }
     
     if (notes !== undefined) {
@@ -513,7 +517,7 @@ async function handlePut(req, res) {
       id: updatedSession.id,
       date: updatedSession.date.toISOString().split('T')[0],
       status: updatedSession.status,
-      points: updatedSession.points || 0,
+      points: (updatedSession.status && String(updatedSession.status).toUpperCase() === 'HOLIDAY') ? null : (updatedSession.points === null || updatedSession.points === undefined ? null : updatedSession.points),
       notes: updatedSession.notes || '',
       course: {
         name: updatedSession.courses.name,

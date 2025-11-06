@@ -79,6 +79,9 @@ export default function UniversityOverview() {
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ gpa: null, credits: null, attendanceRate: null });
+  const [attendanceNeedsSignIn, setAttendanceNeedsSignIn] = useState(false);
+  const [attendanceError, setAttendanceError] = useState(null);
+  const [attendanceDebug, setAttendanceDebug] = useState({ courses: null, attendance: [] });
   const [weekClassesCount, setWeekClassesCount] = useState(0);
   const [assignmentsDueCount, setAssignmentsDueCount] = useState(0);
   const [studyHoursLogged, setStudyHoursLogged] = useState(0);
@@ -320,7 +323,8 @@ export default function UniversityOverview() {
         }
       } catch (e) { gpa = null; }
 
-      setStats({ gpa, credits: credits || null, attendanceRate: null });
+  // Preserve any already-computed attendanceRate (avoid stomping it when events/courses update)
+  setStats(prev => ({ ...prev, gpa, credits: credits || null }));
     } catch (e) {}
   }, [events, courses, gradesData, startOfWeek]);
 
@@ -336,12 +340,15 @@ export default function UniversityOverview() {
         // we bail early to avoid making repeated bad `courseCode` requests
         // which previously produced 400 responses.
         let courseList = null;
+        let coursesJson = null;
         try {
-          const coursesJson = await safeFetchJson('/api/courses');
+          coursesJson = await safeFetchJson('/api/courses');
           if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) {
             courseList = coursesJson.courses;
           }
-        } catch (e) {}
+        } catch (e) { coursesJson = { success: false, error: String(e) }; }
+        // stash debug copy (dev-only)
+        try { if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') setAttendanceDebug(d => ({ ...d, courses: coursesJson })); } catch (e) {}
 
         if (!courseList) {
           // fall back to any already-loaded courses from parent loadAll
@@ -349,8 +356,11 @@ export default function UniversityOverview() {
         }
 
         if (!courseList || !Array.isArray(courseList) || courseList.length === 0) {
-          // nothing authoritative to use for attendance lookups — bail out
+          // nothing authoritative to use for attendance lookups — likely not signed in.
+          // Show a sign-in hint instead of silently leaving the stat as '—'.
           setStats(prev => ({ ...prev, attendanceRate: null }));
+          setAttendanceNeedsSignIn(true);
+          setAttendanceError(coursesJson && coursesJson.error ? String(coursesJson.error) : 'No courses available to compute attendance');
           return;
         }
 
@@ -381,8 +391,10 @@ export default function UniversityOverview() {
           } catch (e) { return null; }
         };
 
-        const promises = targets.map(c => fetchForCourse(c));
-        const results = await Promise.all(promises);
+  const promises = targets.map(c => fetchForCourse(c));
+  const results = await Promise.all(promises);
+  try { if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') setAttendanceDebug(d => ({ ...d, attendance: results.slice(0, 8) })); } catch (e) {}
+  setAttendanceError(null);
         // nothing to do here for debug
         // Debug: show which courses returned nothing (dev only)
         try {
@@ -394,26 +406,43 @@ export default function UniversityOverview() {
             });
           }
         } catch (e) {}
-  const perCourseRates = [];
-  let sawAuthError = false;
+        // Compute a global average across all attendance sessions (user-level),
+        // not a simple mean of per-course percentages. This sums all earned
+        // points and divides by total possible points so courses with more
+        // sessions contribute proportionally.
+        const MAX_POINTS = 2;
+        let globalPoints = 0;
+        let globalCounted = 0;
         for (const r of results) {
           if (!r || !Array.isArray(r.sessions)) continue;
-          if (!r || !Array.isArray(r.sessions)) continue;
           const sessions = r.sessions || [];
-          if (sessions.length === 0) {
-            // If there are no sessions for this course, treat its rate as 0
-            perCourseRates.push(0);
-            continue;
+          for (const s of sessions) {
+            const pts = (s && typeof s.points === 'number') ? s.points : (s && s.status ? (() => {
+              switch (String(s.status).toUpperCase()) {
+                case 'PRESENT': return 2;
+                case 'EXCUSED': return 1;
+                case 'LATE': return 1;
+                case 'ABSENT': return 0;
+                case 'HOLIDAY': return null;
+                default: return 0;
+              }
+            })() : 0);
+            if (pts === null || pts === undefined) continue; // exclude HOLIDAY/unknown
+            globalPoints += Number(pts) || 0;
+            globalCounted++;
           }
-          const present = sessions.filter(s => String((s.status || '').toUpperCase()) === 'PRESENT').length;
-          const rate = Math.round((present / sessions.length) * 100);
-          perCourseRates.push(rate);
         }
+
         if (mounted) {
-          if (perCourseRates.length === 0) setStats(prev => ({ ...prev, attendanceRate: null }));
-          else {
-            const avg = Math.round((perCourseRates.reduce((s, v) => s + v, 0) / perCourseRates.length));
+          setAttendanceNeedsSignIn(false);
+          if (globalCounted === 0) {
+            setStats(prev => ({ ...prev, attendanceRate: null }));
+            if (Array.isArray(results) && results.length > 0) setAttendanceError('No attendance sessions found for your courses');
+          } else {
+            const raw = (globalPoints / (globalCounted * MAX_POINTS)) * 100;
+            const avg = Math.round(raw * 10) / 10;
             setStats(prev => ({ ...prev, attendanceRate: avg }));
+            setAttendanceError(null);
           }
         }
       } catch (e) {
@@ -540,13 +569,38 @@ export default function UniversityOverview() {
             icon={<Users />}
             label="Attendance Rate"
             loading={loading}
-            value={stats.attendanceRate !== null ? `${stats.attendanceRate}%` : '—'}
+            value={attendanceNeedsSignIn ? (
+              <a href="/signin" className="text-sm text-emerald-700 hover:underline">Sign in to view</a>
+            ) : (stats.attendanceRate !== null ? `${stats.attendanceRate}%` : '—')}
             bgColor="bg-emerald-100 dark:bg-emerald-900/30"
             iconColor="text-emerald-700 dark:text-emerald-400"
           />
         </div>
 
-        {/* Attendance hint removed (debug removed) */}
+        {/* Attendance diagnostic (only visible when there's an issue) */}
+        {attendanceError && (
+          <div className="max-w-[1450px] mx-auto px-6 mb-4">
+            <p className="text-sm text-red-600">Attendance: {attendanceError}</p>
+          </div>
+        )}
+        {/* Dev-only raw API responses for quick debugging */}
+        {typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' && (
+          <div className="max-w-[1450px] mx-auto px-6 mb-6">
+            <details className="text-sm text-slate-600">
+              <summary className="cursor-pointer font-medium">Attendance debug (dev only)</summary>
+              <div className="mt-2 p-3 bg-slate-50 rounded"> 
+                <div className="mb-2">
+                  <div className="text-xs text-slate-500 mb-1">/api/courses response:</div>
+                  <pre className="text-xs p-2 bg-white border rounded text-slate-700 overflow-auto max-h-40">{JSON.stringify(attendanceDebug.courses, null, 2)}</pre>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-1">Sample /api/attendance responses (first few):</div>
+                  <pre className="text-xs p-2 bg-white border rounded text-slate-700 overflow-auto max-h-40">{JSON.stringify(attendanceDebug.attendance || [], null, 2)}</pre>
+                </div>
+              </div>
+            </details>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}

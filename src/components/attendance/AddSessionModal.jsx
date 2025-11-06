@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 
-export default function AddSessionModal({ open, onClose, onSave, onUpdate, onDelete, defaultCourseId, editingSession }) {
+export default function AddSessionModal({ open, visible = true, onClose, onSave, onUpdate, onDelete, defaultCourseId, editingSession }) {
 	const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 	const [time, setTime] = useState('09:00');
 	const [status, setStatus] = useState('PRESENT');
@@ -139,9 +139,12 @@ export default function AddSessionModal({ open, onClose, onSave, onUpdate, onDel
 		}
 	};
 
+	// `visible` controls enter/exit animation. Parent mounts component when showAddSessionModal
+	// becomes true, then toggles `visible` (modalVisible) to animate. When visible becomes false
+	// parent waits and unmounts component.
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
-			<div ref={modalRef} className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-visible" onClick={(e) => e.stopPropagation()}>
+		<div className={`fixed inset-0 z-50 flex items-center justify-center px-4 transition-all duration-300 ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} role="dialog" aria-modal="true">
+			<div ref={modalRef} onClick={(e) => e.stopPropagation()} className={`w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-visible transform transition-all duration-300 ${visible ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-4 scale-95 opacity-0'}`}>
 				<div className="p-6">
 					<div className="flex items-start justify-between mb-5">
 						<div>

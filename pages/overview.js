@@ -74,6 +74,8 @@ export default function UniversityOverview() {
   const [completedDeadlines, setCompletedDeadlines] = useState(new Set());
   const [hiddenCompleted, setHiddenCompleted] = useState(new Set());
   const hideTimersRef = useRef({});
+  const [completedAtMap, setCompletedAtMap] = useState({});
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ gpa: null, credits: null, attendanceRate: null });
@@ -211,7 +213,18 @@ export default function UniversityOverview() {
     };
   }).sort((a, b) => (a.daysLeft || 9999) - (b.daysLeft || 9999));
 
-  const visibleUpcomingDeadlines = upcomingDeadlines.filter(d => !hiddenCompleted.has(String(d.id)));
+  const visibleUpcomingDeadlines = upcomingDeadlines.filter(d => {
+    const id = String(d.id);
+    if (hiddenCompleted.has(id)) return false;
+    // if user has toggled to show completed, always show
+    if (showCompleted) return true;
+    // if completedAt exists and is older than AUTO_HIDE_MS, hide it
+    const ts = completedAtMap && completedAtMap[id] ? Date.parse(completedAtMap[id]) : null;
+    if (ts && !isNaN(ts)) {
+      if ((Date.now() - ts) >= (24 * 60 * 60 * 1000)) return false;
+    }
+    return true;
+  });
 
   // --- Data loading and actions ---
   const safeFetchJson = async (url, opts) => {
@@ -252,6 +265,19 @@ export default function UniversityOverview() {
       // Seed completed set
       const completedIds = new Set(events.filter(e => e && (e.completed === true)).map(e => String(e.id)));
       setCompletedDeadlines(prev => { const next = new Set(prev); completedIds.forEach(id => next.add(id)); return next; });
+      // Seed completedAtMap where possible
+      const map = {};
+      for (const e of events) {
+        if (!e) continue;
+        const id = String(e.id);
+        if (e.completedAt) map[id] = String(e.completedAt);
+        else if (e.completed === true) {
+          // If server didn't provide a timestamp, mark as old so it will be
+          // treated as already-archived unless user toggles showCompleted.
+          map[id] = new Date(0).toISOString();
+        }
+      }
+      setCompletedAtMap(prev => ({ ...prev, ...map }));
 
       // Assignments due count
       setAssignmentsDueCount(events.filter(e => e && (String(e.type || '').toLowerCase() === 'assignment' || String(e.type || '').toLowerCase() === 'deadline') && !e.completed).length);
@@ -299,37 +325,65 @@ export default function UniversityOverview() {
   }, [events, courses, gradesData, startOfWeek]);
 
   // Attendance aggregation: compute average attendance across courses
+
   useEffect(() => {
     let mounted = true;
     const loadAttendance = async () => {
       try {
-        if (!Array.isArray(courses) || courses.length === 0) {
+        // Prefer to fetch a canonical courses list from the API and use
+        // course IDs when calling the attendance endpoint. If we can't
+        // obtain a courses list (for example the user is not authenticated)
+        // we bail early to avoid making repeated bad `courseCode` requests
+        // which previously produced 400 responses.
+        let courseList = null;
+        try {
+          const coursesJson = await safeFetchJson('/api/courses');
+          if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) {
+            courseList = coursesJson.courses;
+          }
+        } catch (e) {}
+
+        if (!courseList) {
+          // fall back to any already-loaded courses from parent loadAll
+          if (Array.isArray(courses) && courses.length > 0) courseList = courses;
+        }
+
+        if (!courseList || !Array.isArray(courseList) || courseList.length === 0) {
+          // nothing authoritative to use for attendance lookups — bail out
           setStats(prev => ({ ...prev, attendanceRate: null }));
           return;
         }
+
+        const targets = courseList;
         // fetch attendance for each course in parallel. Try multiple param fallbacks when necessary.
         const fetchForCourse = async (c) => {
           try {
-            // try by course id
-            if (c && c.id) {
+            if (!c) return null;
+            // prefer by id when available
+            if (c.id) {
               const id = encodeURIComponent(String(c.id));
               const r = await safeFetchJson(`/api/attendance?courseId=${id}`);
-              if (r && r.success && Array.isArray(r.sessions)) return r;
+              if (r && Array.isArray(r.sessions)) return r;
+              // if sessions exist but aren't an array (defensive), coerce
+              if (r && r.sessions && typeof r.sessions === 'object' && Object.keys(r.sessions).length === 0) return { ...r, sessions: [] };
             }
             // try by known course code fields
             const code = (c && (c.code || c.courseCode || c.course)) ? String(c.code || c.courseCode || c.course) : null;
             if (code) {
               const r2 = await safeFetchJson(`/api/attendance?courseCode=${encodeURIComponent(code)}`);
-              if (r2 && r2.success && Array.isArray(r2.sessions)) return r2;
+              if (r2 && Array.isArray(r2.sessions)) return r2;
+              if (r2 && r2.sessions && Array.isArray(Object.values(r2.sessions))) return { ...r2, sessions: Array.from(r2.sessions) };
               const r3 = await safeFetchJson(`/api/attendance?course=${encodeURIComponent(code)}`);
-              if (r3 && r3.success && Array.isArray(r3.sessions)) return r3;
+              if (r3 && Array.isArray(r3.sessions)) return r3;
+              if (r3 && r3.sessions && Array.isArray(Object.values(r3.sessions))) return { ...r3, sessions: Array.from(r3.sessions) };
             }
             return null;
           } catch (e) { return null; }
         };
 
-        const promises = courses.map(c => fetchForCourse(c));
+        const promises = targets.map(c => fetchForCourse(c));
         const results = await Promise.all(promises);
+        // nothing to do here for debug
         // Debug: show which courses returned nothing (dev only)
         try {
           if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
@@ -340,11 +394,17 @@ export default function UniversityOverview() {
             });
           }
         } catch (e) {}
-        const perCourseRates = [];
+  const perCourseRates = [];
+  let sawAuthError = false;
         for (const r of results) {
-          if (!r || !r.success || !Array.isArray(r.sessions)) continue;
+          if (!r || !Array.isArray(r.sessions)) continue;
+          if (!r || !Array.isArray(r.sessions)) continue;
           const sessions = r.sessions || [];
-          if (sessions.length === 0) continue;
+          if (sessions.length === 0) {
+            // If there are no sessions for this course, treat its rate as 0
+            perCourseRates.push(0);
+            continue;
+          }
           const present = sessions.filter(s => String((s.status || '').toUpperCase()) === 'PRESENT').length;
           const rate = Math.round((present / sessions.length) * 100);
           perCourseRates.push(rate);
@@ -362,39 +422,54 @@ export default function UniversityOverview() {
     };
     loadAttendance();
     return () => { mounted = false; };
-  }, [courses]);
+  }, [courses, events]);
 
   // Toggle completed with optimistic update and persist to server
   const toggleCompletedOnServer = async (id, nextValue) => {
     try {
-      const res = await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: !!nextValue }) });
+      const body = { completed: !!nextValue };
+      if (nextValue) body.completedAt = new Date().toISOString();
+      else body.completedAt = null;
+      const res = await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) return null;
       const json = await res.json();
       return json && (json.event || json) ? (json.event || json) : null;
     } catch (e) { return null; }
   };
 
+  const AUTO_HIDE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
   const toggleCompleted = async (id, nextValue) => {
+    // Optimistic local update: mark completed and timestamp immediately
     setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.add(id); else n.delete(id); return n; });
+    setCompletedAtMap(prev => {
+      const n = { ...prev };
+      if (nextValue) n[String(id)] = new Date().toISOString();
+      else delete n[String(id)];
+      return n;
+    });
+
+    // Determine whether to hide immediately: hide if item is older than threshold
+    // and the "Show Completed" toggle is off. New completions should be visible
+    // in Completed view but removed from Upcoming immediately for a cleaner UX.
     if (nextValue) {
-      if (hideTimersRef.current[id]) clearTimeout(hideTimersRef.current[id]);
-      hideTimersRef.current[id] = setTimeout(() => { setHiddenCompleted(prev => { const n = new Set(prev); n.add(id); return n; }); }, 260);
+      setHiddenCompleted(prev => { const n = new Set(prev); n.add(String(id)); return n; });
     } else {
-      if (hideTimersRef.current[id]) { clearTimeout(hideTimersRef.current[id]); delete hideTimersRef.current[id]; }
-      setHiddenCompleted(prev => { const n = new Set(prev); n.delete(id); return n; });
+      setHiddenCompleted(prev => { const n = new Set(prev); n.delete(String(id)); return n; });
     }
 
     const server = await toggleCompletedOnServer(id, nextValue);
     if (!server) {
-      // revert
-      setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.delete(id); else n.add(id); return n; });
-      setHiddenCompleted(prev => { const n = new Set(prev); if (nextValue) n.delete(id); return n; });
+      // revert local optimistic state on error
+      setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.delete(String(id)); else n.add(String(id)); return n; });
+      setHiddenCompleted(prev => { const n = new Set(prev); if (nextValue) n.delete(String(id)); return n; });
+      setCompletedAtMap(prev => { const n = { ...prev }; if (nextValue) delete n[String(id)]; else n[String(id)] = (prev && prev[String(id)]) || null; return n; });
     } else {
-      setEvents(prev => prev.map(e => (e && String(e.id) === String(id) ? { ...e, completed: !!nextValue } : e)));
+      // persist any server-updated timestamps into events list
+      setEvents(prev => prev.map(e => (e && String(e.id) === String(id) ? { ...e, completed: !!nextValue, completedAt: server.completedAt || server.completed_at || (nextValue ? new Date().toISOString() : null) } : e)));
     }
   };
 
-  const [showCompleted, setShowCompleted] = useState(false);
   const completedList = (() => {
     try {
       const seen = new Set();
@@ -404,15 +479,17 @@ export default function UniversityOverview() {
         const id = String(e.id);
         if ((e.completed === true || completedDeadlines.has(id)) && !seen.has(id)) {
           seen.add(id);
-          list.push(e);
+          // attach completedAt from map if available
+          const withTs = { ...(e || {}), completedAt: (completedAtMap && completedAtMap[id]) || e.completedAt || e.completed_at || null };
+          list.push(withTs);
         }
       }
       // Also include any completed ids that don't have an event object yet (rare)
       for (const id of Array.from(completedDeadlines)) {
         if (seen.has(String(id))) continue;
         const found = events.find(ev => String(ev.id) === String(id));
-        if (found) { list.push(found); seen.add(String(id)); }
-        else list.push({ id, title: 'Completed item', date: null });
+        if (found) { const idStr = String(id); const withTs = { ...(found || {}), completedAt: (completedAtMap && completedAtMap[idStr]) || found.completedAt || found.completed_at || null }; list.push(withTs); seen.add(String(id)); }
+        else list.push({ id, title: 'Completed item', date: null, completedAt: (completedAtMap && completedAtMap[String(id)]) || null });
       }
       return list.sort((a, b) => {
         const da = a.startDate ? new Date(a.startDate) : (a.date ? new Date(a.date) : null);
@@ -426,7 +503,7 @@ export default function UniversityOverview() {
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-white" style={{ background: '#ffffff' }}>
       <CalendarHeader userName={userName} />
       
       <div className="max-w-[1450px] mx-auto px-6 py-8">
@@ -468,6 +545,8 @@ export default function UniversityOverview() {
             iconColor="text-emerald-700 dark:text-emerald-400"
           />
         </div>
+
+        {/* Attendance hint removed (debug removed) */}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}

@@ -81,14 +81,10 @@ export default async function handler(req, res) {
 
 // GET /api/attendance - Fetch attendance sessions for a course
 async function handleGet(req, res) {
-  const { courseId } = req.query;
+  let { courseId, courseCode, course } = req.query;
 
-  if (!courseId) {
-    return res.status(400).json({ 
-      success: false,
-      error: 'courseId parameter is required' 
-    });
-  }
+  // Allow clients to pass courseCode or course (name) as a convenience.
+  // We'll attempt to resolve to a concrete courseId below after auth.
 
   // Resolve user from next-auth token only (required)
   let effectiveUserId = null;
@@ -102,6 +98,63 @@ async function handleGet(req, res) {
 
   if (!effectiveUserId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
+  }
+
+  // If caller provided a course code/name but not an id, try to resolve it
+  if (!courseId && (courseCode || course)) {
+    const lookup = String(courseCode || course).trim();
+    if (lookup) {
+      const p = getPrisma();
+      if (!p) {
+        const fb = await getCoursesFallback();
+        const list = typeof fb.list === 'function' ? fb.list(effectiveUserId) : [];
+        const found = list.find(c => String(c.code) === lookup || String(c.name) === lookup) || null;
+        if (found) courseId = found.id;
+      } else {
+        try {
+          const found = await p.course.findFirst({ where: {
+            user_id: effectiveUserId,
+            OR: [ { code: lookup }, { name: lookup } ]
+          }});
+          if (found) courseId = found.id;
+        } catch (err) {
+          if (isPrismaEngineError(err)) {
+            const fb = await getCoursesFallback();
+            const list = typeof fb.list === 'function' ? fb.list(effectiveUserId) : [];
+            const found = list.find(c => String(c.code) === lookup || String(c.name) === lookup) || null;
+            if (found) courseId = found.id;
+          } else throw err;
+        }
+      }
+      // If still not found, attempt a fuzzy/case-insensitive contains match
+      if (!courseId) {
+        const p2 = getPrisma();
+        if (!p2) {
+          const fb2 = await getCoursesFallback();
+          const list2 = typeof fb2.list === 'function' ? fb2.list(effectiveUserId) : [];
+          const low = lookup.toLowerCase();
+          const found2 = list2.find(c => (c.code && String(c.code).toLowerCase().includes(low)) || (c.name && String(c.name).toLowerCase().includes(low)) );
+          if (found2) courseId = found2.id;
+        } else {
+          try {
+            const found2 = await p2.course.findFirst({ where: {
+              user_id: effectiveUserId,
+              OR: [ { code: { contains: lookup, mode: 'insensitive' } }, { name: { contains: lookup, mode: 'insensitive' } } ]
+            }});
+            if (found2) courseId = found2.id;
+          } catch (err) {
+            // ignore fuzzy lookup failures
+          }
+        }
+      }
+    }
+  }
+
+  if (!courseId) {
+    return res.status(400).json({ 
+      success: false,
+      error: 'courseId parameter is required (or provide courseCode)' 
+    });
   }
 
   try {

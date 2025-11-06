@@ -20,6 +20,19 @@ export default function SignUp() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Ensure this page does not render in dark mode: temporarily remove the
+  // `dark` class from <html> while this page is mounted, and restore it on
+  // unmount if it was present before.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const root = document.documentElement;
+    const hadDark = root.classList.contains('dark');
+    if (hadDark) root.classList.remove('dark');
+    return () => {
+      if (hadDark) root.classList.add('dark');
+    };
+  }, []);
+
   async function handleSubmit(e) {
     e && e.preventDefault();
     setError('');
@@ -51,13 +64,13 @@ export default function SignUp() {
   return (
     <>
       <title>Create account — University Planner</title>
-      <div className="min-h-screen flex items-center justify-center p-4" style={{
-        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)'
+      <div className="min-h-screen signup-page flex items-center justify-center p-4 bg-white" style={{
+        background: '#ffffff'
       }}>
         <div className="w-full max-w-md">
           {/* Logo and Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{
+            <div className="inline-flex auth-brand-logo items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{
               background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
             }}>
               <GraduationCap className="w-8 h-8 text-white" />

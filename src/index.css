@@ -92,6 +92,12 @@ html.dark {
   color: #0b1220 !important;
 }
 
+/* Landing page root: explicitly force a white page background for the public
+   marketing landing page so it does not follow the global dark backdrop rules. */
+.landing-root {
+  background: #ffffff !important;
+}
+
 /* Force a modal or panel to remain light even when html.dark remaps are active.
    Use the `force-light-modal` class on the modal wrapper to opt-out of global
    dark remaps for that component. This is intentionally specific and placed
@@ -120,7 +126,9 @@ html.dark {
 /* Sign-in / Sign-up pages: ALWAYS light mode, override all dark mode styles */
 .signin-page,
 .signup-page {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+  /* Use a solid white background so auth pages remain light regardless of
+     global dark-mode remaps (they were previously a gradient). */
+  background: #ffffff !important;
   min-height: 100vh;
 }
 
@@ -196,6 +204,33 @@ html.dark {
 .signin-page svg,
 .signup-page svg {
   color: #64748b !important;
+  stroke: currentColor !important;
+}
+
+/* Force the brand logo SVG to be white on the auth pages (overrides the
+   generic svg rule above). This ensures the graduation icon appears white
+   even if other svg rules attempt to recolor icons. */
+.signin-page .brand-logo svg,
+.signup-page .brand-logo svg {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+/* Keep auth page logo at its original (larger) size — the global
+   .brand-logo rule is used for navbar/landing logos (40px). For auth pages
+   we want the container to be 64px and the icon 32px to match the design. */
+.signin-page .auth-brand-logo,
+.signup-page .auth-brand-logo {
+  width: 64px !important;
+  height: 64px !important;
+  flex: 0 0 64px !important;
+  border-radius: 12px !important;
+}
+.signin-page .auth-brand-logo svg,
+.signup-page .auth-brand-logo svg {
+  width: 32px !important;
+  height: 32px !important;
+  color: #ffffff !important;
   stroke: currentColor !important;
 }
 

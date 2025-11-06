@@ -682,11 +682,11 @@ const GradesPage = () => {
               <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-sm font-semibold text-purple-600">{course.code}</p>
+                    <p className="text-sm font-medium text-purple-600/70 dark:text-purple-400/70">{course.code}</p>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{course.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{course.credits} Credits • {course.categories.length} Categories</p>
+                    <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{course.credits} Credits • {course.categories.length} Categories</p>
                   </div>
-                  <div className={`px-6 py-3 rounded-lg text-xl font-bold ${getGradeBgColor(grade)}`}>
+                  <div className={`px-4 py-2 rounded-lg text-base font-semibold ${getGradeBgColor(grade)}`}>
                     {grade} ({percentage}%)
                   </div>
                 </div>
@@ -725,17 +725,17 @@ const GradesPage = () => {
                     const isExpanded = expandedCategories[`${course.id}-${category.id}`];
 
                     return (
-                      <div key={category.id} className="border border-gray-200 rounded-lg overflow-hidden dark:border-transparent">
-                        <div className="bg-white p-4 dark:bg-[#071423]">
+                      <div key={category.id} className="border border-gray-200/50 rounded-lg overflow-hidden dark:border-white/5">
+                        <div className="bg-white/40 p-4 dark:bg-white/[0.02]">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3 flex-1">
                               {getCategoryIcon(category.type || 'assignment')}
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <h5 className="font-semibold text-slate-900 dark:text-slate-100">{category.name}</h5>
-                                  <span className="text-sm text-gray-600 dark:text-slate-300">({category.weight}%)</span>
+                                  <h5 className="font-semibold text-slate-900 dark:text-slate-200">{category.name}</h5>
+                                  <span className="text-sm text-gray-600 dark:text-slate-400">({category.weight}%)</span>
                                 </div>
-                                <p className="text-sm text-gray-600 dark:text-slate-300">
+                                <p className="text-sm text-gray-600 dark:text-slate-500">
                                   {category.items.length} item{category.items.length !== 1 ? 's' : ''} • Average: {categoryAvg.toFixed(1)}%
                                 </p>
                               </div>
@@ -743,19 +743,19 @@ const GradesPage = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => openItemModal(course, category)}
-                                className="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-800 dark:text-purple-200 dark:hover:bg-purple-700"
+                                className="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/15"
                               >
                                 + Add Item
                               </button>
                               <button
                                 onClick={() => toggleCategory(course.id, category.id)}
-                                className="p-2 hover:bg-gray-200 rounded transition-colors dark:hover:bg-[#061422]"
+                                className="p-2 hover:bg-gray-200 rounded transition-colors dark:hover:bg-white/5 dark:text-slate-400"
                               >
                                 {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                               </button>
                               <button
                                 onClick={() => handleDeleteCategory(course.id, category.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors dark:hover:bg-red-900/20"
+                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors dark:text-red-400/70 dark:hover:bg-red-500/10"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

@@ -1,9 +1,20 @@
+import React, { useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
 export default function Welcome() {
+  // Ensure landing page remains light even if html.dark is present globally.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const root = document.documentElement;
+    const hadDark = root.classList.contains('dark');
+    if (hadDark) root.classList.remove('dark');
+    return () => {
+      if (hadDark) root.classList.add('dark');
+    };
+  }, []);
   return (
-    <div className="landing-root">
+  <div className="landing-root bg-white" style={{ background: '#ffffff' }}>
       <Head>
         <title>University Planner</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,7 +33,7 @@ export default function Welcome() {
                   <path d="M12 24h12v2H12z" fill="white" opacity="0.9" />
                 </svg>
               </span>
-              <span className="brand-text text-slate-900 dark:text-slate-50" style={{ color: '#0b1220' }}>University Planner</span>
+              <span className="brand-text text-slate-900" style={{ color: '#0b1220' }}>University Planner</span>
             </Link>
           </div>
 
@@ -36,9 +47,9 @@ export default function Welcome() {
               </svg>
             </label>
             <ul className="nav-list" role="menubar">
-              <li role="none"><Link role="menuitem" href="#features" className="nav-link text-slate-900 dark:text-slate-100" style={{ color: '#0b1220' }}>Features</Link></li>
-              <li role="none"><Link role="menuitem" href="#testimonials" className="nav-link text-slate-900 dark:text-slate-100" style={{ color: '#0b1220' }}>Customers</Link></li>
-              <li role="none"><Link role="menuitem" href="/docs" className="nav-link muted text-slate-700 dark:text-slate-300" style={{ color: '#334155' }}>Docs</Link></li>
+              <li role="none"><Link role="menuitem" href="#features" className="nav-link text-slate-900" style={{ color: '#0b1220' }}>Features</Link></li>
+              <li role="none"><Link role="menuitem" href="#testimonials" className="nav-link text-slate-900" style={{ color: '#0b1220' }}>Customers</Link></li>
+              <li role="none"><Link role="menuitem" href="/docs" className="nav-link muted text-slate-700" style={{ color: '#334155' }}>Docs</Link></li>
             </ul>
             <div className="nav-ctas">
               <Link href="/signin" className="nav-link nav-signin">Sign in</Link>

@@ -159,9 +159,9 @@ export default function MonthView({
   ).getDate();
 
   return (
-    <div className="bg-default-50 -mx-6 p-6 rounded-b-lg">
+    <div className="bg-default-50 dark:bg-slate-900 -mx-6 p-6 rounded-b-lg">
       <div className="flex flex-col mb-4 pt-2 max-w-[1200px] mx-auto">
-        <h2 className="text-3xl my-3 tracking-tighter font-bold">
+        <h2 className="text-3xl my-3 tracking-tighter font-bold text-slate-900 dark:text-white">
           {currentDate.toLocaleString("default", { month: "long" })}{" "}
           {currentDate.getFullYear()}
         </h2>
@@ -231,16 +231,19 @@ export default function MonthView({
               return (
                 <div
                   key={dayObj.day}
-                  onClick={() => handleAddEvent(dayObj.day)}
+                  // If the day already has events, click should show the details (show more)
+                  // otherwise open the add-event modal. This prevents accidental create modal when
+                  // interacting with existing events or the +N badge.
+                  onClick={() => (dayEvents && dayEvents.length > 0) ? handleShowMoreEvents(dayEvents) : handleAddEvent(dayObj.day)}
                   className="w-full"
                 >
                   <div className="hover:z-50 border-none h-[150px] rounded group flex flex-col transition-transform duration-200 hover:scale-[1.02]">
-                    <Card className="shadow-sm cursor-pointer overflow-hidden relative flex flex-col justify-between p-3 border h-full rounded-lg bg-background transition-shadow duration-200 hover:shadow-md">
+                    <Card className="shadow-sm cursor-pointer overflow-hidden relative flex flex-col justify-between p-3 border h-full rounded-lg bg-background dark:bg-slate-800 dark:border-slate-700 transition-shadow duration-200 hover:shadow-md">
                       <div
                         className={clsx(
                           "font-semibold relative text-2xl transition-colors duration-200 inline-block",
                           dayEvents.length > 0
-                            ? "text-primary-600"
+                            ? "text-primary-600 dark:text-primary-400"  // Add dark mode color
                             : "text-black dark:text-muted-foreground",
                           isToday && "bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full px-2 py-1"
                         )}
@@ -269,25 +272,22 @@ export default function MonthView({
                           </div>
                         )}
                         {dayEvents.length > 1 && (
-                          <Badge
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               handleShowMoreEvents(dayEvents);
                             }}
-                            variant="outline"
-                            className="hover:bg-default-200 absolute right-2 text-xs top-2 transition-all duration-200 hover:scale-105"
+                            className="absolute right-2 top-2 px-2 py-0.5 rounded-md bg-slate-700/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-600/50 dark:border-slate-700/50 text-slate-200 text-xs font-semibold cursor-pointer hover:bg-slate-600 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105 shadow-sm"
                           >
-                            {dayEvents.length > 1
-                              ? `+${dayEvents.length - 1}`
-                              : " "}
-                          </Badge>
+                            +{dayEvents.length - 1}
+                          </div>
                         )}
                         <div style={{ height: 6 }} />
                       </div>
 
                       {dayEvents.length === 0 && (
-                        <div className="absolute inset-0 bg-black/4 flex items-center justify-center opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none rounded-lg">
-                          <span className="text-black/70 tracking-tighter text-lg font-semibold">
+                        <div className="absolute inset-0 bg-black/4 dark:bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none rounded-lg">
+                          <span className="text-black/70 dark:text-white/80 tracking-tighter text-lg font-semibold">
                             Add Event
                           </span>
                         </div>

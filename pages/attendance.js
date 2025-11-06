@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Download, Loader2, AlertCircle, Calendar, Settings, BookOpen, ArrowRight, X } from 'lucide-react';
+import { Plus, Trash2, Download, Loader2, AlertCircle, Calendar, Settings, BookOpen, CheckCircle, ArrowRight, X } from 'lucide-react';
 import CustomSelect from '../src/components/CustomSelect';
 // WeekView (timetable grid) removed from Attendance page per UI request
 import Notification from '../src/components/Notification';

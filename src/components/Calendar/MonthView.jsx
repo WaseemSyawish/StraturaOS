@@ -21,6 +21,8 @@ function ymdFromDate(d) {
 }
 
 export default function MonthView({ base = new Date(), events = [], selectedDay = null, onDayClick, onEventClick }) {
+  const [moreModal, setMoreModal] = useState(null);
+  const [moreModalEvents, setMoreModalEvents] = useState([]);
   const [anchor, setAnchor] = useState(() => startOfMonth(base));
   const monthName = useMemo(() => anchor.toLocaleString(undefined, { month: 'long', year: 'numeric' }), [anchor]);
 
@@ -63,11 +65,71 @@ export default function MonthView({ base = new Date(), events = [], selectedDay 
     return map;
   }, [events]);
 
+  // Helper: ensure pill color remains visible in dark mode by darkening hex colors
+  const getPillColor = (rawColor) => {
+    try {
+      const defaultColor = '#60A5FA';
+      const c = rawColor || defaultColor;
+      if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+        // if hex, darken slightly for contrast
+        if (typeof c === 'string' && c.startsWith('#')) {
+          const hex = c.replace('#','');
+          if (hex.length === 3) {
+            const r = parseInt(hex[0]+hex[0],16);
+            const g = parseInt(hex[1]+hex[1],16);
+            const b = parseInt(hex[2]+hex[2],16);
+            const factor = 0.7;
+            const rr = Math.max(0, Math.min(255, Math.floor(r * factor)));
+            const gg = Math.max(0, Math.min(255, Math.floor(g * factor)));
+            const bb = Math.max(0, Math.min(255, Math.floor(b * factor)));
+            return `#${rr.toString(16).padStart(2,'0')}${gg.toString(16).padStart(2,'0')}${bb.toString(16).padStart(2,'0')}`;
+          } else if (hex.length === 6) {
+            const r = parseInt(hex.slice(0,2),16);
+            const g = parseInt(hex.slice(2,4),16);
+            const b = parseInt(hex.slice(4,6),16);
+            const factor = 0.7;
+            const rr = Math.max(0, Math.min(255, Math.floor(r * factor)));
+            const gg = Math.max(0, Math.min(255, Math.floor(g * factor)));
+            const bb = Math.max(0, Math.min(255, Math.floor(b * factor)));
+            return `#${rr.toString(16).padStart(2,'0')}${gg.toString(16).padStart(2,'0')}${bb.toString(16).padStart(2,'0')}`;
+          }
+        }
+      }
+      return c;
+    } catch (e) { return rawColor || '#60A5FA'; }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="md:col-span-2">
         <div className="flex items-center justify-between mb-3">
           <div>
+
+          {/* Internal modal to show full day events when '+N more' is clicked */}
+          {moreModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setMoreModal(null)} />
+              <div className="relative z-60 w-full max-w-xl p-4">
+                <div className="bg-white rounded-lg shadow-lg p-4 max-h-[70vh] overflow-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Events for {new Date(moreModal).toDateString()}</h3>
+                    <button onClick={() => setMoreModal(null)} className="text-sm text-gray-500">Close</button>
+                  </div>
+                  <div className="space-y-3">
+                    {moreModalEvents.map(ev => (
+                      <div key={ev.id || ev.title} onClick={() => { onEventClick && onEventClick(ev); setMoreModal(null); }} className="p-3 border rounded-md cursor-pointer hover:shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-gray-800">{ev.title || ev.course_code || 'Event'}</div>
+                          <div className="text-sm text-gray-500">{ev.time ? formatTimeFromParts(ev.date, ev.time) : ''}</div>
+                        </div>
+                        {ev.location && <div className="text-sm text-gray-500 mt-1">{ev.location}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
             <h2 className="text-lg font-semibold">{monthName}</h2>
             <div className="muted-sm">Month view</div>
           </div>
@@ -105,7 +167,7 @@ export default function MonthView({ base = new Date(), events = [], selectedDay 
                     <div className="flex flex-col gap-2">
                       {dayEvents.slice(0, 3).map(ev => (
                         <div key={ev.id || ev.title} onClick={(e) => { e.stopPropagation(); onEventClick && onEventClick(ev); }} role="button" aria-label={`Open event ${ev.title || ev.course_code || 'Event'}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEventClick && onEventClick(ev); } }} className="cal-event-pill cal-focus-ring">
-                          <div className="w-2 h-8 rounded-sm flex-shrink-0" style={{ background: ev.courseColor || '#60A5FA' }} />
+                  <div className="w-2 h-8 rounded-sm flex-shrink-0" style={{ background: getPillColor(ev.courseColor || '#60A5FA') }} />
                           <div className="flex-1 min-w-0">
                             <div className="cal-event-title truncate">{ev.title || ev.course_code || 'Event'}</div>
                             <div className="cal-event-sub truncate">{ev.location || ev.room || ''}</div>
@@ -113,7 +175,21 @@ export default function MonthView({ base = new Date(), events = [], selectedDay 
                           <div className="text-xs text-gray-400 ml-2">{ev.time ? formatTimeFromParts(ev.date, ev.time) : ''}</div>
                         </div>
                       ))}
-                      {dayEvents.length > 3 && <div className="text-xs text-gray-400">+{dayEvents.length - 3} more</div>}
+                      {dayEvents.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            // open an internal modal showing all events for this day
+                            setMoreModal(ymdFromDate(cell.date));
+                            setMoreModalEvents(dayEvents);
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 underline text-left"
+                          aria-label={`Show all ${dayEvents.length} events for ${cell.date.toDateString()}`}
+                        >
+                          +{dayEvents.length - 3} more
+                        </button>
+                      )}
                     </div>
                   </div>
                 </button>

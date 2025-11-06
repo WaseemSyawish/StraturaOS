@@ -72,6 +72,8 @@ export default function AddEventModal({
   const fetched = data?.default ?? data ?? null as any;
   const unwrapped = fetched && (fetched.default ?? fetched) as any;
   const eventData = unwrapped && typeof unwrapped === 'object' && Object.keys(unwrapped).length ? (unwrapped as Event) : null;
+  const [serverEvent, setServerEvent] = useState<Event | null>(null);
+  const eventSource = serverEvent || eventData;
   // useScheduler is only provided inside SchedulerProvider (used by timetable).
   // When this modal is opened from pages that don't mount SchedulerProvider
   // (e.g. Calendar page), calling useScheduler() will throw. Guard it so the
@@ -138,26 +140,53 @@ export default function AddEventModal({
   });
 
   const selectDateData = useMemo(() => ({
-    startDate: parseToDate(eventData?.startDate),
-    endDate: parseToDate(eventData?.endDate),
-  }), [eventData?.startDate, eventData?.endDate]);
+    startDate: parseToDate(eventSource?.startDate),
+    endDate: parseToDate(eventSource?.endDate),
+  }), [eventSource?.startDate, eventSource?.endDate]);
 
   useEffect(() => {
-    if (eventData) {
-      const color = (eventData as any)?.color || "blue";
-      const type = (eventData as any)?.type || "assignment";
+    // If we have server-provided data, prefer it; otherwise use passed eventData
+    const src = eventSource;
+    if (src) {
+      const color = (src as any)?.color || "blue";
+      const type = (src as any)?.type || "assignment";
       reset({
-        title: eventData.title,
-        startDate: parseToDate((eventData as any).startDate),
-        endDate: parseToDate((eventData as any).endDate),
-        variant: (typeof eventData.variant === 'string' && (VARIANTS as readonly string[]).includes(eventData.variant)) ? (eventData.variant as Variant) : 'primary',
+        title: src.title,
+        startDate: parseToDate((src as any).startDate),
+        endDate: parseToDate((src as any).endDate),
+        variant: (typeof src.variant === 'string' && (VARIANTS as readonly string[]).includes(src.variant)) ? (src.variant as Variant) : 'primary',
         color: color,
         type: type,
       });
       setSelectedColor(color);
       setSelectedType(type);
     }
-  }, [eventData, reset]);
+  }, [eventSource, reset]);
+
+  // When opening the modal for editing, fetch authoritative server copy of the event
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const id = eventData?.id;
+        if (id) {
+          const resp = await fetch(`/api/events/${encodeURIComponent(id)}`);
+          if (!mounted) return;
+          if (resp.ok) {
+            const body = await resp.json().catch(() => null);
+            const serverEv = body?.event || body || null;
+            if (serverEv && typeof serverEv === 'object') {
+              setServerEvent(serverEv as Event);
+            }
+          }
+        }
+      } catch (e) {
+        // silent fallback — keep using passed eventData
+        console.warn('[AddEventModal] failed to fetch server event data', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [eventData?.id]);
 
   // If caller provided an anchor rectangle in modal data, compute a transform-origin
   useEffect(() => {

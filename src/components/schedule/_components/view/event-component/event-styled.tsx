@@ -8,6 +8,7 @@ import AddEventModal from "@/components/schedule/_modals/add-event-modal";
 import EditScopeModal from "@/components/Timetable/EditScopeModal";
 import { Event, CustomEventModal } from "@/types";
 import { TrashIcon, CalendarIcon, ClockIcon } from "@/components/icons/simple-icons";
+import { X } from 'lucide-react';
 import { useScheduler } from "@/providers/schedular-provider";
 import { cn } from "@/lib/utils";
 import CustomModal from "@/components/ui/custom-modal";
@@ -207,21 +208,16 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
         padding: '2px'
       }}
     >
-      {/* Delete Button - With forced styles via CSSOM */}
+      {/* Delete button - styled to be subtle and appear on hover (keeps existing delete logic) */}
       <button
         ref={deleteBtnRef}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           e.stopPropagation();
-          // Make the decision async so we can verify with server data if needed
           (async () => {
             try {
               const evAny: any = event || {};
               const tplId = evAny && (evAny.raw && (evAny.raw.template_id || evAny.raw.templateId)) || evAny.template_id || evAny.templateId || null;
               let isSeries = !!(evAny && (evAny.recurrence || evAny.repeatOption || tplId));
-
-              // If client heuristics didn't mark it as a series, ask the server for the
-              // authoritative event to avoid accidentally performing a single-delete
-              // when the server treats this as part of a template/recurrence.
               if (!isSeries && event?.id) {
                 try {
                   const resp = await fetch(`/api/events/${encodeURIComponent(event.id)}`);
@@ -231,55 +227,25 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
                     const serverTpl = serverEv && (serverEv.template_id || (serverEv.raw && (serverEv.raw.template_id || serverEv.raw.templateId)) || serverEv.templateId) || null;
                     isSeries = !!(serverEv && (serverEv.recurrence || serverEv.repeatOption || serverTpl));
                   }
-                } catch (e) {
-                  // ignore server lookup errors and fall back to client heuristics
-                }
+                } catch (e) {}
               }
 
               if (!isSeries) {
-                // simple single delete
-                try { handlers.handleDeleteEvent(event?.id); } catch (e) { /* ignore */ }
-                try { onDelete?.(event?.id); } catch (e) { /* ignore */ }
+                try { handlers.handleDeleteEvent(event?.id); } catch (e) { }
+                try { onDelete?.(event?.id); } catch (e) { }
                 return;
               }
 
-              // show scope modal for series delete
               setShowDeleteScope(true);
             } catch (err) {
-              // fallback to single delete
               try { handlers.handleDeleteEvent(event?.id); onDelete?.(event?.id); } catch (e) { }
             }
           })();
         }}
-  aria-label="Delete event"
-  className="absolute z-[100] event-delete-btn transition-all duration-200"
-        style={{
-          right: '5px',
-          top: '5px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.setProperty('background-color', '#dc2626', 'important');
-          e.currentTarget.style.setProperty('transform', 'scale(1.1)', 'important');
-          e.currentTarget.style.setProperty('box-shadow', '0 2px 6px rgba(0, 0, 0, 0.4)', 'important');
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.setProperty('background-color', '#ef4444', 'important');
-          e.currentTarget.style.setProperty('transform', 'scale(1)', 'important');
-          e.currentTarget.style.setProperty('box-shadow', '0 1px 3px rgba(0, 0, 0, 0.3)', 'important');
-        }}
+        className="absolute right-1 top-1 w-5 h-5 rounded bg-red-500/80 hover:bg-red-600 dark:bg-red-600/80 dark:hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
+        aria-label="Delete event"
       >
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ display: 'block', pointerEvents: 'none' }}
-        >
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
+        <X className="w-3 h-3" strokeWidth={2.5} />
       </button>
 
       {/* Scope chooser when deleting a recurring series from the timetable */}

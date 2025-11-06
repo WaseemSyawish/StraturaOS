@@ -1,6 +1,6 @@
 import EditScopeModal from '@/components/Timetable/EditScopeModal';
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { buildLocalDateFromParts, formatTimeFromParts } from '../../lib/dateHelpers';
 
 export default function WeekView({ weekDates = [], timeSlots = [], classes = [], onSlotClick, onEventClick, compact = false, courses = [] }) {
@@ -437,12 +437,11 @@ export default function WeekView({ weekDates = [], timeSlots = [], classes = [],
                           <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 40 }}>
                             <button
                               onClick={(e) => { e.stopPropagation(); setOpenDeleteMenu(openDeleteMenu === evItem.id ? null : evItem.id); }}
-                              title="Delete"
                               aria-label="Delete event"
-                              className="p-1 rounded hover:bg-black/10"
-                              style={{ background: 'transparent', border: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                              className="absolute right-1 top-1 w-5 h-5 rounded bg-red-500/80 hover:bg-red-600 dark:bg-red-600/80 dark:hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
+                              title="Delete"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <X className="w-3 h-3" strokeWidth={2.5} />
                             </button>
 
                             {openDeleteMenu === evItem.id && (

@@ -82,12 +82,12 @@ const GradesPage = () => {
   });
 
   const getGradeBgColor = (grade) => {
-    // return Tailwind classes with sensible dark-mode fallbacks
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-    if (grade.startsWith('D')) return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+    // Light mode: colorful. Dark mode: muted with subtle accents
+    if (grade.startsWith('A')) return 'bg-green-100 text-green-800 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border dark:border-emerald-500/20';
+    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400 dark:border dark:border-blue-500/20';
+    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800 dark:bg-amber-500/10 dark:text-amber-400 dark:border dark:border-amber-500/20';
+    if (grade.startsWith('D')) return 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 dark:border dark:border-orange-500/20';
+    return 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400 dark:border dark:border-red-500/20';
   };
 
   const getCategoryIcon = (type) => {
@@ -537,7 +537,7 @@ const GradesPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen relative z-10 text-slate-900 dark:text-slate-100 dark:bg-[#071023]">
+    <div className="min-h-screen relative z-10 text-slate-900 dark:text-slate-100 dark:bg-slate-900">
       <Head>
         <title>Grades — University Planner</title>
       </Head>
@@ -594,7 +594,7 @@ const GradesPage = () => {
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Stats Cards */}
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800 dark:border-slate-700 dark:shadow-none hover:shadow-xl dark:hover:shadow-slate-900/50 transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Current GPA</p>
@@ -679,7 +679,7 @@ const GradesPage = () => {
             const totalWeight = course.categories.reduce((sum, cat) => sum + cat.weight, 0);
 
             return (
-              <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
+              <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800/50 dark:border-slate-700/50 dark:shadow-none">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-sm font-medium text-purple-600/70 dark:text-purple-400/70">{course.code}</p>
@@ -710,10 +710,10 @@ const GradesPage = () => {
 
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="font-semibold text-slate-900 dark:text-slate-100">Grading Categories</h4>
-          <button 
-                    onClick={() => openCategoryModal(course)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                  >
+                    <button 
+                      onClick={() => openCategoryModal(course)}
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 dark:bg-purple-500/80 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm font-medium shadow-sm"
+                    >
                     <Plus className="w-4 h-4" />
                     Add Category
                   </button>
@@ -725,8 +725,8 @@ const GradesPage = () => {
                     const isExpanded = expandedCategories[`${course.id}-${category.id}`];
 
                     return (
-                      <div key={category.id} className="border border-gray-200/50 rounded-lg overflow-hidden dark:border-white/5">
-                        <div className="bg-white/40 p-4 dark:bg-white/[0.02]">
+                      <div key={category.id} className="border border-gray-200 rounded-lg overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/30">
+                        <div className="bg-gray-50/50 p-4 dark:bg-slate-800/50">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3 flex-1">
                               {getCategoryIcon(category.type || 'assignment')}
@@ -743,7 +743,7 @@ const GradesPage = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => openItemModal(course, category)}
-                                className="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/10 dark:text-purple-300 dark:hover:bg-purple-500/15"
+                                className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/15 dark:text-purple-400 dark:hover:bg-purple-500/25 dark:border dark:border-purple-500/20"
                               >
                                 + Add Item
                               </button>
@@ -768,7 +768,7 @@ const GradesPage = () => {
                             {category.items.map(item => {
                               const itemPercentage = (item.score / item.maxScore * 100).toFixed(1);
                               return (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg dark:bg-[#061422] dark:border-transparent">
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg dark:bg-slate-800/40 dark:border-slate-700/50">
                                   <div className="flex-1">
                                     <p className="font-medium text-slate-900 dark:text-slate-100">{item.name}</p>
                                     <p className="text-sm text-gray-600 dark:text-slate-300">{item.score} / {item.maxScore} points</p>

@@ -4,14 +4,28 @@ async function resolveUserId(req) {
   try {
     const { getToken } = await import('next-auth/jwt');
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    const tokenUserId = token && token.userId ? token.userId : null;
-    if (!tokenUserId) return null;
-    return tokenUserId;
+    const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+    if (tokenUserId) return tokenUserId;
+
+    // In development allow the local dev sign-in cookies as a fallback so
+    // pages that rely on server-side token resolution (next-auth) still
+    // work when using the local helper that sets `userId` / `debug_userId`.
+    try {
+      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+        if (req.cookies.userId) return req.cookies.userId;
+        if (req.cookies.debug_userId) return req.cookies.debug_userId;
+      }
+    } catch (e) {
+      // ignore cookie parsing issues
+    }
+
+    return null;
   } catch (err) {
     console.error('resolveUserId error', err);
     return null;
   }
 }
+
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {

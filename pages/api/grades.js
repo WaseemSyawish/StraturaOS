@@ -58,37 +58,17 @@ const resolveUserId = async (req) => {
     // token may contain userId or sub; fall back to a demo cookie if present
     if (token && token.userId) return token.userId;
     if (token && token.sub) return token.sub;
-    // Allow passing a userId as a query param or header for testing and API clients.
-    // Note: accepting user id from query/header in production is potentially
-    // insecure; prefer standard authenticated tokens. If a user id is supplied
-    // and Prisma is available, ensure a minimal User record exists so FK
-    // constraints won't block creating courses/assessments. This helps external
-    // API clients and non-auth dev flows persist data reliably.
-    if (req && req.query && req.query.userId) {
-      const supplied = String(req.query.userId);
-      try {
-        if (prismaClient) {
-          try {
-            const existing = await prismaClient.user.findUnique({ where: { id: supplied } });
-            if (existing) return existing.id;
-            // create a minimal user record for the supplied id
-            const created = await prismaClient.user.create({ data: { id: supplied, email: `${supplied}@example.dev`, name: supplied } });
-            console.warn('[api/grades] created minimal user for supplied userId:', supplied, ' (ensure this behavior is acceptable for your deployment)');
-            return created.id;
-          } catch (e) {
-            console.warn('[api/grades] failed to ensure user exists for supplied userId, falling back to supplied id:', e && e.message ? e.message : e);
-            return supplied;
-          }
-        }
-      } catch (e) {}
-      return supplied;
+    // Prefer token-based identity. Fall back to cookies set by local-signin (development helper).
+    if (req && req.cookies && req.cookies.userId) return req.cookies.userId;
+    if (req && req.cookies && req.cookies.debug_userId) return req.cookies.debug_userId;
+
+    // In development only: allow an explicit query param or X-User-Id header for testing
+    // (do NOT auto-create users here; the DB must contain real users).
+    if (process.env.NODE_ENV === 'development') {
+      if (req && req.query && req.query.userId) return String(req.query.userId);
+      if (req && req.headers && req.headers['x-user-id']) return req.headers['x-user-id'];
     }
-    // also allow an explicit header X-User-Id (useful for tests or API clients)
-    if (req && req.headers && req.headers['x-user-id']) return req.headers['x-user-id'];
-    // fallback to demo-user cookie (for dev/demo flows)
-    const raw = req.headers && req.headers.cookie ? req.headers.cookie : '';
-    const m = raw.match(/demo-user=([^;]+)/);
-    if (m && m[1]) return decodeURIComponent(m[1]);
+
     return null;
   } catch (e) {
     console.error('resolveUserId error', e);

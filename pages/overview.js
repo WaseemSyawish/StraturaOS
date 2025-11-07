@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target } from 'lucide-react';
 
 function CalendarHeader({ userName }) {
+  const router = useRouter();
   return (
     <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
       <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
@@ -14,7 +16,7 @@ function CalendarHeader({ userName }) {
 
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => window.location.href = '/settings'}
+            onClick={() => router.push('/settings')}
             className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
             title="Settings"
           >
@@ -25,9 +27,9 @@ function CalendarHeader({ userName }) {
             onClick={async () => {
               try {
                 try { await fetch('/api/auth/local-signout', { method: 'POST' }); } catch (e) { /* ignore */ }
-                window.location.href = '/signin';
+                router.push('/signin');
               } catch (e) {
-                window.location.href = '/signout';
+                router.push('/signout');
               }
             }}
             className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
@@ -64,6 +66,14 @@ function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
 export default function UniversityOverview() {
   const [currentDate] = useState(new Date());
   const [userName] = useState('Waseem');
+  const router = useRouter();
+  // Debug logs to detect whether this component mounts/unmounts on navigation
+  useEffect(() => {
+    try {
+      console.log('[Overview] mounted at', router.asPath);
+      return () => console.log('[Overview] unmounted from', router.asPath);
+    } catch (e) { /* ignore */ }
+  }, [router.asPath]);
 
   // Data fetched from backend
   const [events, setEvents] = useState([]);
@@ -120,114 +130,124 @@ export default function UniversityOverview() {
     } catch (e) { return ''; }
   };
 
-  const todayClasses = events.filter(ev => {
-    if (!ev) return false;
-    const t = (ev.type || '').toString().toLowerCase();
-    if (t !== 'class' && t !== 'lecture' && t !== 'event') return false;
-    if (ev.startDate) return isSameDay(ev.startDate, currentDate);
-    if (ev.date) return isSameDay(ev.date, currentDate);
-    return false;
-  }).map(ev => {
-    // derive start/end times and a numeric timestamp (startTs) for sorting
-    let startTime = '';
-    let endTime = '';
-    let startTs = null;
+  const todayClasses = useMemo(() => {
     try {
-      if (ev.startDate) startTime = formatTime(ev.startDate);
-      else if (ev.time) startTime = formatTime(ev.time);
-      if (ev.endDate) endTime = formatTime(ev.endDate);
-      else if (ev.durationMinutes && ev.startDate) {
-        const s = new Date(ev.startDate);
-        if (!isNaN(s.getTime())) {
-          const e = new Date(s.getTime() + (Number(ev.durationMinutes) || 0) * 60000);
-          endTime = formatTime(e.toISOString());
-        }
+      try { console.time && console.time('overview:memo:todayClasses'); } catch (e) {}
+      const list = [];
+      for (const ev of events || []) {
+        if (!ev) continue;
+        const t = (ev.type || '').toString().toLowerCase();
+        if (t !== 'class' && t !== 'lecture' && t !== 'event') continue;
+        if (ev.startDate && !isSameDay(ev.startDate, currentDate)) continue;
+        if (!ev.startDate && ev.date && !isSameDay(ev.date, currentDate)) continue;
+
+        let startTime = '';
+        let endTime = '';
+        let startTs = null;
+        try {
+          if (ev.startDate) startTime = formatTime(ev.startDate);
+          else if (ev.time) startTime = formatTime(ev.time);
+          if (ev.endDate) endTime = formatTime(ev.endDate);
+          else if (ev.durationMinutes && ev.startDate) {
+            const s = new Date(ev.startDate);
+            if (!isNaN(s.getTime())) {
+              const e = new Date(s.getTime() + (Number(ev.durationMinutes) || 0) * 60000);
+              endTime = formatTime(e.toISOString());
+            }
+          }
+          if (ev.startDate) {
+            const d = new Date(ev.startDate);
+            if (!isNaN(d.getTime())) startTs = d.getTime();
+          } else if (ev.time) {
+            const m = String(ev.time).match(/(\d{1,2}):(\d{2})/);
+            if (m) {
+              const d = new Date(currentDate);
+              d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+              startTs = d.getTime();
+            }
+          }
+        } catch (e) {}
+
+        let moduleCode = ev.course_id || (ev.meta && (ev.meta.course || ev.meta.courseCode)) || '';
+        try {
+          if ((!moduleCode || moduleCode === '') && Array.isArray(courses)) {
+            let found = courses.find(c => c && String(c.id) === String(ev.course_id));
+            if (!found) found = courses.find(c => c && (String(c.code) === String(ev.course_id) || String(c.courseCode) === String(ev.course_id)));
+            if (found && (found.code || found.courseCode)) moduleCode = found.code || found.courseCode;
+          }
+          if ((!moduleCode || moduleCode === '') && (ev.title || ev.name || ev.description)) {
+            const extracted = extractModuleCode(ev.title || ev.name || ev.description, courses);
+            if (extracted) moduleCode = extracted;
+          }
+          if (!moduleCode) moduleCode = '';
+        } catch (e) {}
+
+        list.push({
+          id: ev.id,
+          code: moduleCode || '',
+          name: ev.title || ev.name || '',
+          startTime,
+          startTs,
+          endTime,
+          time: (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || ev.time || ''),
+          instructor: ev.instructor || (ev.meta && ev.meta.instructor) || '',
+          location: ev.location || ''
+        });
       }
-      // compute numeric timestamp for sorting (prefer startDate, then time)
-      if (ev.startDate) {
-        const d = new Date(ev.startDate);
-        if (!isNaN(d.getTime())) startTs = d.getTime();
-      } else if (ev.time) {
-        // ev.time may be 'HH:MM' — create a Date for today at that time
-        const m = String(ev.time).match(/(\d{1,2}):(\d{2})/);
-        if (m) {
-          const d = new Date(currentDate);
-          d.setHours(Number(m[1]), Number(m[2]), 0, 0);
-          startTs = d.getTime();
-        }
-      }
-    } catch (e) {}
-    // resolve module code from courses list when possible
-    let moduleCode = ev.course_id || (ev.meta && (ev.meta.course || ev.meta.courseCode)) || '';
+      list.sort((a, b) => {
+        const ta = a.startTs || 0;
+        const tb = b.startTs || 0;
+        if (!ta && !tb) return 0;
+        if (!ta) return 1;
+        if (!tb) return -1;
+        return ta - tb;
+      });
+      try { console.timeEnd && console.timeEnd('overview:memo:todayClasses'); } catch (e) {}
+      return list;
+    } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:todayClasses'); } catch (e) {} return []; }
+  }, [events, courses, currentDate]);
+
+  const upcomingDeadlines = useMemo(() => {
     try {
-      if ((!moduleCode || moduleCode === '') && Array.isArray(courses)) {
-        // try matching by id
-        let found = courses.find(c => c && String(c.id) === String(ev.course_id));
-        // if not found, try matching by code string
-        if (!found) found = courses.find(c => c && (String(c.code) === String(ev.course_id) || String(c.courseCode) === String(ev.course_id)));
-        if (found && (found.code || found.courseCode)) moduleCode = found.code || found.courseCode;
+      try { console.time && console.time('overview:memo:upcomingDeadlines'); } catch (e) {}
+      const list = [];
+      for (const ev of events || []) {
+        if (!ev) continue;
+        const t = (ev.type || '').toString().toLowerCase();
+        if (!(t === 'deadline' || t === 'assignment') || ev.completed) continue;
+        const d = ev.startDate ? new Date(ev.startDate) : (ev.date ? new Date(ev.date) : null);
+        const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
+        list.push({
+          id: ev.id,
+          title: ev.title || ev.name || '',
+          dueDate: formatDue(ev),
+          daysLeft: typeof daysLeft === 'number' ? daysLeft : null,
+          type: ev.type || 'assignment'
+        });
       }
-      // final fallback: try extracting code from title/name/description
-      if ((!moduleCode || moduleCode === '') && (ev.title || ev.name || ev.description)) {
-        const extracted = extractModuleCode(ev.title || ev.name || ev.description, courses);
-        if (extracted) moduleCode = extracted;
-      }
-      if (!moduleCode) moduleCode = '';
-    } catch (e) {}
-    return {
-      id: ev.id,
-      code: moduleCode || '',
-      name: ev.title || ev.name || '',
-      startTime,
-      startTs,
-      endTime,
-      time: (startTime && endTime) ? `${startTime} - ${endTime}` : (startTime || ev.time || ''),
-      instructor: ev.instructor || (ev.meta && ev.meta.instructor) || '',
-      location: ev.location || ''
-    };
-  });
+      list.sort((a, b) => (a.daysLeft || 9999) - (b.daysLeft || 9999));
+      try { console.timeEnd && console.timeEnd('overview:memo:upcomingDeadlines'); } catch (e) {}
+      return list;
+    } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:upcomingDeadlines'); } catch (e) {} return []; }
+  }, [events, currentDate]);
 
-  // sort classes by the computed timestamp (startTs). Items without a timestamp go last.
-  todayClasses.sort((a, b) => {
-    const ta = a.startTs || 0;
-    const tb = b.startTs || 0;
-    if (!ta && !tb) return 0;
-    if (!ta) return 1;
-    if (!tb) return -1;
-    return ta - tb;
-  });
-
-  const upcomingDeadlines = events.filter(ev => {
-    if (!ev) return false;
-    const t = (ev.type || '').toString().toLowerCase();
-    return (t === 'deadline' || t === 'assignment') && !ev.completed;
-  }).map(ev => {
-    const daysLeft = (() => {
-      const d = ev.startDate ? new Date(ev.startDate) : (ev.date ? new Date(ev.date) : null);
-      if (!d || isNaN(d.getTime())) return 9999;
-      return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
-    })();
-    return {
-      id: ev.id,
-      title: ev.title || ev.name || '',
-      dueDate: formatDue(ev),
-      daysLeft: typeof daysLeft === 'number' ? daysLeft : null,
-      type: ev.type || 'assignment'
-    };
-  }).sort((a, b) => (a.daysLeft || 9999) - (b.daysLeft || 9999));
-
-  const visibleUpcomingDeadlines = upcomingDeadlines.filter(d => {
-    const id = String(d.id);
-    if (hiddenCompleted.has(id)) return false;
-    // if user has toggled to show completed, always show
-    if (showCompleted) return true;
-    // if completedAt exists and is older than AUTO_HIDE_MS, hide it
-    const ts = completedAtMap && completedAtMap[id] ? Date.parse(completedAtMap[id]) : null;
-    if (ts && !isNaN(ts)) {
-      if ((Date.now() - ts) >= (24 * 60 * 60 * 1000)) return false;
-    }
-    return true;
-  });
+  const visibleUpcomingDeadlines = useMemo(() => {
+    try {
+      try { console.time && console.time('overview:memo:visibleUpcomingDeadlines'); } catch (e) {}
+      const out = (upcomingDeadlines || []).filter(d => {
+        const id = String(d.id);
+        if (hiddenCompleted.has(id)) return false;
+        if (showCompleted) return true;
+        const ts = completedAtMap && completedAtMap[id] ? Date.parse(completedAtMap[id]) : null;
+        if (ts && !isNaN(ts)) {
+          if ((Date.now() - ts) >= AUTO_HIDE_MS) return false;
+        }
+        return true;
+      });
+      try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {}
+      return out;
+    } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {} return []; }
+  }, [upcomingDeadlines, hiddenCompleted, showCompleted, completedAtMap]);
 
   // --- Data loading and actions ---
   const safeFetchJson = async (url, opts) => {
@@ -247,18 +267,46 @@ export default function UniversityOverview() {
 
 
   const loadAll = useCallback(async () => {
+    try { console.time && console.time('overview:loadAll'); } catch (e) {}
     setLoading(true);
-    const evJson = await safeFetchJson('/api/events');
-    const fetchedEvents = evJson && Array.isArray(evJson.events) ? evJson.events : [];
-    setEvents(fetchedEvents || []);
+    console.log('[Overview] loadAll start');
+    try {
+      const cacheMod = await import('@/lib/clientCache');
+      const getCached = cacheMod.getCached;
+      const setCached = cacheMod.setCached;
 
-    const coursesJson = await safeFetchJson('/api/courses');
-    if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) setCourses(coursesJson.courses);
+      let fetchedEvents = getCached('/api/events');
+      if (!fetchedEvents) {
+        const evJson = await safeFetchJson('/api/events');
+        fetchedEvents = evJson && Array.isArray(evJson.events) ? evJson.events : [];
+        try { setCached('/api/events', fetchedEvents, 60 * 1000); } catch (e) {}
+      }
+      setEvents(fetchedEvents || []);
 
-    const gradesJson = await safeFetchJson('/api/grades');
-    if (gradesJson && gradesJson.success && Array.isArray(gradesJson.data)) setGradesData(gradesJson.data);
+      let cachedCourses = getCached('/api/courses');
+      if (!cachedCourses) {
+        const coursesJson = await safeFetchJson('/api/courses');
+        if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) {
+          cachedCourses = coursesJson.courses;
+          try { setCached('/api/courses', cachedCourses, 60 * 1000); } catch (e) {}
+        }
+      }
+      if (cachedCourses) setCourses(cachedCourses);
 
-    setLoading(false);
+      let cachedGrades = getCached('/api/grades');
+      if (!cachedGrades) {
+        const gradesJson = await safeFetchJson('/api/grades');
+        if (gradesJson && gradesJson.success && Array.isArray(gradesJson.data)) {
+          cachedGrades = gradesJson.data;
+          try { setCached('/api/grades', cachedGrades, 60 * 1000); } catch (e) {}
+        }
+      }
+      if (cachedGrades) setGradesData(cachedGrades);
+    } finally {
+      setLoading(false);
+    }
+    console.log('[Overview] loadAll complete');
+    try { console.timeEnd && console.timeEnd('overview:loadAll'); } catch (e) {}
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
@@ -333,6 +381,7 @@ export default function UniversityOverview() {
   useEffect(() => {
     let mounted = true;
     const loadAttendance = async () => {
+      try { console.time && console.time('overview:loadAttendance'); } catch (e) {}
       try {
         // Prefer to fetch a canonical courses list from the API and use
         // course IDs when calling the attendance endpoint. If we can't
@@ -364,7 +413,7 @@ export default function UniversityOverview() {
           return;
         }
 
-        const targets = courseList;
+  const targets = courseList;
         // fetch attendance for each course in parallel. Try multiple param fallbacks when necessary.
         const fetchForCourse = async (c) => {
           try {
@@ -391,8 +440,10 @@ export default function UniversityOverview() {
           } catch (e) { return null; }
         };
 
-  const promises = targets.map(c => fetchForCourse(c));
+    try { console.time && console.time('overview:attendance:fetchAll'); } catch (e) {}
+    const promises = targets.map(c => fetchForCourse(c));
   const results = await Promise.all(promises);
+    try { console.timeEnd && console.timeEnd('overview:attendance:fetchAll'); } catch (e) {}
   try { if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') setAttendanceDebug(d => ({ ...d, attendance: results.slice(0, 8) })); } catch (e) {}
   setAttendanceError(null);
         // nothing to do here for debug
@@ -406,10 +457,11 @@ export default function UniversityOverview() {
             });
           }
         } catch (e) {}
-        // Compute a global average across all attendance sessions (user-level),
+  // Compute a global average across all attendance sessions (user-level),
         // not a simple mean of per-course percentages. This sums all earned
         // points and divides by total possible points so courses with more
         // sessions contribute proportionally.
+  try { console.time && console.time('overview:attendance:computePoints'); } catch (e) {}
         const MAX_POINTS = 2;
         let globalPoints = 0;
         let globalCounted = 0;
@@ -432,6 +484,7 @@ export default function UniversityOverview() {
             globalCounted++;
           }
         }
+        try { console.timeEnd && console.timeEnd('overview:attendance:computePoints'); } catch (e) {}
 
         if (mounted) {
           setAttendanceNeedsSignIn(false);
@@ -499,28 +552,33 @@ export default function UniversityOverview() {
     }
   };
 
-  const completedList = (() => {
+  const completedList = useMemo(() => {
     try {
+      try { console.time && console.time('overview:memo:completedList'); } catch (e) {}
       const seen = new Set();
       const list = [];
-      for (const e of events) {
+      for (const e of events || []) {
         if (!e) continue;
         const id = String(e.id);
         if ((e.completed === true || completedDeadlines.has(id)) && !seen.has(id)) {
           seen.add(id);
-          // attach completedAt from map if available
           const withTs = { ...(e || {}), completedAt: (completedAtMap && completedAtMap[id]) || e.completedAt || e.completed_at || null };
           list.push(withTs);
         }
       }
-      // Also include any completed ids that don't have an event object yet (rare)
       for (const id of Array.from(completedDeadlines)) {
         if (seen.has(String(id))) continue;
-        const found = events.find(ev => String(ev.id) === String(id));
-        if (found) { const idStr = String(id); const withTs = { ...(found || {}), completedAt: (completedAtMap && completedAtMap[idStr]) || found.completedAt || found.completed_at || null }; list.push(withTs); seen.add(String(id)); }
-        else list.push({ id, title: 'Completed item', date: null, completedAt: (completedAtMap && completedAtMap[String(id)]) || null });
+        const found = (events || []).find(ev => String(ev.id) === String(id));
+        if (found) {
+          const idStr = String(id);
+          const withTs = { ...(found || {}), completedAt: (completedAtMap && completedAtMap[idStr]) || found.completedAt || found.completed_at || null };
+          list.push(withTs);
+          seen.add(String(id));
+        } else {
+          list.push({ id, title: 'Completed item', date: null, completedAt: (completedAtMap && completedAtMap[String(id)]) || null });
+        }
       }
-      return list.sort((a, b) => {
+      const sorted = list.sort((a, b) => {
         const da = a.startDate ? new Date(a.startDate) : (a.date ? new Date(a.date) : null);
         const db = b.startDate ? new Date(b.startDate) : (b.date ? new Date(b.date) : null);
         if (!da && !db) return 0;
@@ -528,8 +586,10 @@ export default function UniversityOverview() {
         if (!db) return -1;
         return da - db;
       });
-    } catch (e) { return []; }
-  })();
+      try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {}
+      return sorted;
+    } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {} return []; }
+  }, [events, completedDeadlines, completedAtMap]);
 
   return (
     <div className="min-h-screen bg-white" style={{ background: '#ffffff' }}>
@@ -569,20 +629,14 @@ export default function UniversityOverview() {
             icon={<Users />}
             label="Attendance Rate"
             loading={loading}
-            value={attendanceNeedsSignIn ? (
-              <a href="/signin" className="text-sm text-emerald-700 hover:underline">Sign in to view</a>
-            ) : (stats.attendanceRate !== null ? `${stats.attendanceRate}%` : '—')}
+            value={stats.attendanceRate !== null ? `${stats.attendanceRate}%` : '—'}
             bgColor="bg-emerald-100 dark:bg-emerald-900/30"
             iconColor="text-emerald-700 dark:text-emerald-400"
           />
         </div>
 
         {/* Attendance diagnostic (only visible when there's an issue) */}
-        {attendanceError && (
-          <div className="max-w-[1450px] mx-auto px-6 mb-4">
-            <p className="text-sm text-red-600">Attendance: {attendanceError}</p>
-          </div>
-        )}
+    {/* Removed user-facing attendance hint: show neutral stat ('—') until data exists. Dev-only debug block still present below. */}
         {/* Dev-only raw API responses for quick debugging */}
         {typeof process !== 'undefined' && process.env.NODE_ENV !== 'production' && (
           <div className="max-w-[1450px] mx-auto px-6 mb-6">
@@ -673,7 +727,7 @@ export default function UniversityOverview() {
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Enjoy your free time!</p>
                     <button
                       className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg transition-colors"
-                      onClick={() => window.location.href = '/timetable'}
+                      onClick={() => router.push('/timetable')}
                     >
                       <Calendar className="w-4 h-4" />
                       View Timetable
@@ -694,7 +748,7 @@ export default function UniversityOverview() {
                   <div className="flex items-center gap-2">
                     <button
                       className="text-sm text-blue-100 hover:text-white transition-colors"
-                      onClick={() => window.location.href = '/calendar'}
+                      onClick={() => router.push('/calendar')}
                     >
                       View All
                     </button>
@@ -758,7 +812,7 @@ export default function UniversityOverview() {
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">No upcoming deadlines</p>
                     <button
                       className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 rounded-lg transition-colors"
-                      onClick={() => window.location.href = '/calendar'}
+                      onClick={() => router.push('/calendar')}
                     >
                       <Plus className="w-4 h-4" />
                       Create Event
@@ -866,7 +920,7 @@ export default function UniversityOverview() {
                     <div 
                       key={course.id}
                       className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}
-                      onClick={() => window.location.href = '/courses'}
+                      onClick={() => router.push('/courses')}
                     >
                       <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
                       <div className="flex-1 min-w-0">

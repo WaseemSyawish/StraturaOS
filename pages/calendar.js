@@ -96,10 +96,20 @@ export default function CalendarPage() {
   // Fetch events from server and normalize
   const loadEvents = async () => {
     try {
-      const res = await fetch('/api/events');
-      if (!res.ok) return;
-      const payload = await res.json().catch(() => null);
-      const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
+      // Try client cache first to avoid waiting for server on quick navigations
+      let list = null;
+      try {
+        const cacheMod = await import('@/lib/clientCache');
+        const getCached = cacheMod.getCached;
+        list = getCached('/api/events');
+      } catch (e) { /* ignore cache errors */ }
+      if (!Array.isArray(list)) {
+        const res = await fetch('/api/events');
+        if (!res.ok) return;
+        const payload = await res.json().catch(() => null);
+        list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
+        try { const cacheMod2 = await import('@/lib/clientCache'); cacheMod2.setCached('/api/events', list, 60 * 1000); } catch (e) {}
+      }
       // compute final instant for an event (tries several fallbacks)
       const computeFinalInstant = (ev) => {
         try {

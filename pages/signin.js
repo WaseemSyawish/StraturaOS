@@ -19,6 +19,15 @@ export default function SignInPolished() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Prefill email from query param (helpful after signup)
+  useEffect(() => {
+    try {
+      if (router && router.query && router.query.email) {
+        setEmail(String(router.query.email));
+      }
+    } catch (e) {}
+  }, [router && router.query && router.query.email]);
+
   // Ensure this page does not render in dark mode: temporarily remove the
   // `dark` class from <html> while this page is mounted, and restore it on
   // unmount if it was present before.
@@ -32,26 +41,72 @@ export default function SignInPolished() {
     };
   }, []);
 
-  function handleSubmit() {
+  async function handleSubmit(e) {
+    e && e.preventDefault();
     setError('');
-    
+
+    // Basic client-side validation
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
-    
+    const emailRe = /^\S+@\S+\.\S+$/;
+    if (!emailRe.test(String(email))) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Sign in successful');
-      setLoading(false);
+    try {
+      // Clear any existing dev/demo cookies to avoid staying signed in as the demo user
       try {
-        router.push('/overview');
-      } catch (e) {
-        // fallback: no-op
+        if (process.env.NODE_ENV === 'development') {
+          await fetch('/api/auth/local-signout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+        }
+      } catch (e) {}
+      // In development we support a local password-based signin helper.
+      // Prefer `/api/auth/local-signin` when available (development) so
+      // we can validate passwords. In production, fall back to the
+      // generic `/api/auth/signin` which accepts an email and issues a
+      // session cookie (or a dev-user fallback).
+      const isDev = (process.env.NODE_ENV === 'development');
+
+      if (isDev) {
+        // Try local password signin (returns 302 redirect on success and sets cookies)
+        const res = await fetch('/api/auth/local-signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: String(email).trim(), password: String(password), returnTo: '/overview' })
+        });
+        // If the endpoint redirected or returned OK, assume success and navigate
+        if (res.ok || res.redirected) {
+          try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
+        }
+        // Try to parse error message
+        const txt = await res.text().catch(() => null);
+        setError(txt || 'Invalid credentials');
+        return;
       }
-    }, 1500);
+
+      // Production: call /api/auth/signin which issues a session cookie based on email
+      const res = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: String(email).trim() })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json && (json.success || json.id)) {
+        try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
+      }
+      setError((json && (json.error || json.message)) ? String(json.error || json.message) : 'Sign in failed');
+    } catch (err) {
+      console.error('Sign-in error', err);
+      setError('Sign-in failed — please try again');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -166,6 +221,17 @@ export default function SignInPolished() {
                   </button>
                 </div>
               </div>
+
+              {/* Show success banner when redirected from signup */}
+              {router.query && router.query.registered && (
+                <div className="rounded-lg p-4 mb-2 flex items-start gap-3" style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                  border: '1px solid rgba(34, 197, 94, 0.15)'
+                }}>
+                  <GraduationCap className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                  <p className="text-sm" style={{ color: '#16a34a' }}>Account created — please sign in.</p>
+                </div>
+              )}
 
               {/* Error Message */}
               {error && (

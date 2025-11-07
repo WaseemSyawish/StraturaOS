@@ -366,51 +366,58 @@ const ModulesManager = () => {
   };
 
   return (
-  <div className="modules-root min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 p-6">
+  <div className="modules-root min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <Head>
         <title>Modules — University Planner</title>
       </Head>
       <style>{`
-        /* Dark mode overrides for Modules Manager */
-        html.dark .min-h-screen.bg-gradient-to-br { background-image: none; background-color: #0b1220; }
-        html.dark .cozy { background-color: #0f1724; border-color: #1f2937; }
-        html.dark .cozy .text-gray-800 { color: #e6eef8; }
-        html.dark .text-gray-600 { color: #9aa4b2; }
-        html.dark .text-gray-500 { color: #7b8794; }
-        html.dark .text-gray-900 { color: #e6eef8; }
-        html.dark .bg-indigo-100 { background-color: #0b1220; }
-        html.dark .bg-green-100 { background-color: #0b1220; }
-        html.dark .bg-blue-100 { background-color: #0b1220; }
-        html.dark .bg-gray-100 { background-color: #0b1220; }
-        html.dark .border-gray-200 { border-color: #1f2937; }
-        html.dark .border-gray-100 { border-color: #111827; }
-        html.dark .rounded-xl { box-shadow: none; }
-        html.dark .px-3.py-2.border-0.border-b { border-bottom-color: #1f2937; }
-        html.dark .bg-indigo-600 { background-color: #2563eb; }
-        html.dark .text-gray-700 { color: #cbd5e1; }
-        html.dark .bg-gray-50 { background-color: transparent; }
-        html.dark .ring-2.ring-white { box-shadow: 0 0 0 3px rgba(30,41,59,0.25); }
-        /* Ensure form controls inside cozy/modal are readable in dark mode */
+        /* Enhanced Dark mode overrides for Modules Manager */
+        html.dark .modules-root { background: linear-gradient(180deg,#071023,#071423); }
+        html.dark .cozy { background-color: #071423; border-color: rgba(255,255,255,0.04); box-shadow: none; }
+        html.dark .cozy .text-gray-800 { color: rgba(255,255,255,0.92); }
+        html.dark .text-gray-600 { color: rgba(255,255,255,0.72); }
+        html.dark .text-gray-500 { color: rgba(255,255,255,0.6); }
+        html.dark .text-gray-900 { color: rgba(255,255,255,0.92); }
+        html.dark .text-gray-800 { color: rgba(255,255,255,0.92); }
+        html.dark .bg-indigo-100 { background-color: rgba(99,102,241,0.1); }
+        html.dark .bg-green-100 { background-color: rgba(16,185,129,0.1); }
+        html.dark .bg-blue-100 { background-color: rgba(59,130,246,0.1); }
+        html.dark .bg-gray-100 { background-color: rgba(255,255,255,0.05); }
+        html.dark .border-gray-200 { border-color: rgba(255,255,255,0.06); }
+        html.dark .border-gray-100 { border-color: rgba(255,255,255,0.04); }
+        
+        /* Enhanced card borders and shadows */
+        html.dark .cozy { border: 1px solid rgba(139, 92, 246, 0.15); }
+        html.dark .course-card-container { border: 1px solid rgba(139, 92, 246, 0.15); }
+        html.dark .course-card-container:hover { border-color: rgba(139, 92, 246, 0.25); box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
+        
+        /* Form controls */
         html.dark .cozy input,
         html.dark .cozy textarea,
         html.dark .cozy select {
-          color: #e6eef8 !important; /* light text */
-          background: transparent !important;
-          caret-color: #e6eef8 !important;
-          -webkit-text-fill-color: #e6eef8 !important; /* webkit browsers */
+          color: rgba(255,255,255,0.92) !important;
+          background: #0b1220 !important;
+          caret-color: rgba(255,255,255,0.92) !important;
+          -webkit-text-fill-color: rgba(255,255,255,0.92) !important;
+          border-color: rgba(255,255,255,0.06);
         }
         html.dark .cozy input::placeholder,
         html.dark .cozy textarea::placeholder {
-          color: #9aa4b2 !important; /* muted placeholder */
+          color: rgba(255,255,255,0.4) !important;
           opacity: 1 !important;
         }
-        /* Ensure select options and selected text are visible */
         html.dark .cozy select option { color: #0f1724; background: #fff; }
-        /* More specific targets for type=number and focused states */
-        html.dark .cozy input[type="number"] { color: #e6eef8 !important; -webkit-text-fill-color:#e6eef8 !important; }
+        html.dark .cozy input[type="number"] { color: rgba(255,255,255,0.92) !important; }
         html.dark .cozy input:focus, html.dark .cozy textarea:focus, html.dark .cozy select:focus {
-          color: #e6eef8 !important;
-          -webkit-text-fill-color: #e6eef8 !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+        
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-down {
+          animation: slideDown 0.3s ease-out;
         }
       `}</style>
       <div className="fixed top-6 right-6 z-50">
@@ -742,18 +749,44 @@ const ModulesManager = () => {
           </div>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="cozy rounded-xl shadow-lg p-12">
-            <div className="flex items-center justify-center">
-              <Loader2 className="animate-spin mr-3 text-indigo-600" size={24} />
-              <span className="text-gray-600">Loading modules...</span>
+        {/* Loading / Empty / Course Lists */}
+        {loading ? (
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="max-w-md w-full">
+              <div className="cozy rounded-2xl shadow-xl border border-gray-200 p-8">
+                <div className="flex flex-col items-center text-center">
+                  {/* Animated icon container */}
+                  <div className="relative mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+                      <BookOpen className="w-8 h-8 text-white" strokeWidth={2} />
+                    </div>
+                    {/* Spinning ring around icon */}
+                    <div className="absolute inset-0 border-4 border-indigo-200 border-t-indigo-600 rounded-2xl animate-spin"></div>
+                  </div>
+                  
+                  {/* Loading text */}
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    Loading your modules
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Setting up your course manager...
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Course Lists */}
-        {!loading && (
+        ) : courses.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="text-center max-w-md">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-2xl mb-6">
+                <BookOpen className="w-10 h-10 text-indigo-600" strokeWidth={2} />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">No Modules Yet</h3>
+              <p className="text-gray-600 mb-2">Start organizing your academic schedule by adding your first module.</p>
+              <p className="text-sm text-gray-500">Click the "Add Module" button above to get started.</p>
+            </div>
+          </div>
+        ) : (
           <>
             {/* Current Semester */}
             <div className="cozy rounded-xl shadow-lg mb-6">
@@ -764,9 +797,7 @@ const ModulesManager = () => {
                       <Calendar className="text-green-600" size={20} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-800">
-                        Current Semester (2025/2026 - Semester 1)
-                      </h2>
+                      <h2 className="text-xl font-semibold text-gray-800">Current Semester (2025/2026 - Semester 1)</h2>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <BookOpen size={14} />
@@ -779,34 +810,21 @@ const ModulesManager = () => {
                       </div>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                    Active
-                  </span>
+                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
                 </div>
               </div>
-              
               <div className="p-6">
                 {getCurrentSemesterCourses().length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
                     <h3 className="text-lg font-medium mb-2">No modules for current semester</h3>
                     <p className="mb-6">Start building your academic schedule by adding your first module.</p>
-                    <button
-                      onClick={handleAddCourse}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                      Add Your First Module
-                    </button>
+                    <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getCurrentSemesterCourses().map(course => (
-                      <CourseCard
-                        key={course.id}
-                        course={course}
-                        onEdit={handleEditCourse}
-                        onDelete={handleDeleteCourse}
-                      />
+                      <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} />
                     ))}
                   </div>
                 )}
@@ -819,12 +837,10 @@ const ModulesManager = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 rounded-lg">
-                      <Clock className="text-blue-600" size={20} />
+                      <Calendar className="text-blue-600" size={20} />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-800">
-                        Upcoming Semester (2025/2026 - Semester 2)
-                      </h2>
+                      <h2 className="text-xl font-semibold text-gray-800">Upcoming Semester (2025/2026 - Semester 2)</h2>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <BookOpen size={14} />
@@ -837,12 +853,9 @@ const ModulesManager = () => {
                       </div>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                    Upcoming
-                  </span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Upcoming</span>
                 </div>
               </div>
-              
               <div className="p-6">
                 {getUpcomingSemesterCourses().length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
@@ -853,13 +866,7 @@ const ModulesManager = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getUpcomingSemesterCourses().map(course => (
-                      <CourseCard
-                        key={course.id}
-                        course={course}
-                        onEdit={handleEditCourse}
-                        onDelete={handleDeleteCourse}
-                        isUpcoming={true}
-                      />
+                      <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} isUpcoming={true} />
                     ))}
                   </div>
                 )}

@@ -123,22 +123,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            return (
-              <li key={item.href}>
-                <Link href={item.href}>
-                  <div
-                    className={`
+            const classes = `
                       flex items-center ${isCollapsed ? 'px-0' : 'px-3'} py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer
                       ${item.active
                         ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-200 border border-indigo-100 dark:border-indigo-800 shadow-sm'
                         : 'text-gray-700 dark:text-slate-300 hover:bg-white/20 dark:hover:bg-white/6 hover:text-gray-900 dark:hover:text-white'
                       }
                       ${isCollapsed ? 'justify-center' : 'justify-start'}
-                    `}
-                  >
-                      <Icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'} text-gray-600 dark:text-slate-300`} aria-hidden />
+                    `;
+            return (
+              <li key={item.href}>
+                <Link href={item.href} className={classes}>
+                  <>
+                    <Icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'} text-gray-600 dark:text-slate-300`} aria-hidden />
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
-                  </div>
+                  </>
                 </Link>
               </li>
             );
@@ -163,7 +162,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 export default Sidebar;
 
 function ProfilePanel({ profile, loading }) {
-  const p = profile || { name: 'Demo User', email: 'demo@university.edu', avatarColor: '#7c3aed' };
+  // If profile not loaded yet, show a neutral placeholder (don't present a demo account)
+  const p = profile || { name: 'User', email: '', avatarColor: '#7c3aed' };
   const [showMenu, setShowMenu] = React.useState(false);
   const containerRef = React.useRef(null);
   const btnRef = React.useRef(null);
@@ -234,9 +234,9 @@ function ProfilePanel({ profile, loading }) {
             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{p.email}</p>
-            </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{p.email || ''}</p>
+              </div>
             <div className="py-1">
               <a
                 role="menuitem"
@@ -341,7 +341,7 @@ function CollapsedProfileButton({ profile }) {
           >
           <div className="p-3 border-b border-gray-200 dark:border-gray-700">
             <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{p.email || 'demo@university.edu'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{p.email || ''}</p>
           </div>
           <div className="py-1">
             <a 

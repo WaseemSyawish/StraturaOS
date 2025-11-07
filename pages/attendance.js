@@ -39,15 +39,27 @@ const AttendanceTracker = () => {
         const body = await response.json().catch(() => null);
         const msg = body?.message || body?.error || `HTTP ${response.status}: Failed to fetch courses`;
         console.error('Courses API Error Details:', msg);
+        // If auth error or missing permissions, don't force a redirect — show a friendly prompt
+        if (response.status === 401 || response.status === 403 || /not authenticated/i.test(msg)) {
+          setNotification({ type: 'info', message: 'No courses available. You can add your first course to get started.' });
+          setCourses([]);
+          return;
+        }
+
+        // Other failures: surface a friendly notification and return empty list
         setNotification({ type: 'error', message: msg });
-        throw new Error(msg);
+        setCourses([]);
+        return;
       }
       
       const data = await response.json();
       console.log('Courses API Response:', data);
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch courses');
+        const msg = data.error || 'Failed to fetch courses';
+        setNotification({ type: 'error', message: msg });
+        setCourses([]);
+        return;
       }
       
       const fetchedCourses = data.courses || [];
@@ -109,15 +121,41 @@ const AttendanceTracker = () => {
         const body = await response.json().catch(() => null);
         const msg = body?.message || body?.error || `HTTP ${response.status}: Failed to fetch attendance`;
         console.error('Attendance API Error Details:', msg);
+
+        // Auth errors: don't redirect — show friendly prompt to add sessions instead
+        if (response.status === 401 || response.status === 403 || /not authenticated/i.test(msg)) {
+          setNotification({ type: 'info', message: 'No attendance records available. You can add sessions to get started.' });
+          setSessions([]);
+          return;
+        }
+
+        // If the API reports there are no attendance records, treat as friendly empty state
+        if (response.status === 404 || /no attendance|no records|no sessions|not found/i.test(msg)) {
+          setNotification({ type: 'info', message: 'No attendance records found for this course.' });
+          setSessions([]);
+          return;
+        }
+
+        // Other errors: surface a notification but don't crash the page
         setNotification({ type: 'error', message: msg });
-        throw new Error(msg);
+        setSessions([]);
+        return;
       }
       
       const data = await response.json();
       console.log('Attendance API Response:', data);
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch attendance data');
+        const msg = data.error || 'Failed to fetch attendance data';
+        // If API indicates empty data, show friendly info instead of throwing
+        if (/no attendance|no records|no sessions|not found/i.test(msg)) {
+          setNotification({ type: 'info', message: 'No attendance records found for this course.' });
+          setSessions([]);
+          return;
+        }
+        setNotification({ type: 'error', message: msg });
+        setSessions([]);
+        return;
       }
       
       setSessions(sortSessionsByDate(data.sessions || []));
@@ -669,24 +707,37 @@ useEffect(() => {
     URL.revokeObjectURL(url);
   };
 
-  // Show loading state while courses are loading
   if (coursesLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <Head>
-          <title>Attendance — University Planner</title>
-        </Head>
-        <div className="max-w-7xl mx-auto">
-          <div className="cozy rounded-xl shadow-lg p-12">
-            <div className="flex items-center justify-center">
-              <Loader2 className="animate-spin mr-3" size={24} />
-              <span className="text-gray-600">Loading your courses...</span>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+      <Head>
+        <title>Attendance — University Planner</title>
+      </Head>
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <div className="flex flex-col items-center text-center">
+            {/* Animated icon container */}
+            <div className="relative mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+                <BookOpen className="w-8 h-8 text-white" strokeWidth={2} />
+              </div>
+              {/* Spinning ring around icon */}
+              <div className="absolute inset-0 border-4 border-indigo-200 border-t-indigo-600 rounded-2xl animate-spin"></div>
             </div>
+            
+            {/* Loading text */}
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Loading your courses
+            </h2>
+            <p className="text-sm text-gray-500">
+              Setting up your attendance tracker...
+            </p>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Show message if no courses exist
   if (!courses.length) {
@@ -696,79 +747,68 @@ useEffect(() => {
         <title>Attendance — University Planner</title>
       </Head>
       <div className="max-w-2xl w-full mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
-            <div className="flex items-center justify-center">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <BookOpen className="w-8 h-8 text-white" strokeWidth={2} />
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+          {/* Header Section - more integrated, less "hero-y" */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <BookOpen className="w-7 h-7 text-white" strokeWidth={2} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">No Courses Yet</h2>
+                <p className="text-indigo-100 text-sm">Let's get you set up</p>
               </div>
             </div>
           </div>
 
           {/* Content Section */}
-          <div className="px-8 py-10 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              No Courses Found
-            </h2>
-            <p className="text-lg text-gray-600 mb-2 max-w-lg mx-auto leading-relaxed">
-              You haven't added any courses yet. Get started by creating your first course in the Modules Manager.
+          <div className="px-8 py-10">
+            <p className="text-gray-700 mb-2 leading-relaxed">
+              You haven't added any courses yet. Head to the Modules Manager to create your first course.
             </p>
-            <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto">
-              Once you add courses, you'll be able to track attendance, manage assignments, and monitor your academic progress.
+            <p className="text-sm text-gray-500 mb-8">
+              Once you add courses, you'll be able to track attendance, manage assignments, and monitor your progress.
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <button
-                onClick={() => window.location.href = '/modules'}
-                className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 hover:scale-105"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Add Your First Course</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
-              </button>
-            </div>
+            {/* Action Button */}
+            <button
+              onClick={() => window.location.href = '/modules'}
+              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 hover:scale-[1.02]"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Your First Course</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
+            </button>
 
-            {/* Feature Highlights */}
-            <div className="mt-12 pt-8 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-6">
-                What you can do with courses
+            {/* Feature Highlights - more specific icons */}
+            <div className="mt-10 pt-8 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-6">
+                What you can do
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
+              <div className="grid grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Calendar className="w-6 h-6 text-blue-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 text-sm mb-1">Track Attendance</h4>
-                  <p className="text-xs text-gray-600">Monitor your class participation and stay on top of requirements</p>
+                  <p className="text-xs text-gray-600">Monitor class participation</p>
                 </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mb-3">
-                    <div className="w-6 h-6 bg-purple-500 rounded-full"></div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <CheckCircle className="w-6 h-6 text-purple-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 text-sm mb-1">Manage Tasks</h4>
-                  <p className="text-xs text-gray-600">Keep track of assignments and deadlines for each course</p>
+                  <p className="text-xs text-gray-600">Track assignments and deadlines</p>
                 </div>
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mb-3">
-                    <div className="w-6 h-6 bg-indigo-500 rounded-full"></div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Settings className="w-6 h-6 text-indigo-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 text-sm mb-1">View Analytics</h4>
-                  <p className="text-xs text-gray-600">Get insights into your academic performance and progress</p>
+                  <p className="text-xs text-gray-600">Get performance insights</p>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Footer Helper */}
-          <div className="bg-gray-50 px-8 py-5 border-t border-gray-100">
-            <p className="text-sm text-gray-600 text-center">
-              Need help getting started?{' '}
-              <a href="/help" className="text-indigo-600 hover:text-indigo-700 font-medium underline">
-                View our guide
-              </a>
-            </p>
           </div>
         </div>
       </div>

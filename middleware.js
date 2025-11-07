@@ -13,16 +13,28 @@ export function middleware(req) {
     // Allow non-protected paths through
     if (!PROTECTED_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) return NextResponse.next();
 
-    // Synchronously check for next-auth session cookies only.
+    // Synchronously check for session cookies. We accept next-auth token names
+    // as well as our dev helper cookies (`session`, `userId`, `debug_userId`) so
+    // that the local password sign-in helper and token-based endpoints all work
+    // together during development.
     try {
       if (req.cookies && req.cookies.get) {
         const na1 = req.cookies.get('next-auth.session-token');
         const na2 = req.cookies.get('__Secure-next-auth.session-token');
-        if (na1 || na2) return NextResponse.next();
+        const s = req.cookies.get('session');
+        const uid = req.cookies.get('userId');
+        const dbg = req.cookies.get('debug_userId');
+        if (na1 || na2 || s || uid || dbg) return NextResponse.next();
       }
-      // Fallback: check the raw Cookie header for presence of next-auth token names
+      // Fallback: check the raw Cookie header for presence of known cookie names
       const raw = req.headers.get('cookie') || '';
-      if (raw.includes('next-auth.session-token=') || raw.includes('__Secure-next-auth.session-token=')) {
+      if (
+        raw.includes('next-auth.session-token=') ||
+        raw.includes('__Secure-next-auth.session-token=') ||
+        raw.includes('session=') ||
+        raw.includes('userId=') ||
+        raw.includes('debug_userId=')
+      ) {
         return NextResponse.next();
       }
     } catch (e) {

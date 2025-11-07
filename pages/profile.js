@@ -47,7 +47,7 @@ export default function Profile() {
                   // resolve current user id and patch
                   const am = await fetch('/api/auth/me');
                   const jm = am.ok ? await am.json() : null;
-                  if (!jm || !jm.authenticated) { alert('Not signed in'); setSaving(false); return; }
+                  if (!jm || !jm.authenticated) { window.location.href = '/signin'; return; }
                   const res = await fetch(`/api/users/${jm.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
                   if (res.ok) {
                     const j = await res.json();

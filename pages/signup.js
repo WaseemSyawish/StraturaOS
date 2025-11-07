@@ -48,17 +48,63 @@ export default function SignUp() {
     }
 
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Account created successfully');
-      setLoading(false);
-      try {
-        router.push('/signin?registered=1');
-      } catch (e) {
-        // fallback: no-op
+    try {
+      const r = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setError(j && j.error ? String(j.error) : 'Registration failed');
+        setLoading(false);
+        return;
       }
-    }, 1500);
+      console.log('Account created successfully', j.user && j.user.id);
+
+      // Auto sign-in after signup for a smoother UX.
+      const isDev = (process.env.NODE_ENV === 'development');
+      try {
+        // Clear any existing dev/demo cookies so auto-signin will replace them
+        try {
+          if (isDev) await fetch('/api/auth/local-signout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+        } catch (e) {}
+
+        if (isDev) {
+          // Try local password signin which validates password and sets cookies
+          const lr = await fetch('/api/auth/local-signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ email: String(email).trim(), password: String(password), returnTo: '/overview' })
+          });
+          if (lr.ok || lr.redirected) {
+            try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
+          }
+        } else {
+          const lr = await fetch('/api/auth/signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ email: String(email).trim() })
+          });
+          const lj = await lr.json().catch(() => ({}));
+          if (lr.ok && lj && (lj.success || lj.id)) {
+            try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
+          }
+        }
+      } catch (e) {
+        // ignore auto-signin errors and fall back to signin page
+      }
+
+      setLoading(false);
+      // Fallback: navigate to sign-in with registered hint and prefilling email
+      router.push('/signin?registered=1&email=' + encodeURIComponent(String(email).trim()));
+    } catch (e) {
+      console.error('Signup error', e);
+      setError('Could not create account');
+      setLoading(false);
+    }
   }
 
   return (

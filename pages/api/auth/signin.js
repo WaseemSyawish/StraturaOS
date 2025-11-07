@@ -44,6 +44,8 @@ export default async function handler(req, res) {
 
   const { email } = req.body || {};
 
+  const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
+
   // Try to query DB but handle unreachable DB with a clear 503 and a local dev-user fallback
   try {
     let user = null;
@@ -51,15 +53,19 @@ export default async function handler(req, res) {
       user = await prisma.user.findUnique({ where: { email } });
     }
     if (!user) {
-      // fallback to first user in database (dev/demo behavior)
-      user = await prisma.user.findFirst();
+      // only fallback to first user in database when DEV_FALLBACK is explicitly enabled
+      if (devFallbackEnabled) {
+        user = await prisma.user.findFirst();
+      }
     }
     if (!user) {
-      // No user in DB — try local dev-user fallback
-      const local = loadLocalDevUser();
-      if (local) {
-        setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
-        return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Using local dev-user fallback' });
+      // No user in DB — try local dev-user fallback only when explicitly allowed
+      if (devFallbackEnabled) {
+        const local = loadLocalDevUser();
+        if (local) {
+          setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
+          return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Using local dev-user fallback' });
+        }
       }
       return res.status(400).json({ error: 'No user available' });
     }
@@ -71,11 +77,13 @@ export default async function handler(req, res) {
     const msg = err && err.message ? String(err.message) : '';
     console.error('POST /api/auth/signin error', msg || err);
     if (msg.includes("Can't reach database server") || msg.includes('P1001') || msg.includes('Connection refused') || msg.includes('connect ECONNREFUSED')) {
-      // DB unreachable — return 503 and try local dev-user fallback
-      const local = loadLocalDevUser();
-      if (local) {
-        setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
-        return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Database unreachable — using local dev-user fallback' });
+      // DB unreachable — if DEV_FALLBACK is enabled, try local dev-user fallback; otherwise return 503
+      if (devFallbackEnabled) {
+        const local = loadLocalDevUser();
+        if (local) {
+          setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
+          return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Database unreachable — using local dev-user fallback' });
+        }
       }
       return res.status(503).json({ error: 'Database unreachable', details: msg });
     }

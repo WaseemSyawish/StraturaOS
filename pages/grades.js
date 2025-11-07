@@ -13,6 +13,7 @@ const GradesPage = () => {
   const [showItemModal, setShowItemModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const [courses, setCourses] = useState([]);
 
@@ -137,7 +138,7 @@ const GradesPage = () => {
 
     // Optimistically update UI with a temporary id
     const tempId = Date.now();
-  const optimistic = { ...categoryPayload, id: tempId };
+    const optimistic = { ...categoryPayload, id: tempId };
     setCourses(prev => prev.map(course => course.id === selectedCourse.id ? { ...course, categories: [...(course.categories || []), optimistic] } : course));
 
     setNewCategory({ name: '', weight: '', type: 'assignment' });
@@ -354,15 +355,15 @@ const GradesPage = () => {
           }
         };
 
-  // Apply immediately (including the CustomSelect wrapper by id)
-  setColor(catNameRef.current);
-  setColor(itemNameRef.current);
-  setColor(typeRef.current);
-  setColor(weightRef.current);
-  setColor(scoreRef.current);
-  setColor(maxScoreRef.current);
-  // CustomSelect wrapper has id 'grades-cat-type'
-  try { setColor(document.getElementById('grades-cat-type')); } catch (e) {}
+        // Apply immediately (including the CustomSelect wrapper by id)
+        setColor(catNameRef.current);
+        setColor(itemNameRef.current);
+        setColor(typeRef.current);
+        setColor(weightRef.current);
+        setColor(scoreRef.current);
+        setColor(maxScoreRef.current);
+        // CustomSelect wrapper has id 'grades-cat-type'
+        try { setColor(document.getElementById('grades-cat-type')); } catch (e) {}
 
         // Re-apply shortly after (handles autofill and late UA style application)
         setTimeout(() => {
@@ -407,9 +408,8 @@ const GradesPage = () => {
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     } catch (e) {}
     async function loadAll() {
+      setLoading(true);
       try {
-        // Ensure user is resolved. Treat explicit 401/403 as unauthenticated and redirect.
-        // Do not redirect on 304 (Not Modified) since that is a cache-valid response without a body
         const me = await fetch('/api/auth/me');
         if (me.status === 401 || me.status === 403) {
           if (typeof window !== 'undefined') window.location.href = '/signin';
@@ -530,6 +530,8 @@ const GradesPage = () => {
         setStats(prev => ({ ...prev, credits: creditsSum, courses: coursesCount, avgGrade }));
       } catch (err) {
         console.warn('Failed to load modules/grades from API:', err);
+      } finally {
+        setLoading(false);
       }
     }
     loadAll();
@@ -592,226 +594,418 @@ const GradesPage = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Stats Cards */}
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800 dark:border-slate-700 dark:shadow-none hover:shadow-xl dark:hover:shadow-slate-900/50 transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Current GPA</p>
-                <h3 className="text-4xl font-bold text-purple-600 mt-2 dark:text-purple-300">{stats.gpa}</h3>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Total Credits</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.credits}</h3>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Courses Completed card removed - space redistributed among remaining cards */}
-
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Average Grade</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.avgGrade}</h3>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-lg">
-                <GraduationCap className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Section */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-64">
-            <CustomSelect
-              options={semesters}
-              value={selectedSemester}
-              onChange={(v) => setSelectedSemester(v)}
-              placeholder="Select semester"
-              className="w-full"
-              id="grades-semester-select"
-            />
-          </div>
-
-          {/* Course filter - lets user restrict view to a single module */}
-          <div className="w-96">
-            <CustomSelect
-              options={[{ value: 'all', label: 'All courses' }, ...courses.map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
-              value={String(filterCourseId)}
-              onChange={(v) => setFilterCourseId(v)}
-              placeholder="All courses"
-              className="w-full"
-              id="grades-course-select"
-            />
-          </div>
-          <div className="text-sm text-gray-600 dark:text-slate-300">
-            Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-
-        {/* Debug panel (visible when ?debug=1 in URL) */}
-        {showDebug && (
-          <div className="mt-6 p-4 bg-white border rounded-lg text-xs dark:bg-[#071423] dark:border-transparent">
-            <h4 className="font-semibold mb-2 dark:text-slate-100">Debug: courses / semesters / stats</h4>
-            <div style={{ maxHeight: 300, overflow: 'auto' }}>
-              <pre className="whitespace-pre-wrap dark:text-slate-200">{JSON.stringify({ courses, semesters, stats, filteredCoursesLength: filteredCourses.length }, null, 2)}</pre>
-            </div>
-          </div>
-        )}
-
-        {/* Courses Grid */}
-        <div className="grid grid-cols-1 gap-6">
-          {filteredCourses.map(course => {
-            const { grade, percentage } = calculateCourseGrade(course.categories);
-            const totalWeight = course.categories.reduce((sum, cat) => sum + cat.weight, 0);
-
-            return (
-              <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800/50 dark:border-slate-700/50 dark:shadow-none">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-sm font-medium text-purple-600/70 dark:text-purple-400/70">{course.code}</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{course.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{course.credits} Credits • {course.categories.length} Categories</p>
+        {/* Loading State */}
+        {loading ? (
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="max-w-md w-full">
+              <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+                <div className="flex flex-col items-center text-center">
+                  {/* Animated icon container */}
+                  <div className="relative mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+                      <GraduationCap className="w-8 h-8 text-white" strokeWidth={2} />
+                    </div>
+                    {/* Spinning ring around icon */}
+                    <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-800 border-t-purple-600 dark:border-t-purple-400 rounded-2xl animate-spin"></div>
                   </div>
-                  <div className={`px-4 py-2 rounded-lg text-base font-semibold ${getGradeBgColor(grade)}`}>
-                    {grade} ({percentage}%)
+                  
+                  {/* Loading text */}
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    Loading your grades
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Calculating your academic progress...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Stats Cards: only show when there are courses available */}
+            {courses && courses.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800 dark:border-slate-700 dark:shadow-none hover:shadow-xl dark:hover:shadow-slate-900/50 transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Current GPA</p>
+                      <h3 className="text-4xl font-bold text-purple-600 mt-2 dark:text-purple-300">{stats.gpa}</h3>
+                    </div>
+                    <div className="p-3 bg-purple-100 rounded-lg">
+                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">Total Weight Allocated</span>
-                    <span className={`font-medium ${totalWeight === 100 ? 'text-green-600' : 'text-orange-600'}`}>
-                      {totalWeight}% / 100%
-                    </span>
-                  </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-500 ${totalWeight === 100 ? 'bg-green-600' : 'bg-orange-500'}`}
-                      style={{ width: `${Math.min(totalWeight, 100)}%` }}
-                    ></div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Total Credits</p>
+                      <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.credits}</h3>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <BookOpen className="w-6 h-6 text-blue-600" />
+                    </div>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 my-4"></div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Average Grade</p>
+                      <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.avgGrade}</h3>
+                    </div>
+                    <div className="p-3 bg-amber-100 rounded-lg">
+                      <GraduationCap className="w-6 h-6 text-amber-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold text-slate-900 dark:text-slate-100">Grading Categories</h4>
-                    <button 
-                      onClick={() => openCategoryModal(course)}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 dark:bg-purple-500/80 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm font-medium shadow-sm"
-                    >
-                    <Plus className="w-4 h-4" />
-                    Add Category
+            {/* Filter Section: only show when there are courses available */}
+            {courses && courses.length > 0 && (
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-64">
+                  <CustomSelect
+                    options={semesters}
+                    value={selectedSemester}
+                    onChange={(v) => setSelectedSemester(v)}
+                    placeholder="Select semester"
+                    className="w-full"
+                    id="grades-semester-select"
+                  />
+                </div>
+
+                {/* Course filter - lets user restrict view to a single module */}
+                <div className="w-96">
+                  <CustomSelect
+                    options={[{ value: 'all', label: 'All courses' }, ...courses.map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
+                    value={String(filterCourseId)}
+                    onChange={(v) => setFilterCourseId(v)}
+                    placeholder="All courses"
+                    className="w-full"
+                    id="grades-course-select"
+                  />
+                </div>
+                <div className="text-sm text-gray-600 dark:text-slate-300">
+                  Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            )}
+
+            {/* Debug panel (visible when ?debug=1 in URL) */}
+            {showDebug && (
+              <div className="mt-6 p-4 bg-white border rounded-lg text-xs dark:bg-[#071423] dark:border-transparent">
+                <h4 className="font-semibold mb-2 dark:text-slate-100">Debug: courses / semesters / stats</h4>
+                <div style={{ maxHeight: 300, overflow: 'auto' }}>
+                  <pre className="whitespace-pre-wrap dark:text-slate-200">{JSON.stringify({ courses, semesters, stats, filteredCoursesLength: filteredCourses.length }, null, 2)}</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Courses Grid */}
+            {filteredCourses.length === 0 ? (
+              <div className="min-h-[50vh] flex items-center justify-center">
+                <div className="max-w-2xl w-full mx-auto text-center px-6">
+                  {/* Hero Card */}
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-8 mb-8 shadow-xl">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <GraduationCap className="w-10 h-10 text-white" strokeWidth={2} />
+                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-2">No Courses Yet</h2>
+                    <p className="text-purple-100 text-lg">Let's get you set up</p>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 text-left shadow-lg border border-gray-200 dark:border-slate-700">
+                    <p className="text-gray-700 dark:text-slate-300 mb-4">
+                      You haven't added any courses yet. Head to the Modules Manager to create your first course.
+                    </p>
+                    <p className="text-gray-600 dark:text-slate-400 text-sm">
+                      Once you add courses, you'll be able to track grades, manage categories, and monitor your academic progress.
+                    </p>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => window.location.href = '/modules'}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors shadow-lg"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Your First Course
+                    <ChevronRight className="w-5 h-5" />
                   </button>
-                </div>
 
-                <div className="space-y-3">
-                  {course.categories.map(category => {
-                    const categoryAvg = calculateCategoryAverage(category.items);
-                    const isExpanded = expandedCategories[`${course.id}-${category.id}`];
-
-                    return (
-                      <div key={category.id} className="border border-gray-200 rounded-lg overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/30">
-                        <div className="bg-gray-50/50 p-4 dark:bg-slate-800/50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1">
-                              {getCategoryIcon(category.type || 'assignment')}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <h5 className="font-semibold text-slate-900 dark:text-slate-200">{category.name}</h5>
-                                  <span className="text-sm text-gray-600 dark:text-slate-400">({category.weight}%)</span>
-                                </div>
-                                <p className="text-sm text-gray-600 dark:text-slate-500">
-                                  {category.items.length} item{category.items.length !== 1 ? 's' : ''} • Average: {categoryAvg.toFixed(1)}%
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => openItemModal(course, category)}
-                                className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/15 dark:text-purple-400 dark:hover:bg-purple-500/25 dark:border dark:border-purple-500/20"
-                              >
-                                + Add Item
-                              </button>
-                              <button
-                                onClick={() => toggleCategory(course.id, category.id)}
-                                className="p-2 hover:bg-gray-200 rounded transition-colors dark:hover:bg-white/5 dark:text-slate-400"
-                              >
-                                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteCategory(course.id, category.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors dark:text-red-400/70 dark:hover:bg-red-500/10"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
+                  {/* Feature Cards */}
+                  <div className="mt-12">
+                    <h3 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-6">
+                      WHAT YOU CAN DO
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <Award className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                         </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Track Grades</h4>
+                        <p className="text-sm text-gray-600 dark:text-slate-400">Monitor your performance across all courses</p>
+                      </div>
 
-                        {isExpanded && (
-                          <div className="p-4 space-y-2">
-                            {category.items.map(item => {
-                              const itemPercentage = (item.score / item.maxScore * 100).toFixed(1);
-                              return (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg dark:bg-slate-800/40 dark:border-slate-700/50">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-slate-900 dark:text-slate-100">{item.name}</p>
-                                    <p className="text-sm text-gray-600 dark:text-slate-300">{item.score} / {item.maxScore} points</p>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="text-right">
-                                      <p className="font-bold text-lg text-slate-900 dark:text-slate-100">{itemPercentage}%</p>
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                        <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">View Analytics</h4>
+                        <p className="text-sm text-gray-600 dark:text-slate-400">Get insights into your academic progress</p>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-gray-200 dark:border-slate-700">
+                        <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                          <Target className="w-6 h-6 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Set Goals</h4>
+                        <p className="text-sm text-gray-600 dark:text-slate-400">Plan and achieve your academic targets</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {filteredCourses.map(course => {
+                  const { grade, percentage } = calculateCourseGrade(course.categories);
+                  const totalWeight = course.categories.reduce((sum, cat) => sum + cat.weight, 0);
+
+                  return (
+                    <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800/50 dark:border-slate-700/50 dark:shadow-none">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-sm font-medium text-purple-600/70 dark:text-purple-400/70">{course.code}</p>
+                          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{course.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{course.credits} Credits • {course.categories.length} Categories</p>
+                        </div>
+                        <div className={`px-4 py-2 rounded-lg text-base font-semibold ${getGradeBgColor(grade)}`}>
+                          {grade} ({percentage}%)
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Total Weight Allocated</span>
+                          <span className={`font-medium ${totalWeight === 100 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {totalWeight}% / 100%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${totalWeight === 100 ? 'bg-green-600' : 'bg-orange-500'}`}
+                            style={{ width: `${Math.min(totalWeight, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200 my-4"></div>
+
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100">Grading Categories</h4>
+                        <button 
+                          onClick={() => openCategoryModal(course)}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 dark:bg-purple-500/80 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm font-medium shadow-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Category
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {course.categories.map(category => {
+                          const categoryAvg = calculateCategoryAverage(category.items);
+                          const isExpanded = expandedCategories[`${course.id}-${category.id}`];
+
+                          return (
+                            <div key={category.id} className="border border-gray-200 rounded-lg overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/30">
+                              <div className="bg-gray-50/50 p-4 dark:bg-slate-800/50">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    {getCategoryIcon(category.type || 'assignment')}
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h5 className="font-semibold text-slate-900 dark:text-slate-200">{category.name}</h5>
+                                        <span className="text-sm text-gray-600 dark:text-slate-400">({category.weight}%)</span>
+                                      </div>
+                                      <p className="text-sm text-gray-600 dark:text-slate-500">
+                                        {category.items.length} item{category.items.length !== 1 ? 's' : ''} • Average: {categoryAvg.toFixed(1)}%
+                                      </p>
                                     </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
                                     <button
-                                      onClick={() => handleDeleteItem(course.id, category.id, item.id)}
-                                      className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors dark:hover:bg-red-900/20"
+                                      onClick={() => openItemModal(course, category)}
+                                      className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/15 dark:text-purple-400 dark:hover:bg-purple-500/25 dark:border dark:border-purple-500/20"
+                                    >
+                                      + Add Item
+                                    </button>
+                                    <button
+                                      onClick={() => toggleCategory(course.id, category.id)}
+                                      className="p-2 hover:bg-gray-200 rounded transition-colors dark:hover:bg-white/5 dark:text-slate-400"
+                                    >
+                                      {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteCategory(course.id, category.id)}
+                                      className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors dark:text-red-400/70 dark:hover:bg-red-500/10"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   </div>
                                 </div>
-                              );
-                            })}
-                            {category.items.length === 0 && (
-                              <div className="text-center py-6 text-gray-500 dark:text-slate-300">
-                                <p className="text-sm">No items yet. Click "Add Item" to get started!</p>
                               </div>
-                            )}
+
+                              {isExpanded && (
+                                <div className="p-4 space-y-2">
+                                  {category.items.map(item => {
+                                    const itemPercentage = (item.score / item.maxScore * 100).toFixed(1);
+                                    return (
+                                      <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg dark:bg-slate-800/40 dark:border-slate-700/50">
+                                        <div className="flex-1">
+                                          <p className="font-medium text-slate-900 dark:text-slate-100">{item.name}</p>
+                                          <p className="text-sm text-gray-600 dark:text-slate-300">{item.score} / {item.maxScore} points</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                          <div className="text-right">
+                                            <p className="font-bold text-lg text-slate-900 dark:text-slate-100">{itemPercentage}%</p>
+                                          </div>
+                                          <button
+                                            onClick={() => handleDeleteItem(course.id, category.id, item.id)}
+                                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors dark:hover:bg-red-900/20"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  {category.items.length === 0 && (
+                                    <div className="text-center py-6 text-gray-500 dark:text-slate-300">
+                                      <p className="text-sm">No items yet. Click "Add Item" to get started!</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {course.categories.length === 0 && (
+                          <div className="text-center py-8 text-gray-500 dark:text-slate-300">
+                            <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                            <p>No categories yet. Add a grading category to get started!</p>
                           </div>
                         )}
                       </div>
-                    );
-                  })}
-
-                  {course.categories.length === 0 && (
-                    <div className="text-center py-8 text-gray-500 dark:text-slate-300">
-                      <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                      <p>No categories yet. Add a grading category to get started!</p>
                     </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
-{/* Add Category Modal */}
+      {/* Add Category Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
+              <button 
+                onClick={() => setShowCategoryModal(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Add a new category to track your grades</p>
+
+            <div className="space-y-5">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  id="grades-cat-name"
+                  placeholder="e.g., Team Meeting, Study Session"
+                  ref={catNameRef}
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Tag className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Type
+                </label>
+                <div id="grades-cat-type">
+                  <CustomSelect
+                    options={categoryTypeOptions}
+                    value={newCategory.type}
+                    onChange={(v) => setNewCategory({...newCategory, type: v})}
+                    placeholder="Select type"
+                    className="w-full"
+                    id="grades-cat-type"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Scale className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Weight (%)
+                </label>
+                <input
+                  type="number"
+                  placeholder="20"
+                  min="0"
+                  max="100"
+                  ref={weightRef}
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  value={newCategory.weight}
+                  onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">How much this category counts toward the final grade</p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-500 dark:bg-opacity-10 border border-blue-200 dark:border-blue-500 dark:border-opacity-30 rounded-lg p-3">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-medium text-gray-900 dark:text-white">Course:</span> {selectedCourse.code} - {selectedCourse.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="flex-1 px-4 py-3 bg-white dark:bg-[#2a2f3e] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#363b4d] transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCategory}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Check className="w-5 h-5" />
+                Add Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    {/* Add Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-xl shadow-2xl max-w-md w-full p-6">

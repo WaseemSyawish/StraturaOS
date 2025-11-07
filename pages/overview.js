@@ -88,6 +88,7 @@ export default function UniversityOverview() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState({ gpa: null, credits: null, attendanceRate: null });
   const [attendanceNeedsSignIn, setAttendanceNeedsSignIn] = useState(false);
   const [attendanceError, setAttendanceError] = useState(null);
@@ -132,6 +133,8 @@ export default function UniversityOverview() {
 
   const todayClasses = useMemo(() => {
     try {
+      // Don't compute timezone-sensitive values during SSR — wait until client mount
+      if (!mounted) return [];
       try { console.time && console.time('overview:memo:todayClasses'); } catch (e) {}
       const list = [];
       for (const ev of events || []) {
@@ -310,6 +313,11 @@ export default function UniversityOverview() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Ensure timezone-sensitive parsing runs only on client to avoid SSR timezone mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     try {

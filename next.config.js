@@ -1,21 +1,57 @@
 /**
- * Basic Next.js config focused on improving dev startup and rebuild performance.
- * - Excludes large data folders from watch.
- * - Enables webpack persistent caching.
- * - Disables telemetry and keeps minimal logging.
+ * Comprehensive Next.js config for optimal performance.
+ * - Production optimizations: compression, minification, image optimization
+ * - Development optimizations: faster rebuilds, persistent caching
+ * - Excludes large data folders from watch
  */
 const path = require('path');
 
-/**
- * NOTE: these options are safe to tweak further. In CI/production you may want
- * stricter settings, but for local development this reduces file-watcher noise.
- */
 module.exports = {
   reactStrictMode: false,
+  
+  // Production optimizations
+  compress: true,
+  poweredByHeader: false,
+  
+  // Optimize page loading
+  optimizeFonts: true,
+  
   webpack: (config, { dev, isServer }) => {
     // Enable persistent caching for faster rebuilds
     config.cache = config.cache || {};
     config.cache.type = 'filesystem';
+
+    // Production optimizations
+    if (!dev) {
+      // Minimize bundle size
+      config.optimization = {
+        ...config.optimization,
+        minimize: true,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Vendor chunk
+            vendor: {
+              name: 'vendor',
+              chunks: 'all',
+              test: /node_modules/,
+              priority: 20
+            },
+            // Common chunk
+            common: {
+              name: 'common',
+              minChunks: 2,
+              chunks: 'all',
+              priority: 10,
+              reuseExistingChunk: true,
+              enforce: true
+            }
+          }
+        }
+      };
+    }
 
     // Reduce the number of files webpack watches in dev
     if (dev) {
@@ -33,8 +69,12 @@ module.exports = {
 
     return config;
   },
-  // Reduce telemetry and logging when using Next in dev
+  
+  // Reduce telemetry and logging
   eslint: {
     ignoreDuringBuilds: true,
   },
+  
+  // Enable SWC minification (faster than Terser)
+  swcMinify: true,
 };

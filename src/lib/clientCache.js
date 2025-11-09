@@ -1,4 +1,5 @@
-// Lightweight in-memory client cache to reduce duplicate network requests
+// Enhanced client-side cache with TTL, invalidation, and size limits
+const MAX_CACHE_SIZE = 50; // Prevent memory bloat
 const cache = (typeof window !== 'undefined' && window.__UP_CACHE) ? window.__UP_CACHE : (typeof window !== 'undefined' ? (window.__UP_CACHE = {}) : {});
 
 export function getCached(key) {
@@ -16,9 +17,40 @@ export function getCached(key) {
 
 export function setCached(key, value, ttlMs = 60 * 1000) {
   try {
+    // Enforce cache size limit
+    const keys = Object.keys(cache);
+    if (keys.length >= MAX_CACHE_SIZE) {
+      // Remove oldest entries
+      const sortedKeys = keys.sort((a, b) => {
+        const aExpire = cache[a].expire || 0;
+        const bExpire = cache[b].expire || 0;
+        return aExpire - bExpire;
+      });
+      // Remove oldest 10 entries
+      sortedKeys.slice(0, 10).forEach(k => delete cache[k]);
+    }
+    
     const expire = ttlMs > 0 ? Date.now() + ttlMs : null;
     cache[key] = { value, expire };
   } catch (e) { /* ignore */ }
 }
 
-export default { getCached, setCached };
+export function invalidateCache(pattern) {
+  try {
+    if (typeof pattern === 'string') {
+      delete cache[pattern];
+    } else if (pattern instanceof RegExp) {
+      Object.keys(cache).forEach(key => {
+        if (pattern.test(key)) delete cache[key];
+      });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+export function clearCache() {
+  try {
+    Object.keys(cache).forEach(k => delete cache[k]);
+  } catch (e) { /* ignore */ }
+}
+
+export default { getCached, setCached, invalidateCache, clearCache };

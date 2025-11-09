@@ -29,53 +29,83 @@ export default async function handler(req, res) {
     const userIdInt = typeof userId === 'string' ? parseInt(userId) : userId;
     console.log('[export-data] Using userId (as int):', userIdInt);
 
-    // Fetch all user data in parallel
-    const [events, courses, assessments, attendanceSessions, semesterSettings] = await Promise.all([
-      // Events
-      prisma.event.findMany({
-        where: { user_id: userIdInt },
-        orderBy: { date: 'asc' }
-      }),
-      
-      // Courses
-      prisma.course.findMany({
-        where: { user_id: userIdInt },
-        include: {
-          categories: true
-        },
-        orderBy: { name: 'asc' }
-      }),
-      
-      // Assessments (grades)
-      prisma.assessment.findMany({
-        where: {
-          course: {
-            user_id: userIdInt
-          }
-        },
-        include: {
-          course: {
-            select: {
-              name: true,
-              code: true
+    // Fetch all user data in parallel with error handling for each query
+    let events = [], courses = [], assessments = [], attendanceSessions = [], semesterSettings = [];
+    
+    try {
+      [events, courses, assessments, attendanceSessions, semesterSettings] = await Promise.all([
+        // Events
+        prisma.event.findMany({
+          where: { user_id: userIdInt },
+          orderBy: { date: 'asc' }
+        }).catch(err => {
+          console.error('[export-data] Events query failed:', err.message);
+          return [];
+        }),
+        
+        // Courses
+        prisma.course.findMany({
+          where: { user_id: userIdInt },
+          include: {
+            categories: true
+          },
+          orderBy: { name: 'asc' }
+        }).catch(err => {
+          console.error('[export-data] Courses query failed:', err.message);
+          return [];
+        }),
+        
+        // Assessments (grades)
+        prisma.assessment.findMany({
+          where: {
+            course: {
+              user_id: userIdInt
             }
-          }
-        },
-        orderBy: { date_assigned: 'desc' }
-      }),
+          },
+          include: {
+            course: {
+              select: {
+                name: true,
+                code: true
+              }
+            }
+          },
+          orderBy: { date_assigned: 'desc' }
+        }).catch(err => {
+          console.error('[export-data] Assessments query failed:', err.message);
+          return [];
+        }),
+        
+        // Attendance Sessions
+        prisma.attendanceSession.findMany({
+          where: { user_id: userIdInt },
+          orderBy: { date: 'desc' }
+        }).catch(err => {
+          console.error('[export-data] Attendance query failed:', err.message);
+          return [];
+        }),
+        
+        // Semester Settings
+        prisma.semesterSetting.findMany({
+          where: { user_id: userIdInt },
+          orderBy: { start_date: 'desc' }
+        }).catch(err => {
+          console.error('[export-data] Semester settings query failed:', err.message);
+          return [];
+        })
+      ]);
       
-      // Attendance Sessions
-      prisma.attendanceSession.findMany({
-        where: { user_id: userIdInt },
-        orderBy: { date: 'desc' }
-      }),
-      
-      // Semester Settings
-      prisma.semesterSetting.findMany({
-        where: { user_id: userIdInt },
-        orderBy: { start_date: 'desc' }
-      })
-    ]);
+      console.log('[export-data] Fetched:', {
+        events: events.length,
+        courses: courses.length,
+        assessments: assessments.length,
+        attendance: attendanceSessions.length,
+        semesters: semesterSettings.length
+      });
+    } catch (error) {
+      console.error('[export-data] Promise.all failed:', error);
+      // Continue with empty arrays
+    }
 
     // Build export data object
     const exportData = {

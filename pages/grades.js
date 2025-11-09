@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../src/components/CustomSelect';
-import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download } from 'lucide-react';
+import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Head from 'next/head';
 
@@ -128,6 +128,18 @@ const GradesPage = () => {
 
   const handleAddCategory = () => {
     if (!newCategory.name || !newCategory.weight) return;
+    
+    // Calculate current total weight including the new category
+    const currentTotal = (selectedCourse.categories || []).reduce((sum, cat) => sum + (parseFloat(cat.weight) || 0), 0);
+    const newWeight = parseFloat(newCategory.weight);
+    const futureTotal = currentTotal + newWeight;
+    
+    // Prevent exceeding 100%
+    if (futureTotal > 100) {
+      alert(`Cannot add category: Total weight would be ${futureTotal.toFixed(1)}%, which exceeds 100%.\n\nCurrent total: ${currentTotal.toFixed(1)}%\nNew category weight: ${newWeight.toFixed(1)}%\nAvailable weight: ${(100 - currentTotal).toFixed(1)}%`);
+      return;
+    }
+    
     // Prepare local category payload
     const categoryPayload = {
       name: newCategory.name,

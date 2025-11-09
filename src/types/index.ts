@@ -141,6 +141,7 @@ export type Variant = (typeof variants)[number];
 export const eventSchema = z.object({
   title: z.string().nonempty("Event name is required"),
   description: z.string().optional(),
+  location: z.string().optional(),
   startDate: z.date(),
   endDate: z.date(),
   variant: z.enum(["primary", "danger", "success", "warning", "default"]),

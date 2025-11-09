@@ -43,6 +43,56 @@ dev.err
 # database
 prisma/*.db
 prisma/*.db-journal
+*.sqlite
+*.sqlite3
 
 # backup files
-data/backup-*.json 
+data/backup-*.json
+data/*-backup-*.json
+data/deleted-backups-*.txt
+
+# sensitive data files
+data/dev-user.json
+data/events.json
+data/events.json.bak
+data/courses.json
+data/grades.json
+data/attendance.json
+data/timetable.json
+
+# sensitive scripts
+scripts/add_end_date.sql
+scripts/add-meta-columns.js
+scripts/aggressive-clean.js
+scripts/check-sqlite.js
+scripts/migrate-sqlite-to-postgres.js
+scripts/restore-backup.js
+
+# test files with sensitive data
+test-*.js
+temp_*.js
+tmp_*.js
+*.corrupt.js
+*.bak.js
+
+# HTML response files
+*.html
+!public/*.html
+
+# SQL migration files
+*.sql
+!prisma/migrations/**/*.sql
+
+# Prisma backup files
+prisma/schema.*.prisma
+prisma/prisma/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

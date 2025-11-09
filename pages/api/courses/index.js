@@ -1,30 +1,7 @@
 const prisma = require('../../../lib/prisma');
 
-async function resolveUserId(req) {
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (tokenUserId) return tokenUserId;
-
-    // In development allow the local dev sign-in cookies as a fallback so
-    // pages that rely on server-side token resolution (next-auth) still
-    // work when using the local helper that sets `userId` / `debug_userId`.
-    try {
-      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-        if (req.cookies.userId) return req.cookies.userId;
-        if (req.cookies.debug_userId) return req.cookies.debug_userId;
-      }
-    } catch (e) {
-      // ignore cookie parsing issues
-    }
-
-    return null;
-  } catch (err) {
-    console.error('resolveUserId error', err);
-    return null;
-  }
-}
+// Import the centralized resolveUser that checks all cookie types
+const { resolveUser } = require('../../../lib/resolveUser');
 
 
 export default async function handler(req, res) {
@@ -35,7 +12,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const userId = await resolveUserId(req);
+      const userId = await resolveUser(req);
       try { console.log('GET /api/courses - resolved userId:', userId, 'query:', req.query, 'NODE_ENV:', process.env.NODE_ENV); } catch (e) {}
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
       const where = { user_id: userId };
@@ -81,7 +58,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const { name, professor, instructor, color, credits, semester, code, description } = req.body || {};
-      const userId = await resolveUserId(req);
+      const userId = await resolveUser(req);
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
       const created = await prisma.course.create({ data: {
@@ -129,7 +106,7 @@ export default async function handler(req, res) {
     try {
       const { id, name, professor, color, credits, semester, instructor, description } = req.body;
       if (!id) return res.status(400).json({ success: false, error: 'Missing course id' });
-      const userId = await resolveUserId(req);
+      const userId = await resolveUser(req);
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
       // ensure course belongs to user
@@ -179,7 +156,7 @@ export default async function handler(req, res) {
     try {
       const { id } = req.body || {};
       if (!id) return res.status(400).json({ success: false, error: 'Missing course id' });
-      const userId = await resolveUserId(req);
+      const userId = await resolveUser(req);
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
       const existing = await prisma.course.findUnique({ where: { id } });

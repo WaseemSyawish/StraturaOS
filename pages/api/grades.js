@@ -39,7 +39,9 @@ const writeGradesData = (data) => {
   }
 };
 
-// Resolve demo/auth user id using next-auth/jwt getToken
+// Import the centralized resolveUser that checks all cookie types
+const { resolveUser } = require('../../lib/resolveUser');
+
 // Try to load Prisma client (shared instance). If unavailable we'll fall back to file storage.
 let prismaClient = null;
 try {
@@ -51,30 +53,6 @@ try {
   prismaClient = null;
 }
 
-const resolveUserId = async (req) => {
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    // token may contain userId or sub; fall back to a demo cookie if present
-    if (token && token.userId) return token.userId;
-    if (token && token.sub) return token.sub;
-    // Prefer token-based identity. Fall back to cookies set by local-signin (development helper).
-    if (req && req.cookies && req.cookies.userId) return req.cookies.userId;
-    if (req && req.cookies && req.cookies.debug_userId) return req.cookies.debug_userId;
-
-    // In development only: allow an explicit query param or X-User-Id header for testing
-    // (do NOT auto-create users here; the DB must contain real users).
-    if (process.env.NODE_ENV === 'development') {
-      if (req && req.query && req.query.userId) return String(req.query.userId);
-      if (req && req.headers && req.headers['x-user-id']) return req.headers['x-user-id'];
-    }
-
-    return null;
-  } catch (e) {
-    console.error('resolveUserId error', e);
-    return null;
-  }
-};
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -83,7 +61,7 @@ export default async function handler(req, res) {
     case 'GET':
       // Get courses for authenticated user only
       try {
-        const userId = await resolveUserId(req);
+        const userId = await resolveUser(req);
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
         // Dev-only: quick inspect single course by id for debugging
@@ -149,7 +127,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'Missing required fields: name, semester' });
         }
 
-        const userId = await resolveUserId(req);
+        const userId = await resolveUser(req);
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
         if (prismaClient) {
@@ -193,7 +171,7 @@ export default async function handler(req, res) {
         const { courseId, action, assessment, assessmentIndex, course } = req.body;
         if (!courseId) return res.status(400).json({ success: false, error: 'Missing required field: courseId' });
 
-        const userId = await resolveUserId(req);
+        const userId = await resolveUser(req);
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
         if (prismaClient) {
@@ -322,7 +300,7 @@ export default async function handler(req, res) {
         const { courseId } = req.body;
         if (!courseId) return res.status(400).json({ success: false, error: 'Missing courseId' });
 
-        const userId = await resolveUserId(req);
+        const userId = await resolveUser(req);
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
         if (prismaClient) {
           try {

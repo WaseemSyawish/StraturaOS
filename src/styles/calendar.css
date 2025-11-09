@@ -29,3 +29,13 @@
 .calendar-scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Hide ALL scrollbars on calendar page while maintaining scrollability */
+.calendar-page * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.calendar-page *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

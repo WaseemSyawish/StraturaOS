@@ -284,7 +284,7 @@ export default function CalendarPage() {
       <Head>
         <title>Calendar — University Planner</title>
       </Head>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="calendar-page min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
   <div className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto px-6 ${HEADER_HEIGHT_TAILWIND} flex items-center justify-between`}>
           <div className="flex items-center gap-3">

@@ -339,32 +339,11 @@ export default function UniversityOverview() {
     setLoading(true);
     console.log('[Overview] loadAll start');
     try {
-      // Import cache module (safe for SSR now)
-      const cacheMod = await import('@/lib/clientCache');
-      const getCached = cacheMod.getCached;
-      const setCached = cacheMod.setCached;
-
-      // Check if we have ALL data cached before making any requests
-      const cachedEvents = getCached('/api/events');
-      const cachedCourses = getCached('/api/courses');
-      const cachedGrades = getCached('/api/grades');
-      
-      // If everything is cached, use cache and skip network calls
-      if (cachedEvents && cachedCourses && cachedGrades) {
-        setEvents(cachedEvents || []);
-        setCourses(cachedCourses || []);
-        setGradesData(cachedGrades || []);
-        setLoading(false);
-        console.log('[Overview] loadAll complete (from cache)');
-        try { console.timeEnd && console.timeEnd('overview:loadAll'); } catch (e) {}
-        return;
-      }
-
-      // Parallel fetch for better performance
+      // Parallel fetch for better performance (NO CACHING TO AVOID SSR ISSUES)
       const [evJson, coursesJson, gradesJson] = await Promise.all([
-        cachedEvents ? Promise.resolve({ events: cachedEvents }) : fetch('/api/events', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ events: [] })),
-        cachedCourses ? Promise.resolve({ success: true, courses: cachedCourses }) : fetch('/api/courses', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, courses: [] })),
-        cachedGrades ? Promise.resolve({ success: true, data: cachedGrades }) : fetch('/api/grades', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, data: [] }))
+        fetch('/api/events', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ events: [] })),
+        fetch('/api/courses', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, courses: [] })),
+        fetch('/api/grades', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, data: [] }))
       ]);
 
       const fetchedEvents = Array.isArray(evJson.events) ? evJson.events : [];
@@ -374,13 +353,6 @@ export default function UniversityOverview() {
       setEvents(fetchedEvents);
       setCourses(fetchedCourses);
       setGradesData(fetchedGrades);
-
-      // Cache with 5-minute TTL for better navigation performance
-      try { 
-        setCached('/api/events', fetchedEvents, 5 * 60 * 1000);
-        setCached('/api/courses', fetchedCourses, 5 * 60 * 1000);
-        setCached('/api/grades', fetchedGrades, 5 * 60 * 1000);
-      } catch (e) {}
     } finally {
       setLoading(false);
     }

@@ -17,6 +17,7 @@ html.dark input,
 html.dark textarea,
 html.dark select,
 html.dark .cozy-input,
+html.dark .form-control,
 html.dark input[type="date"],
 html.dark input[type="time"],
 html.dark input[type="number"] {
@@ -42,7 +43,8 @@ html.dark input[type="time"]::-webkit-datetime-edit-ampm-field {
 
 /* Placeholder styling */
 html.dark input::placeholder,
-html.dark textarea::placeholder {
+html.dark textarea::placeholder,
+html.dark .form-control::placeholder {
   color: var(--up-input-placeholder);
   opacity: 1;
 }

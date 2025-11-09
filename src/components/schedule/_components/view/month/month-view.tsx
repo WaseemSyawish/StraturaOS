@@ -277,9 +277,15 @@ export default function MonthView({
                               e.stopPropagation();
                               handleShowMoreEvents(dayEvents);
                             }}
-                            className="absolute right-2 top-2 px-2 py-0.5 rounded-md bg-slate-700/90 dark:bg-slate-800/90 backdrop-blur-sm border border-slate-600/50 dark:border-slate-700/50 text-slate-200 text-xs font-semibold cursor-pointer hover:bg-slate-600 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105 shadow-sm"
+                            className="absolute right-2 top-2 px-2.5 py-1 rounded-lg bg-gradient-to-br from-indigo-500/90 to-purple-500/90 dark:from-indigo-600/90 dark:to-purple-600/90 backdrop-blur-sm border border-indigo-400/50 dark:border-indigo-500/50 text-white text-xs font-bold cursor-pointer hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-700 dark:hover:to-purple-700 transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
+                            title={`View all ${dayEvents.length} events`}
                           >
-                            +{dayEvents.length - 1}
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                              </svg>
+                              {dayEvents.length - 1}
+                            </span>
                           </div>
                         )}
                         <div style={{ height: 6 }} />

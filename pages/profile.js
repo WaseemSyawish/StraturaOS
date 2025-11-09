@@ -1,5 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
+
 export default function Profile() {
   const [profile, setProfile] = React.useState(null);
   const [editing, setEditing] = React.useState(false);
@@ -53,10 +54,11 @@ export default function Profile() {
                     const j = await res.json();
                     if (j && j.user) setProfile({ name: j.user.name, email: j.user.email, avatarColor: j.user.avatarColor });
                     setEditing(false);
+                    showToast('Profile updated successfully', 'success');
                   } else {
-                    alert('Failed to save');
+                    await showAlert('Save Failed', 'Failed to save profile', 'danger');
                   }
-                } catch (e) { alert('Failed to save'); }
+                } catch (e) { await showAlert('Error', 'Failed to save profile', 'danger'); }
                 setSaving(false);
               }}>
                 <div>

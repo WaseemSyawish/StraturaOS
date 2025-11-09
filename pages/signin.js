@@ -9,6 +9,11 @@ export default function SignInPolished() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
   const router = useRouter();
 
   // Force a remount after initial render to clear autofill styling
@@ -109,9 +114,72 @@ export default function SignInPolished() {
     }
   }
 
+  async function handlePasswordReset(e) {
+    e && e.preventDefault();
+    setResetError('');
+    setResetSuccess(false);
+
+    if (!resetEmail) {
+      setResetError('Please enter your email address');
+      return;
+    }
+
+    const emailRe = /^\S+@\S+\.\S+$/;
+    if (!emailRe.test(String(resetEmail))) {
+      setResetError('Please enter a valid email address');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail.trim() })
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setResetSuccess(true);
+        setResetEmail('');
+        
+        // If dev mode and we got a dev link, show it
+        if (json?.devLink && process.env.NODE_ENV === 'development') {
+          console.log('🔗 Password Reset Link (DEV MODE):', json.devLink);
+          // Show clickable link in success message
+          setResetError(''); // Clear any previous errors
+          setTimeout(() => {
+            if (confirm('Email not configured. Open reset link now? (Check console for link)')) {
+              window.location.href = json.devLink;
+            }
+          }, 100);
+        }
+        
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          setShowResetModal(false);
+          setResetSuccess(false);
+        }, 3000);
+      } else {
+        setResetError(json?.error || 'Failed to send reset email. Please try again.');
+      }
+    } catch (err) {
+      setResetError('Network error. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <>
       <title>Sign in</title>
+      <style>{`
+        .signin-page button svg {
+          color: #ffffff !important;
+          stroke: #ffffff !important;
+        }
+      `}</style>
       <div className="min-h-screen signin-page flex items-center justify-center p-4 bg-white" style={{
         background: '#ffffff'
       }}>
@@ -123,7 +191,7 @@ export default function SignInPolished() {
             }}>
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#0f172a' }}>
+            <h1 className="text-5xl font-black mb-2" style={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
               Welcome back
             </h1>
             <p style={{ color: '#64748b' }}>
@@ -222,6 +290,24 @@ export default function SignInPolished() {
                 </div>
               </div>
 
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(true)}
+                  className="text-sm font-medium transition-colors"
+                  style={{
+                    color: '#7c3aed',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0'
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
               {/* Show success banner when redirected from signup */}
               {router.query && router.query.registered && (
                 <div className="rounded-lg p-4 mb-2 flex items-start gap-3" style={{
@@ -266,7 +352,9 @@ export default function SignInPolished() {
                 ) : (
                   <>
                     Sign in
-                    <ArrowRight className="w-5 h-5" />
+                    <span style={{ display: 'inline-flex', color: '#ffffff' }}>
+                      <ArrowRight className="w-5 h-5" style={{ color: '#ffffff', stroke: '#ffffff', fill: 'none' }} />
+                    </span>
                   </>
                 )}
               </button>
@@ -397,6 +485,154 @@ export default function SignInPolished() {
             filter: none !important;
           }
         `}</style>
+
+        {/* Password Reset Modal */}
+        {showResetModal && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(4px)'
+            }}
+          >
+            <div 
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              style={{
+                animation: 'scale-in 0.2s ease-out',
+                background: '#ffffff'
+              }}
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
+                  }}
+                >
+                  <Lock className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold" style={{ color: '#0f172a' }}>
+                    Reset Password
+                  </h3>
+                  <p className="text-sm mt-1" style={{ color: '#64748b' }}>
+                    Enter your email and we'll send you instructions to reset your password
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handlePasswordReset} className="space-y-4 mt-6">
+                <div>
+                  <label htmlFor="reset-email" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5" style={{ color: '#94a3b8' }} />
+                    </div>
+                    <input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="you@university.edu"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.75rem 1rem 0.75rem 2.5rem',
+                        borderRadius: '0.5rem',
+                        backgroundColor: '#f8fafc',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
+                        outline: 'none',
+                        fontSize: '1rem',
+                        lineHeight: '1.5',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {resetError && (
+                  <div 
+                    className="rounded-lg p-3 flex items-start gap-3"
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}
+                  >
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+                    <p className="text-sm" style={{ color: '#ef4444' }}>{resetError}</p>
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div 
+                    className="rounded-lg p-3 flex items-start gap-3"
+                    style={{
+                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                      border: '1px solid rgba(34, 197, 94, 0.15)'
+                    }}
+                  >
+                    <GraduationCap className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: '#16a34a' }}>
+                        Reset instructions sent!
+                      </p>
+                      <p className="text-sm mt-1" style={{ color: '#16a34a' }}>
+                        Check your email for password reset instructions.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetModal(false);
+                      setResetEmail('');
+                      setResetError('');
+                      setResetSuccess(false);
+                    }}
+                    disabled={resetLoading}
+                    className="flex-1 py-2.5 px-4 rounded-lg font-medium transition-all"
+                    style={{
+                      border: '1px solid #cbd5e1',
+                      color: '#334155',
+                      backgroundColor: 'transparent',
+                      cursor: resetLoading ? 'not-allowed' : 'pointer',
+                      opacity: resetLoading ? 0.5 : 1
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetLoading || !resetEmail}
+                    className="flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+                    style={{
+                      background: resetLoading || !resetEmail ? '#9333ea' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                      color: '#ffffff',
+                      opacity: resetLoading || !resetEmail ? 0.7 : 1,
+                      cursor: resetLoading || !resetEmail ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+                    }}
+                  >
+                    {resetLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Reset Link'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

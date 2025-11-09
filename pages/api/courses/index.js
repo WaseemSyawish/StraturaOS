@@ -36,9 +36,11 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const userId = await resolveUserId(req);
+      try { console.log('GET /api/courses - resolved userId:', userId, 'query:', req.query, 'NODE_ENV:', process.env.NODE_ENV); } catch (e) {}
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
       const where = { user_id: userId };
       let courses = await prisma.course.findMany({ where, orderBy: { name: 'asc' } });
+      try { console.log('GET /api/courses - found courses:', (courses && courses.length) || 0); } catch (e) {}
       // normalize color tokens to an inline hex fallback for client convenience
       const tailwindToHex = {
         'indigo-500': '#6366F1',

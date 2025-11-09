@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { GraduationCap, Mail, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { GraduationCap, Mail, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff, Check, X } from 'lucide-react';
 
 export default function SignUp() {
   const [loading, setLoading] = useState(false);
@@ -11,6 +11,34 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  // Password strength validation
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+    score: 0
+  });
+
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength({ length: false, uppercase: false, lowercase: false, number: false, special: false, score: 0 });
+      return;
+    }
+
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[^A-Za-z0-9]/.test(password)
+    };
+
+    const score = Object.values(checks).filter(Boolean).length;
+    setPasswordStrength({ ...checks, score });
+  }, [password]);
 
   // Force a remount after initial render to clear autofill styling
   useEffect(() => {
@@ -44,6 +72,27 @@ export default function SignUp() {
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters');
+      return;
+    }
+
+    // Enforce password requirements
+    if (!passwordStrength.uppercase) {
+      setError('Password must contain at least one uppercase letter');
+      return;
+    }
+
+    if (!passwordStrength.lowercase) {
+      setError('Password must contain at least one lowercase letter');
+      return;
+    }
+
+    if (!passwordStrength.number) {
+      setError('Password must contain at least one number');
+      return;
+    }
+
+    if (!passwordStrength.special) {
+      setError('Password must contain at least one special character (!@#$%^&*...)');
       return;
     }
 
@@ -110,6 +159,12 @@ export default function SignUp() {
   return (
     <>
       <title>Create account — University Planner</title>
+      <style>{`
+        .signup-page button svg {
+          color: #ffffff !important;
+          stroke: #ffffff !important;
+        }
+      `}</style>
       <div className="min-h-screen signup-page flex items-center justify-center p-4 bg-white" style={{
         background: '#ffffff'
       }}>
@@ -121,7 +176,7 @@ export default function SignUp() {
             }}>
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#0f172a' }}>
+            <h1 className="text-5xl font-black mb-2" style={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
               Create your account
             </h1>
             <p style={{ color: '#64748b' }}>
@@ -253,6 +308,100 @@ export default function SignUp() {
                     )}
                   </button>
                 </div>
+
+                {/* Password Requirements */}
+                {password && (
+                  <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div className="text-xs font-medium mb-2" style={{ color: '#64748b' }}>
+                      Password must contain:
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        {passwordStrength.length ? (
+                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                        ) : (
+                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        )}
+                        <span className="text-xs" style={{ color: passwordStrength.length ? '#10b981' : '#64748b' }}>
+                          At least 8 characters
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {passwordStrength.uppercase ? (
+                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                        ) : (
+                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        )}
+                        <span className="text-xs" style={{ color: passwordStrength.uppercase ? '#10b981' : '#64748b' }}>
+                          One uppercase letter (A-Z)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {passwordStrength.lowercase ? (
+                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                        ) : (
+                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        )}
+                        <span className="text-xs" style={{ color: passwordStrength.lowercase ? '#10b981' : '#64748b' }}>
+                          One lowercase letter (a-z)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {passwordStrength.number ? (
+                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                        ) : (
+                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        )}
+                        <span className="text-xs" style={{ color: passwordStrength.number ? '#10b981' : '#64748b' }}>
+                          One number (0-9)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {passwordStrength.special ? (
+                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                        ) : (
+                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
+                        )}
+                        <span className="text-xs" style={{ color: passwordStrength.special ? '#10b981' : '#64748b' }}>
+                          One special character (!@#$%^&*...)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Strength Bar */}
+                    <div className="mt-3">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className="h-1 flex-1 rounded-full transition-colors"
+                            style={{
+                              backgroundColor: level <= passwordStrength.score
+                                ? passwordStrength.score <= 2 ? '#ef4444'
+                                : passwordStrength.score === 3 ? '#f59e0b'
+                                : passwordStrength.score === 4 ? '#3b82f6'
+                                : '#10b981'
+                                : '#e2e8f0'
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-xs mt-1.5" style={{
+                        color: passwordStrength.score <= 2 ? '#ef4444'
+                          : passwordStrength.score === 3 ? '#f59e0b'
+                          : passwordStrength.score === 4 ? '#3b82f6'
+                          : '#10b981'
+                      }}>
+                        {passwordStrength.score === 0 ? 'Very Weak'
+                          : passwordStrength.score === 1 ? 'Very Weak'
+                          : passwordStrength.score === 2 ? 'Weak'
+                          : passwordStrength.score === 3 ? 'Fair'
+                          : passwordStrength.score === 4 ? 'Good'
+                          : 'Strong'}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Error Message */}
@@ -288,7 +437,9 @@ export default function SignUp() {
                 ) : (
                   <>
                     Create account
-                    <ArrowRight className="w-5 h-5" />
+                    <span style={{ display: 'inline-flex', color: '#ffffff' }}>
+                      <ArrowRight className="w-5 h-5" style={{ color: '#ffffff', stroke: '#ffffff', fill: 'none' }} />
+                    </span>
                   </>
                 )}
               </button>

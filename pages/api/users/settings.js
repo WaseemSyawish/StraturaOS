@@ -1,12 +1,10 @@
-import { getToken } from 'next-auth/jwt';
+import { resolveUser } from '../../../lib/resolveUser';
 const prisma = require('../../../lib/prisma');
 
 export default async function handler(req, res) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    if (!token || !token.userId) return res.status(401).json({ error: 'Not authenticated' });
-
-    const userId = token.userId;
+    const userId = await resolveUser(req);
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
     if (req.method === 'GET') {
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { settings: true } });

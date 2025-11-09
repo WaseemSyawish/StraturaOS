@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
@@ -94,21 +94,29 @@ export default function CalendarPage() {
   };
 
   // Fetch events from server and normalize
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async (forceRefresh = false) => {
     try {
       // Try client cache first to avoid waiting for server on quick navigations
       let list = null;
-      try {
-        const cacheMod = await import('@/lib/clientCache');
-        const getCached = cacheMod.getCached;
-        list = getCached('/api/events');
-      } catch (e) { /* ignore cache errors */ }
+      if (!forceRefresh) {
+        try {
+          const cacheMod = await import('@/lib/clientCache');
+          const getCached = cacheMod.getCached;
+          list = getCached('/api/events');
+        } catch (e) { /* ignore cache errors */ }
+      }
       if (!Array.isArray(list)) {
-        const res = await fetch('/api/events');
+        const res = await fetch('/api/events', { 
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
         if (!res.ok) return;
         const payload = await res.json().catch(() => null);
         list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : []);
-        try { const cacheMod2 = await import('@/lib/clientCache'); cacheMod2.setCached('/api/events', list, 60 * 1000); } catch (e) {}
+        try { 
+          const cacheMod2 = await import('@/lib/clientCache'); 
+          cacheMod2.setCached('/api/events', list, 60 * 1000); 
+        } catch (e) {}
       }
       // compute final instant for an event (tries several fallbacks)
       const computeFinalInstant = (ev) => {
@@ -194,7 +202,7 @@ export default function CalendarPage() {
     } catch (err) {
       console.warn('Could not load events from server', err);
     }
-  };
+  }, []);
 
   useEffect(() => { loadEvents(); }, []);
 
@@ -205,14 +213,17 @@ export default function CalendarPage() {
   // When AddEventModal or any add-event edit modal closes, refresh events
   const prevModalOpenRef = useRef(false);
   useEffect(() => {
-    const anyOpen = Object.keys(isOpen || {}).some(k => k && k.startsWith && k.startsWith('add-event-') && isOpen[k]);
+    // Check if any modal is currently open
+    const anyOpen = Object.keys(isOpen || {}).some(k => isOpen[k]);
     const wasOpen = prevModalOpenRef.current;
+    
+    // If a modal was open and is now closed, force refresh events
     if (wasOpen && !anyOpen) {
-      // modal(s) closed -> reload events
-      loadEvents();
+      console.log('[Calendar] Modal closed, reloading events...');
+      loadEvents(true); // Force refresh, bypass cache
     }
     prevModalOpenRef.current = anyOpen;
-  }, [isOpen]);
+  }, [isOpen, loadEvents]);
 
   const openModal = (mode, ev = null) => {
     // For 'create' open the AddEventModal and pass the selected date as default
@@ -275,7 +286,7 @@ export default function CalendarPage() {
             <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
               <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
             </div>
-            <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Calendar</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Calendar</h1>
           </div>
 
           <button onClick={() => openModal('create')} className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-2xl font-medium text-sm transition-all duration-200 flex items-center gap-2 shadow-md shadow-purple-500/25 hover:shadow-lg hover:shadow-purple-500/30">
@@ -294,7 +305,7 @@ export default function CalendarPage() {
                   <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-600 to-purple-700 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400">
+                  <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-600 to-purple-700 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400" style={{ letterSpacing: '-0.02em' }}>
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </div>
                   <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
@@ -381,10 +392,10 @@ export default function CalendarPage() {
           </div>
 
           <aside className="w-96 flex-shrink-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden sticky top-24 dark:bg-slate-900/80 dark:border-slate-800">
-              <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 text-white">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden sticky top-24 dark:bg-slate-900/80 dark:border-slate-800" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
+              <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 text-white flex-shrink-0">
                 <div className="text-sm font-medium opacity-90 mb-1">Selected Day</div>
-                <div className="text-xl font-bold">{formatSelectedDate()}</div>
+                <div className="text-2xl font-extrabold">{formatSelectedDate()}</div>
                 <div className="text-sm opacity-80 mt-2">
                   {(() => {
                     const evs = getEventsForDate(selectedDate || '');
@@ -393,7 +404,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="p-6 max-h-[600px] overflow-y-auto">
+              <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
                 {selectedDate ? (
                   (() => {
                     const evs = getEventsForDate(selectedDate);

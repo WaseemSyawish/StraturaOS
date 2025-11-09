@@ -202,20 +202,22 @@ export default async function handler(req, res) {
           const existing = await safeFindEvent(id, false);
           if (!existing) return res.status(404).json({ code: 'NOT_FOUND', message: 'Event not found' });
 
+          // Build archive data without 'meta' field (not supported by archivedEvent table)
+          const archiveData = {
+            original_event_id: existing.id,
+            title: updateData.title || existing.title,
+            type: updateData.type || existing.type,
+            course_id: updateData.course_id ?? existing.course_id,
+            date: updateData.date ? parseDateForStorage(updateData.date) : existing.date,
+            time: updateData.time ?? existing.time,
+            description: updateData.description ?? existing.description,
+            location: updateData.location ?? existing.location,
+            completed: updateData.completed ?? existing.completed,
+            user_id: existing.user_id
+          };
+
           const created = await prisma.archivedEvent.create({
-            data: {
-              original_event_id: existing.id,
-              title: updateData.title || existing.title,
-              type: updateData.type || existing.type,
-              course_id: updateData.course_id ?? existing.course_id,
-              date: updateData.date ? parseDateForStorage(updateData.date) : existing.date,
-              time: updateData.time ?? existing.time,
-              description: updateData.description ?? existing.description,
-              meta: updateData.meta ?? existing.meta ?? null,
-              location: updateData.location ?? existing.location,
-              completed: updateData.completed ?? existing.completed,
-              user_id: existing.user_id
-            },
+            data: archiveData,
             include: { courses: true }
           });
 
@@ -254,19 +256,21 @@ export default async function handler(req, res) {
             return res.status(404).json({ code: 'NOT_FOUND', message: 'Archived event not found', attempted });
           }
 
-          const created = await safeCreateEvent({
+          // Build unarchive data without 'meta' field
+          const unarchiveData = {
             title: updateData.title || archivedRec.title,
             type: updateData.type || archivedRec.type,
             course_id: updateData.course_id ?? archivedRec.course_id,
             date: updateData.date ? parseDateForStorage(updateData.date) : archivedRec.date,
             time: updateData.time ?? archivedRec.time,
             description: updateData.description ?? archivedRec.description,
-            meta: updateData.meta ?? archivedRec.meta ?? null,
             location: updateData.location ?? archivedRec.location,
             completed: updateData.completed ?? archivedRec.completed,
             archived: false,
             user_id: archivedRec.user_id
-          }, true);
+          };
+
+          const created = await safeCreateEvent(unarchiveData, true);
 
           // Delete archived copy using the resolved key
           await prisma.archivedEvent.delete({ where: deleteKey });

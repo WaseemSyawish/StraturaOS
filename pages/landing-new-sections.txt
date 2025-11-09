@@ -1,0 +1,411 @@
+
+        {/* Features Section */}
+        <section id="features" style={{ 
+          maxWidth: '1200px', 
+          margin: '6rem auto', 
+          padding: '0 2rem'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+            <h2 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 800, 
+              marginBottom: '1rem',
+              background: 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Everything You Need to Succeed
+            </h2>
+            <p style={{ fontSize: '1.125rem', color: '#6b7280', maxWidth: '600px', margin: '0 auto' }}>
+              Powerful features designed specifically for students who want to stay organized and excel academically.
+            </p>
+          </div>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '2rem'
+          }}>
+            {[
+              {
+                icon: Calendar,
+                title: 'Smart Calendar',
+                description: 'Visualize your entire semester at a glance. Never miss a deadline or lecture again.',
+                gradient: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
+              },
+              {
+                icon: BookOpen,
+                title: 'Course Management',
+                description: 'Track all your courses, assignments, and study materials in one organized place.',
+                gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+              },
+              {
+                icon: BarChart3,
+                title: 'Grade Tracking',
+                description: 'Monitor your academic performance with intuitive grade tracking and analytics.',
+                gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+              },
+              {
+                icon: Bell,
+                title: 'Smart Notifications',
+                description: 'Get timely reminders for upcoming assignments, exams, and important events.',
+                gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+              },
+              {
+                icon: Users,
+                title: 'Collaboration',
+                description: 'Share schedules and collaborate with classmates on group projects effortlessly.',
+                gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              },
+              {
+                icon: Zap,
+                title: 'Lightning Fast',
+                description: 'Built for speed. Access your schedule and tasks instantly, anytime, anywhere.',
+                gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+              }
+            ].map((feature, i) => (
+              <div key={i} style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '2rem',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(168, 85, 247, 0.1)',
+                transition: 'all 0.3s ease',
+                cursor: 'default'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-8px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(168, 85, 247, 0.15)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.05)';
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  background: feature.gradient,
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 8px 16px rgba(168, 85, 247, 0.2)'
+                }}>
+                  <feature.icon size={28} color="white" />
+                </div>
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700, 
+                  marginBottom: '0.75rem',
+                  color: '#1f2937'
+                }}>
+                  {feature.title}
+                </h3>
+                <p style={{ 
+                  fontSize: '0.9375rem', 
+                  color: '#6b7280', 
+                  lineHeight: 1.6,
+                  margin: 0
+                }}>
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" style={{ 
+          background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+          padding: '6rem 2rem',
+          marginTop: '6rem'
+        }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <h2 style={{ 
+                fontSize: '2.5rem', 
+                fontWeight: 800, 
+                marginBottom: '1rem',
+                background: 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Get Started in Minutes
+              </h2>
+              <p style={{ fontSize: '1.125rem', color: '#6b7280' }}>
+                Simple, straightforward, and designed for students.
+              </p>
+            </div>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)', 
+              gap: '3rem',
+              position: 'relative'
+            }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Create Your Account',
+                  description: 'Sign up in seconds with just your email. No credit card required, ever.'
+                },
+                {
+                  step: '02',
+                  title: 'Add Your Courses',
+                  description: 'Import or manually add your courses, schedules, and important dates.'
+                },
+                {
+                  step: '03',
+                  title: 'Stay Organized',
+                  description: 'Track assignments, get reminders, and ace your semester with confidence.'
+                }
+              ].map((step, i) => (
+                <div key={i} style={{ position: 'relative', textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '4rem',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    opacity: 0.2,
+                    marginBottom: '1rem'
+                  }}>
+                    {step.step}
+                  </div>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: '2rem',
+                    boxShadow: '0 8px 24px rgba(168, 85, 247, 0.1)',
+                    border: '2px solid rgba(168, 85, 247, 0.1)'
+                  }}>
+                    <h3 style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700, 
+                      marginBottom: '0.75rem',
+                      color: '#1f2937'
+                    }}>
+                      {step.title}
+                    </h3>
+                    <p style={{ 
+                      fontSize: '1rem', 
+                      color: '#6b7280', 
+                      lineHeight: 1.6,
+                      margin: 0
+                    }}>
+                      {step.description}
+                    </p>
+                  </div>
+                  
+                  {i < 2 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: '-1.5rem',
+                      width: '3rem',
+                      height: '2px',
+                      background: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)',
+                      opacity: 0.3,
+                      zIndex: -1
+                    }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Social Proof / Stats */}
+        <section style={{ 
+          maxWidth: '1200px', 
+          margin: '6rem auto', 
+          padding: '0 2rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+            borderRadius: '24px',
+            padding: '4rem 3rem',
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(168, 85, 247, 0.3)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-50px',
+              right: '-50px',
+              width: '200px',
+              height: '200px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '50%',
+              filter: 'blur(40px)'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: '-50px',
+              left: '-50px',
+              width: '200px',
+              height: '200px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '50%',
+              filter: 'blur(40px)'
+            }} />
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <h2 style={{ 
+                fontSize: '2.5rem', 
+                fontWeight: 800, 
+                color: 'white',
+                marginBottom: '1rem'
+              }}>
+                Join Thousands of Successful Students
+              </h2>
+              <p style={{ 
+                fontSize: '1.25rem', 
+                color: 'rgba(255, 255, 255, 0.9)',
+                marginBottom: '3rem',
+                maxWidth: '700px',
+                margin: '0 auto 3rem'
+              }}>
+                Students worldwide are achieving their academic goals with University Planner. You're next.
+              </p>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(4, 1fr)', 
+                gap: '2rem',
+                marginBottom: '3rem'
+              }}>
+                {[
+                  { number: '10K+', label: 'Active Students' },
+                  { number: '50K+', label: 'Tasks Completed' },
+                  { number: '95%', label: 'Satisfaction Rate' },
+                  { number: '4.9★', label: 'Average Rating' }
+                ].map((stat, i) => (
+                  <div key={i}>
+                    <div style={{ 
+                      fontSize: '2.5rem', 
+                      fontWeight: 800, 
+                      color: 'white',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {stat.number}
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.9375rem', 
+                      color: 'rgba(255, 255, 255, 0.8)'
+                    }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Link href="/signup" style={{
+                background: 'white',
+                color: '#7c3aed',
+                padding: '1rem 2.5rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '1.125rem',
+                display: 'inline-block',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.15)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+              }}>
+                Start Your Success Story
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer style={{ 
+        borderTop: '1px solid rgba(168, 85, 247, 0.1)',
+        padding: '3rem 2rem',
+        background: 'white'
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '2rem'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <GraduationCap size={20} color="white" />
+              </div>
+              <span style={{ 
+                fontSize: '1.125rem', 
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                University Planner
+              </span>
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+              Empowering Academic Excellence Through Smart Planning
+            </p>
+            <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+              © {new Date().getFullYear()} University Planner. All rights reserved.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '3rem' }}>
+            <div>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937', marginBottom: '1rem' }}>
+                Product
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link href="#features" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Features
+                </Link>
+                <Link href="/docs" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Documentation
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937', marginBottom: '1rem' }}>
+                Account
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link href="/signin" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave=(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Sign In
+                </Link>
+                <Link href="/signup" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Get Started
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

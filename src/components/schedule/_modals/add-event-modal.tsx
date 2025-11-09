@@ -148,12 +148,19 @@ export default function AddEventModal({
     // If we have server-provided data, prefer it; otherwise use passed eventData
     const src = eventSource;
     if (src) {
-      const color = (src as any)?.color || "blue";
-      const type = (src as any)?.type || "assignment";
+      const srcAny = src as any;
+      // Try to get color and type from multiple possible locations
+      const color = srcAny?.color || srcAny?.meta?.color || srcAny?.raw?.color || "blue";
+      const type = srcAny?.type || srcAny?.meta?.type || srcAny?.raw?.type || "lecture";
+      
+      // Parse dates properly
+      const startDate = parseToDate(srcAny.startDate || srcAny.date);
+      const endDate = parseToDate(srcAny.endDate || srcAny.startDate || srcAny.date);
+      
       reset({
-        title: src.title,
-        startDate: parseToDate((src as any).startDate),
-        endDate: parseToDate((src as any).endDate),
+        title: src.title || '',
+        startDate: startDate,
+        endDate: endDate,
         variant: (typeof src.variant === 'string' && (VARIANTS as readonly string[]).includes(src.variant)) ? (src.variant as Variant) : 'primary',
         color: color,
         type: type,
@@ -1152,38 +1159,7 @@ export default function AddEventModal({
       `}} />
       
       <div className="p-5 max-w-2xl mx-auto">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">
-              {eventData?.id ? 'Edit Event' : 'Create Event'}
-            </h2>
-            <p className="text-xs text-gray-400 dark:text-slate-200">
-              {eventData?.id ? 'Update event details' : 'Add a new event to your schedule'}
-            </p>
-          </div>
-          {/* Delete control for edit modal (show only when editing an existing event) */}
-          {/* Consider several possible id fields so delete shows for events using different shapes */}
-          {(() => {
-            const anyEv: any = eventData;
-            const candidateId = eventData && (anyEv.id ?? anyEv._id ?? anyEv.eventId ?? anyEv.uid);
-            return (eventData && candidateId !== undefined && candidateId !== null && String(candidateId) !== '')
-          })() && (
-            <div className="flex items-center">
-              {!confirmingDelete ? (
-                <button onClick={() => setConfirmingDelete(true)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M8 6v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
-                  Delete
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setConfirmingDelete(false)} className="px-3 py-1 border rounded-md text-gray-700">Cancel</button>
-                  <button onClick={() => setShowDeleteScope(true)} className="px-3 py-1 bg-red-600 text-white rounded-md">Confirm Delete</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
+        {/* Removed duplicate header - CustomModal already shows title */}
         <div className="space-y-4">
           {CustomAddEventModal ? (
             <CustomAddEventModal register={register} errors={errors} />
@@ -1375,65 +1351,112 @@ export default function AddEventModal({
                 </div>
               </div>
 
-              {/* Recurrence Section */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Recurrence
-                  </Label>
-                  <button 
-                    type="button" 
-                    onClick={() => setModalPage(1)}
-                    className={cn(
-                        "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5",
-                        selectedByDays.length > 0
-                          ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 hover:shadow-blue-500/50"
-                          : "text-gray-500 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
-                      )}
-                  >
-                    {selectedByDays.length > 0 ? (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              {/* Recurrence Section - Conditional rendering based on event type */}
+              {(() => {
+                // Check if this is a Smart Timetable event
+                const isSmartEvent = !!(eventSource?.meta?.schedulePattern);
+                
+                // Check if this is a lecture/lab type
+                const isLectureType = selectedType === 'lecture';
+                
+                // Hide recurrence completely for Smart Timetable events
+                if (isSmartEvent) {
+                  return null;
+                }
+                
+                // For lecture/lab types (not from Smart Timetable), suggest using Smart Timetable Creator
+                if (isLectureType && !eventData?.id) {
+                  return (
+                    <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-lg p-3 border border-indigo-200/30 dark:border-indigo-500/30">
+                      <div className="flex items-start gap-2">
+                        <svg className="w-10 h-10 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
-                        Edit Pattern
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add Pattern
-                      </>
-                    )}
-                  </button>
-                </div>
-                {selectedByDays.length > 0 && (
-                  <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-lg p-3 border border-blue-200/30 dark:border-blue-500/30 animate-in">
-                    <div className="flex items-start gap-2">
-                      <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-900 dark:text-white leading-relaxed">
-                          Repeats <span className="font-semibold">every {intervalWeeks > 1 ? `${intervalWeeks} weeks` : 'week'}</span> on{' '}
-                          <span className="font-semibold text-blue-300">
-                            {selectedByDays.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}
-                          </span>
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
-                          {createTemplate && '• Template mode'}
-                          {materializeCount && `• ${materializeCount} occurrences`}
-                          {materializeUntil && `• Until ${new Date(materializeUntil).toLocaleDateString()}`}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                            Creating a recurring course schedule?
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
+                            Use our <span className="font-semibold text-indigo-400">Smart Timetable Creator</span> to generate your entire semester schedule automatically with holiday awareness!
+                          </p>
+                          <a 
+                            href="/timetable-setup" 
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all duration-200"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Open Smart Timetable Creator
+                          </a>
+                        </div>
                       </div>
                     </div>
+                  );
+                }
+                
+                // For assignment/deadline types or when editing existing lecture events, show recurrence
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Recurrence
+                      </Label>
+                      <button 
+                        type="button" 
+                        onClick={() => setModalPage(1)}
+                        className={cn(
+                          "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5",
+                          selectedByDays.length > 0
+                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-600 hover:shadow-blue-500/50"
+                            : "text-gray-500 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
+                        )}
+                      >
+                        {selectedByDays.length > 0 ? (
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit Pattern
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Pattern
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {selectedByDays.length > 0 && (
+                      <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-lg p-3 border border-blue-200/30 dark:border-blue-500/30 animate-in">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-gray-900 dark:text-white leading-relaxed">
+                              Repeats <span className="font-semibold">every {intervalWeeks > 1 ? `${intervalWeeks} weeks` : 'week'}</span> on{' '}
+                              <span className="font-semibold text-blue-300">
+                                {selectedByDays.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}
+                              </span>
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
+                              {createTemplate && '• Template mode'}
+                              {materializeCount && `• ${materializeCount} occurrences`}
+                              {materializeUntil && `• Until ${new Date(materializeUntil).toLocaleDateString()}`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Error Message */}
               {saveError && (
@@ -1452,25 +1475,40 @@ export default function AddEventModal({
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-                <Button 
-                  variant="outline" 
-                  type="button" 
-                  onClick={() => setClose()}
-                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
-                >
-                  Cancel
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={() => setClose()}
+                    className="px-6 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
+                  >
+                    Cancel
+                  </Button>
+                  
+                  {/* Professional delete button for edit mode */}
+                  {eventData?.id && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteScope(true)}
+                      className="px-5 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 dark:hover:border-red-700/70 transition-all duration-200 flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </button>
+                  )}
+                </div>
                 
-                <div className="flex items-center gap-0 rounded-lg overflow-hidden shadow-lg shadow-blue-500/30">
+                <div className="flex items-center gap-0 rounded-lg overflow-hidden">
                   <button
                     onClick={handleSubmit(onSubmit)}
                     disabled={submitting}
                     className={cn(
-                      "px-6 py-2.5 text-sm font-bold text-white transition-all duration-200",
-                      "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
-                      "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
-                      "border-r border-blue-700/30",
-                      submitting && "animate-pulse"
+                      "px-6 py-2.5 text-sm font-semibold text-white transition-colors duration-150",
+                      "bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      submitting && "opacity-75"
                     )}
                   >
                     {submitting ? (
@@ -1490,28 +1528,32 @@ export default function AddEventModal({
                       </span>
                     )}
                   </button>
-                  <button
-                    onClick={() => {
-                      handleSubmit((_data) => {
-                        const body = buildPendingBody();
-                        setPendingBody(body);
-                        setShowEditScope(true);
-                      })();
-                    }}
-                    type="button"
-                    disabled={submitting}
-                    className={cn(
-                      "px-3 py-2.5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white",
-                      "hover:from-blue-700 hover:to-blue-800 transition-all duration-200",
-                      "disabled:opacity-50 disabled:cursor-not-allowed"
-                    )}
-                    aria-label="More save options"
-                    title="Advanced save options"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
+                  {/* Only show dropdown for edit mode with recurring/smart events */}
+                  {eventData?.id && (
+                    <button
+                      onClick={() => {
+                        handleSubmit((_data) => {
+                          const body = buildPendingBody();
+                          setPendingBody(body);
+                          setShowEditScope(true);
+                        })();
+                      }}
+                      type="button"
+                      disabled={submitting}
+                      className={cn(
+                        "px-2.5 py-2.5 text-sm bg-blue-600 dark:bg-blue-700 text-white",
+                        "hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors duration-150",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        "border-l border-blue-400/20 dark:border-blue-500/20"
+                      )}
+                      aria-label="More save options"
+                      title="Update this event or all occurrences"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
               {/* Edit scope modal for recurring events */}

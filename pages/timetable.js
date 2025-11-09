@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react'
 import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../src/lib/dateHelpers';
 import dynamic from 'next/dynamic'
 import EditScopeModal from '@/components/Timetable/EditScopeModal';
+import { useRouter } from 'next/router';
+import { Sparkles } from 'lucide-react';
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
@@ -162,6 +164,7 @@ const SchedularViewComp = dynamic(
 )
 
 export default function TimetablePage() {
+  const router = useRouter();
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [recurrenceOptions, setRecurrenceOptions] = useState([])
@@ -735,9 +738,16 @@ export default function TimetablePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Timetable</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Timetable</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/timetable-setup')}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
+            >
+              <Sparkles className="w-4 h-4" />
+              Smart Schedule Creator
+            </button>
           </div>
         </div>
       </header>

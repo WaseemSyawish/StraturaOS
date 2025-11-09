@@ -1,157 +1,677 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { Calendar, BookOpen, Bell, Users, TrendingUp, Shield, Zap, Clock, Star, CheckCircle2, GraduationCap, BarChart3 } from 'lucide-react';
 
 export default function Welcome() {
-  // Ensure landing page remains light even if html.dark is present globally.
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const root = document.documentElement;
     const hadDark = root.classList.contains('dark');
     if (hadDark) root.classList.remove('dark');
+    
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    
     return () => {
       if (hadDark) root.classList.add('dark');
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-  return (
-  <div className="landing-root bg-white" style={{ background: '#ffffff' }}>
-      <Head>
-        <title>University Planner</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      </Head>
-      <a href="#landing-hero" className="skip-link">Skip to content</a>
-      <header className="landing-nav" role="banner">
-        <div className="container nav-row">
-          <div className="nav-left">
-            <Link href="/landing" className="brand" aria-label="University Planner home">
-              <span className="brand-logo" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="8" width="44" height="28" rx="6" fill="#4f46e5" />
-                  <path d="M12 18h18v2H12z" fill="white" opacity="0.95" />
-                  <path d="M12 24h12v2H12z" fill="white" opacity="0.9" />
-                </svg>
-              </span>
-              <span className="brand-text text-slate-900" style={{ color: '#0b1220' }}>University Planner</span>
-            </Link>
-          </div>
 
-          <nav className="nav-right" role="navigation" aria-label="Main navigation">
-            <input type="checkbox" id="nav-toggle" className="nav-toggle" aria-hidden="true" />
-            <label htmlFor="nav-toggle" className="nav-hamburger" aria-hidden="false" aria-label="Toggle menu">
-              <svg width="22" height="18" viewBox="0 0 22 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect y="1" width="22" height="2" rx="1" fill="currentColor" />
-                <rect y="8" width="22" height="2" rx="1" fill="currentColor" />
-                <rect y="15" width="22" height="2" rx="1" fill="currentColor" />
-              </svg>
-            </label>
-            <ul className="nav-list" role="menubar">
-              <li role="none"><Link role="menuitem" href="#features" className="nav-link text-slate-900" style={{ color: '#0b1220' }}>Features</Link></li>
-              <li role="none"><Link role="menuitem" href="#testimonials" className="nav-link text-slate-900" style={{ color: '#0b1220' }}>Customers</Link></li>
-              <li role="none"><Link role="menuitem" href="/docs" className="nav-link muted text-slate-700" style={{ color: '#334155' }}>Docs</Link></li>
-            </ul>
-            <div className="nav-ctas">
-              <Link href="/signin" className="nav-link nav-signin">Sign in</Link>
-              <Link href="/signup" className="btn btn-primary nav-cta">Get started</Link>
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #faf5ff 0%, #ffffff 50%, #f5f3ff 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    }}>
+      <Head>
+        <title>University Planner - Stop drowning in sticky notes</title>
+        <meta name="description" content="Built by students who were tired of juggling 47 browser tabs. One calendar for everything. Actually free." />
+      </Head>
+
+      {/* Navigation */}
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        transition: 'all 0.3s ease',
+        background: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(168, 85, 247, 0.1)' : '1px solid transparent',
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '1rem 2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Link href="/landing" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem',
+            textDecoration: 'none',
+            transition: 'transform 0.2s ease'
+          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+            }}>
+              <GraduationCap size={24} color="white" />
             </div>
+            <span style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              University Planner
+            </span>
+          </Link>
+
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <Link href="#features" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              Features
+            </Link>
+            <Link href="#how-it-works" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              How It Works
+            </Link>
+            <Link href="/signin" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              Sign In
+            </Link>
+            <Link href="/signup" style={{
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              color: 'white',
+              padding: '0.625rem 1.5rem',
+              borderRadius: '10px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
+              transition: 'all 0.2s ease'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.4)';
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.3)';
+            }}>
+              Get Started Free
+            </Link>
           </nav>
         </div>
       </header>
 
-      <main id="landing-hero" className="landing-hero" role="main">
-        <div className="container hero-grid">
-          <div className="hero-left">
-            <h1 className="hero-title">Plan smarter. Achieve more.</h1>
-            <p className="hero-sub">University Planner helps students and staff organize courses, assignments and timetables with a clean, secure, and scalable workflow.</p>
-            <div className="hero-cta">
-              <Link href="/signup" className="btn btn-primary">Create account</Link>
-              <Link href="/signin" className="btn btn-ghost">Sign in</Link>
+      {/* Hero Section */}
+      <main style={{ paddingTop: '6rem' }}>
+        <section style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '4rem 2rem',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '4rem',
+          alignItems: 'center'
+        }}>
+          <div>
+            <h1 style={{ 
+              fontSize: '4rem', 
+              fontWeight: 900, 
+              lineHeight: 1.1,
+              marginBottom: '2rem',
+              color: '#1f2937',
+              letterSpacing: '-0.02em'
+            }}>
+              Stop drowning in<br />
+              spreadsheets &<br />
+              <span style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                sticky notes
+              </span>
+            </h1>
+            
+            <p style={{ 
+              fontSize: '1.375rem', 
+              color: '#4b5563', 
+              lineHeight: 1.6,
+              marginBottom: '2.5rem',
+              fontWeight: 500
+            }}>
+              A university planner that actually understands how chaotic student life is. Built by students who were tired of juggling 47 browser tabs.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <Link href="/signup" style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                color: 'white',
+                padding: '1rem 2rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '1.125rem',
+                boxShadow: '0 8px 20px rgba(168, 85, 247, 0.3)',
+                transition: 'all 0.2s ease',
+                display: 'inline-block'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 28px rgba(168, 85, 247, 0.4)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.3)';
+              }}>
+                Start Planning Now
+              </Link>
+              
+              <Link href="/signin" style={{
+                background: 'white',
+                color: '#7c3aed',
+                padding: '1rem 2rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '1.125rem',
+                border: '2px solid #e9d5ff',
+                transition: 'all 0.2s ease',
+                display: 'inline-block'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#a855f7';
+                e.currentTarget.style.background = '#faf5ff';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e9d5ff';
+                e.currentTarget.style.background = 'white';
+              }}>
+                Sign In
+              </Link>
             </div>
-            <ul className="hero-bullets">
-              <li>Intuitive calendar & agenda</li>
-              <li>Course & assessment tracking</li>
-              <li>Secure accounts with enterprise-ready sessions</li>
-            </ul>
-          </div>
-          <div className="hero-right">
-            <div className="hero-illustration card" aria-hidden="true">
-              {/* Inline illustrative SVG: stylized dashboard + calendar */}
-              <svg viewBox="0 0 520 360" className="illustration-svg" role="img" focusable="false">
-                <defs>
-                  <linearGradient id="lg" x1="0" x2="1">
-                    <stop offset="0%" stopColor="#eef2ff" />
-                    <stop offset="100%" stopColor="#f8fafc" />
-                  </linearGradient>
-                  <linearGradient id="lg2" x1="0" x2="1">
-                    <stop offset="0%" stopColor="#fff" />
-                    <stop offset="100%" stopColor="#f6f9ff" />
-                  </linearGradient>
-                </defs>
-                <rect x="16" y="24" width="488" height="312" rx="14" fill="url(#lg2)" stroke="rgba(2,6,23,0.04)" />
-                <rect x="44" y="60" width="420" height="32" rx="6" fill="#fff" />
-                <rect x="44" y="106" width="160" height="16" rx="4" fill="#f3f4ff" />
-                <rect x="44" y="132" width="420" height="10" rx="4" fill="#f8fafc" />
-                <rect x="44" y="152" width="420" height="10" rx="4" fill="#f8fafc" />
-                <rect x="44" y="176" width="260" height="10" rx="4" fill="#eef2ff" />
-                <circle cx="420" cy="92" r="28" fill="#6366f1" opacity="0.95" />
-                <circle cx="420" cy="92" r="16" fill="#fff" />
-                <g transform="translate(52,220)">
-                  <rect width="120" height="64" rx="8" fill="#fff" stroke="rgba(2,6,23,0.03)" />
-                  <rect x="8" y="10" width="36" height="10" rx="3" fill="#eef2ff" />
-                  <rect x="8" y="28" width="80" height="10" rx="3" fill="#f8fafc" />
-                </g>
-                <g transform="translate(200,220)">
-                  <rect width="120" height="64" rx="8" fill="#fff" stroke="rgba(2,6,23,0.03)" />
-                  <rect x="8" y="10" width="80" height="10" rx="3" fill="#eef2ff" />
-                  <rect x="8" y="28" width="52" height="10" rx="3" fill="#f8fafc" />
-                </g>
-              </svg>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: '#6b7280', fontSize: '0.9375rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#a855f7' }} />
+                <span style={{ fontWeight: 500 }}>Actually free. Not "free trial"</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#a855f7' }} />
+                <span style={{ fontWeight: 500 }}>No ads. Ever.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#a855f7' }} />
+                <span style={{ fontWeight: 500 }}>Works offline</span>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Hero Illustration */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 60px rgba(168, 85, 247, 0.15)',
+              border: '1px solid rgba(168, 85, 247, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative gradient */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '6px',
+                background: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 50%, #a855f7 100%)',
+              }} />
+              
+              {/* Mock Calendar UI */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>This Week</h3>
+                  <Calendar size={20} color="#a855f7" />
+                </div>
+                
+                {[
+                  { title: 'Computer Science Lecture', time: '9:00 AM', color: '#a855f7' },
+                  { title: 'Math Assignment Due', time: '11:30 AM', color: '#ec4899' },
+                  { title: 'Study Group Meeting', time: '2:00 PM', color: '#3b82f6' }
+                ].map((event, i) => (
+                  <div key={i} style={{
+                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)',
+                    borderLeft: `3px solid ${event.color}`,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.25rem' }}>
+                      {event.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Clock size={12} />
+                      {event.time}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid #f3e8ff' }}>
+                {[
+                  { label: 'Courses', value: '6', icon: BookOpen },
+                  { label: 'Tasks', value: '12', icon: CheckCircle2 },
+                  { label: 'Grade', value: 'A-', icon: Star }
+                ].map((stat, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ 
+                      width: '40px', 
+                      height: '40px', 
+                      margin: '0 auto 0.5rem',
+                      background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <stat.icon size={20} color="#a855f7" />
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1f2937' }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Floating badges */}
+            <div style={{
+              position: 'absolute',
+              top: '-1rem',
+              right: '-1rem',
+              background: 'white',
+              padding: '0.75rem 1rem',
+              borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(168, 85, 247, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              border: '1px solid rgba(168, 85, 247, 0.1)'
+            }}>
+              <TrendingUp size={16} color="#10b981" />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937' }}>+15% this week</span>
+            </div>
+          </div>
+        </section>
+
+
+        {/* Features Section */}
+        <section id="features" style={{ 
+          maxWidth: '1200px', 
+          margin: '6rem auto', 
+          padding: '0 2rem'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+            <h2 style={{ 
+              fontSize: '3rem', 
+              fontWeight: 900, 
+              marginBottom: '1.25rem',
+              color: '#1f2937',
+              letterSpacing: '-0.02em'
+            }}>
+              Built for real students,<br />
+              not marketing slides
+            </h2>
+            <p style={{ fontSize: '1.25rem', color: '#6b7280', maxWidth: '700px', margin: '0 auto', lineHeight: 1.6 }}>
+              No fluff. Just the tools you actually need to stop forgetting assignment deadlines at 11:59 PM.
+            </p>
+          </div>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '2rem'
+          }}>
+            {[
+              {
+                icon: Calendar,
+                title: 'One calendar for everything',
+                description: 'Classes, assignments, exams, study sessions. Stop switching between 5 different apps.',
+                gradient: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
+              },
+              {
+                icon: BookOpen,
+                title: 'Track your courses',
+                description: "Know what's due, what's coming up, and what you can actually ignore (looking at you, optional readings).",
+                gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)'
+              },
+              {
+                icon: BarChart3,
+                title: 'See your actual grades',
+                description: 'Not some AI-generated "predicted" nonsense. Real grades, real GPA calculations.',
+                gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+              },
+              {
+                icon: Clock,
+                title: 'Built-in timetable',
+                description: 'Stop screenshotting your schedule. Just... stop.',
+                gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+              },
+              {
+                icon: Shield,
+                title: 'Your data stays yours',
+                description: "We don't sell your data. We don't train AI on it. We just store it securely.",
+                gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              },
+              {
+                icon: Zap,
+                title: 'Actually fast',
+                description: 'No loading spinners. No "syncing..." messages. Just instant.',
+                gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+              }
+            ].map((feature, i) => (
+              <div key={i} style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '2rem',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                border: '1px solid rgba(168, 85, 247, 0.1)',
+                transition: 'all 0.3s ease',
+                cursor: 'default'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-8px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(168, 85, 247, 0.15)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.05)';
+              }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  background: feature.gradient,
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '1.5rem',
+                  boxShadow: '0 8px 16px rgba(168, 85, 247, 0.2)'
+                }}>
+                  <feature.icon size={28} color="white" />
+                </div>
+                <h3 style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: 700, 
+                  marginBottom: '0.75rem',
+                  color: '#1f2937'
+                }}>
+                  {feature.title}
+                </h3>
+                <p style={{ 
+                  fontSize: '0.9375rem', 
+                  color: '#6b7280', 
+                  lineHeight: 1.6,
+                  margin: 0
+                }}>
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" style={{ 
+          background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+          padding: '6rem 2rem',
+          marginTop: '6rem'
+        }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <h2 style={{ 
+                fontSize: '3rem', 
+                fontWeight: 900, 
+                marginBottom: '1.25rem',
+                color: '#1f2937',
+                letterSpacing: '-0.02em'
+              }}>
+                Literally takes 2 minutes
+              </h2>
+              <p style={{ fontSize: '1.25rem', color: '#6b7280', lineHeight: 1.6 }}>
+                No onboarding videos. No tutorials. No "wizard". Just sign up and start using it.
+              </p>
+            </div>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)', 
+              gap: '3rem',
+              position: 'relative'
+            }}>
+              {[
+                {
+                  step: '01',
+                  title: 'Create account',
+                  description: 'Email and password. Done. No "verify your identity" nonsense.'
+                },
+                {
+                  step: '02',
+                  title: 'Add your stuff',
+                  description: 'Type in your courses and assignments. Or import them if your uni has a sane system.'
+                },
+                {
+                  step: '03',
+                  title: "You're done",
+                  description: 'Seriously. Start using it. No tutorial required.'
+                }
+              ].map((step, i) => (
+                <div key={i} style={{ position: 'relative', textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '4rem',
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    opacity: 0.2,
+                    marginBottom: '1rem'
+                  }}>
+                    {step.step}
+                  </div>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: '2rem',
+                    boxShadow: '0 8px 24px rgba(168, 85, 247, 0.1)',
+                    border: '2px solid rgba(168, 85, 247, 0.1)'
+                  }}>
+                    <h3 style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 700, 
+                      marginBottom: '0.75rem',
+                      color: '#1f2937'
+                    }}>
+                      {step.title}
+                    </h3>
+                    <p style={{ 
+                      fontSize: '1rem', 
+                      color: '#6b7280', 
+                      lineHeight: 1.6,
+                      margin: 0
+                    }}>
+                      {step.description}
+                    </p>
+                  </div>
+                  
+                  {i < 2 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      right: '-1.5rem',
+                      width: '3rem',
+                      height: '2px',
+                      background: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)',
+                      opacity: 0.3,
+                      zIndex: -1
+                    }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Honest CTA */}
+        <section style={{ 
+          maxWidth: '900px', 
+          margin: '6rem auto', 
+          padding: '0 2rem'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)',
+            borderRadius: '24px',
+            padding: '4rem 3rem',
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+            border: '1px solid rgba(168, 85, 247, 0.2)'
+          }}>
+            <h2 style={{ 
+              fontSize: '2.75rem', 
+              fontWeight: 900, 
+              color: 'white',
+              marginBottom: '1.5rem',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2
+            }}>
+              Try it. It's free.<br />
+              Actually free.
+            </h2>
+            <p style={{ 
+              fontSize: '1.125rem', 
+              color: '#d1d5db',
+              marginBottom: '2.5rem',
+              maxWidth: '600px',
+              margin: '0 auto 2.5rem',
+              lineHeight: 1.6
+            }}>
+              No credit card. No "upgrade to premium" popups. No ads. Just a tool that works.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+              <Link href="/signup" style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                color: 'white',
+                padding: '1.125rem 2.5rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '1.125rem',
+                display: 'inline-block',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 8px 20px rgba(168, 85, 247, 0.4)'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 28px rgba(168, 85, 247, 0.5)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.4)';
+              }}>
+                Create Account
+              </Link>
+            </div>
+
+            <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>
+              Or check out the <Link href="/docs" style={{ color: '#a855f7', textDecoration: 'underline' }}>docs</Link> if you're the "read first" type
+            </p>
+          </div>
+        </section>
       </main>
 
-  <section id="features" className="container features">
-        <h2 className="section-title">Built for academic workflows</h2>
-        <div className="feature-grid">
-          <div className="feature card">
-            <h3>Unified calendar</h3>
-            <p className="muted">See lectures, deadlines and study time in one clear view.</p>
+      {/* Footer */}
+      <footer style={{ 
+        borderTop: '1px solid #e5e7eb',
+        padding: '3rem 2rem 2rem',
+        background: '#fafafa'
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '3rem'
+        }}>
+          <div style={{ maxWidth: '400px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <GraduationCap size={20} color="white" />
+              </div>
+              <span style={{ 
+                fontSize: '1.125rem', 
+                fontWeight: 700,
+                color: '#1f2937'
+              }}>
+                University Planner
+              </span>
+            </div>
+            <p style={{ color: '#6b7280', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>
+              A student planner that doesn't suck. Made by students who got tired of forgetting deadlines.
+            </p>
+            <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '1.5rem' }}>
+              © {new Date().getFullYear()} · Built with caffeine & desperation
+            </p>
           </div>
-          <div className="feature card">
-            <h3>Course management</h3>
-            <p className="muted">Track modules, tasks and grades across terms.</p>
-          </div>
-          <div className="feature card">
-            <h3>Team-friendly</h3>
-            <p className="muted">Share schedules and collaborate with classmates and tutors.</p>
-          </div>
-        </div>
-      </section>
 
-  <section id="testimonials" className="container testimonials" aria-label="Customer testimonials">
-        <h2 className="section-title">Trusted by students and tutors</h2>
-        <div className="testimonial-grid">
-          <div className="testimonial card">
-            <p className="muted">“University Planner transformed how I organise my semester — everything in one place, synced and predictable.”</p>
-            <div className="testimonial-meta">— Alex M., Student</div>
-          </div>
-          <div className="testimonial card">
-            <p className="muted">“Our department uses it for timetable coordination; it's lightweight and reliable.”</p>
-            <div className="testimonial-meta">— Dr. Chen, Lecturer</div>
-          </div>
-          <div className="testimonial card">
-            <p className="muted">“Great UX and fast to set up for new cohorts.”</p>
-            <div className="testimonial-meta">— Student Services</div>
-          </div>
-        </div>
-      </section>
+          <div style={{ display: 'flex', gap: '4rem' }}>
+            <div>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1f2937', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Product
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link href="#features" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9375rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Features
+                </Link>
+                <Link href="/docs" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9375rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Docs
+                </Link>
+              </div>
+            </div>
 
-      <footer className="site-footer">
-        <div className="container footer-inner">
-          <div>© {new Date().getFullYear()} University Planner — Designed for higher education</div>
-          <div className="muted">Privacy • Terms</div>
+            <div>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1f2937', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Get Started
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link href="/signup" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9375rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Sign Up
+                </Link>
+                <Link href="/signin" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9375rem', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}>
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

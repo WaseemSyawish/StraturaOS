@@ -545,9 +545,10 @@ const GradesPage = () => {
       </Head>
       <style dangerouslySetInnerHTML={{__html: `
         /* Modal form text coloring: keep white in dark mode, black in light mode */
-        .dark #grades-cat-name,
-        .dark #grades-cat-type,
-        .dark #grades-item-name {
+        html.dark #grades-cat-name,
+        html.dark #grades-cat-type,
+        html.dark #grades-item-name,
+        html.dark .dark-mode-input {
           color: #ffffff !important;
           -webkit-text-fill-color: #ffffff !important;
           caret-color: #ffffff !important;
@@ -555,9 +556,10 @@ const GradesPage = () => {
         }
 
         /* Ensure explicit black text in light mode so overlays/components with stronger CSS don't force another color */
-        :not(.dark) #grades-cat-name,
-        :not(.dark) #grades-cat-type,
-        :not(.dark) #grades-item-name {
+        html:not(.dark) #grades-cat-name,
+        html:not(.dark) #grades-cat-type,
+        html:not(.dark) #grades-item-name,
+        html:not(.dark) .dark-mode-input {
           color: #000000 !important;
           -webkit-text-fill-color: #000000 !important;
           caret-color: #000000 !important;
@@ -565,10 +567,10 @@ const GradesPage = () => {
         }
 
         /* Make placeholder text darker grey for modal forms (all inputs/selects/textareas inside modal overlays) */
-        .fixed.inset-0 input::placeholder,
-        .fixed.inset-0 textarea::placeholder,
-        .fixed.inset-0 select::placeholder {
-          color: #4B5563 !important; /* Tailwind gray-600 - darker placeholder */
+        html.dark .fixed.inset-0 input::placeholder,
+        html.dark .fixed.inset-0 textarea::placeholder,
+        html.dark .fixed.inset-0 select::placeholder {
+          color: rgba(203, 213, 225, 0.9) !important;
           opacity: 1 !important;
         }
       `}} />
@@ -579,7 +581,7 @@ const GradesPage = () => {
             <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
               <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
             </div>
-            <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Academic Grades</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Academic Grades</h1>
           </div>
 
           <button 
@@ -938,7 +940,7 @@ const GradesPage = () => {
                   id="grades-cat-name"
                   placeholder="e.g., Team Meeting, Study Session"
                   ref={catNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
                 />
@@ -972,7 +974,7 @@ const GradesPage = () => {
                   min="0"
                   max="100"
                   ref={weightRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
                   value={newCategory.weight}
                   onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
                 />
@@ -1031,7 +1033,7 @@ const GradesPage = () => {
                   id="grades-cat-name"
                   placeholder="e.g., Team Meeting, Study Session"
                   ref={catNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
                 />
@@ -1065,7 +1067,7 @@ const GradesPage = () => {
                   min="0"
                   max="100"
                   ref={weightRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
                   value={newCategory.weight}
                   onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
                 />
@@ -1124,7 +1126,7 @@ const GradesPage = () => {
                   id="grades-item-name"
                   placeholder="e.g., Quiz 1, Assignment 3, Midterm"
                   ref={itemNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold placeholder-gray-400"
+                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
                   value={newItem.name}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                 />

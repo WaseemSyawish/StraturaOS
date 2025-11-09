@@ -1,4 +1,5 @@
 import prisma from '../../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
 
 function parseCookies(req) {
   const raw = req.headers.cookie || '';
@@ -11,9 +12,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       // require token-based auth: only allow access if token.userId === id or admin
-      const { getToken } = await import('next-auth/jwt');
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      const tokenUserId = token && token.userId ? token.userId : null;
+      const tokenUserId = await resolveUser(req);
       if (!tokenUserId) return res.status(401).json({ error: 'Unauthorized' });
       if (tokenUserId !== id) return res.status(403).json({ error: 'Forbidden' });
       const user = await prisma.user.findUnique({ where: { id } });
@@ -23,9 +22,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PATCH') {
       // token-based auth: only allow updating your own profile
-      const { getToken } = await import('next-auth/jwt');
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      const tokenUserId = token && token.userId ? token.userId : null;
+      const tokenUserId = await resolveUser(req);
       if (!tokenUserId) return res.status(401).json({ error: 'Unauthorized' });
       if (tokenUserId !== id) return res.status(403).json({ error: 'Forbidden' });
       const { name, email, avatarColor } = req.body || {};

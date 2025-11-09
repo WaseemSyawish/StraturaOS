@@ -1,16 +1,17 @@
-import { getToken } from 'next-auth/jwt';
+import { resolveUser } from '../../../lib/resolveUser';
 const bcrypt = require('bcryptjs');
 const prisma = require('../../../lib/prisma');
 
 export default async function handler(req, res) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    let userId = token && token.userId ? token.userId : null;
+    let userId = await resolveUser(req);
+    
     // Development helper: allow devUserId query param when running locally
     if (!userId && (process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV === 'true')) {
       const devUserId = req.query && req.query.devUserId ? String(req.query.devUserId) : null;
       if (devUserId) userId = devUserId;
     }
+    
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

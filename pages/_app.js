@@ -2,6 +2,7 @@
 import Head from 'next/head'
 import '../src/App.css'
 import '../src/index.css'
+import '../src/styles/typography.css'
 import '../src/styles/calendar-theme.css'
 import '../src/styles/dark-input-fix.css'
 import Layout from '../src/components/Layout'
@@ -10,6 +11,8 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { NextUIProvider as NextUISystemProvider } from '@nextui-org/system'
 import React, { useEffect, useState } from 'react'
 import ModalProvider from '@/providers/modal-context'
+import { ToastProvider } from '@/providers/toast-provider'
+import { ConfirmProvider } from '@/providers/confirm-provider'
 
 function NavEnhancer() {
   useEffect(() => {
@@ -145,9 +148,13 @@ export default function App({ Component, pageProps }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system">
       <NextUISystemProvider navigate={undefined}>
-        <ModalProvider>
-          {content}
-        </ModalProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <ModalProvider>
+              {content}
+            </ModalProvider>
+          </ConfirmProvider>
+        </ToastProvider>
       </NextUISystemProvider>
     </NextThemesProvider>
   );

@@ -560,8 +560,8 @@ html.dark .signup-root p {
 
 /* Number input spin/button color fallback */
 html.dark input[type="number"] {
-  color: rgba(255, 255, 255, 0.92) !important;
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.92) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Date/time picker icon visibility */
@@ -652,6 +652,35 @@ html.dark .modal-footer {
 }
 html.dark .modal-two-col aside {
   border-right-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Force white text in modal inputs for dark mode */
+html.dark .modal-two-col input,
+html.dark .modal-two-col input.form-control,
+html.dark .modal-two-col input[type="text"],
+html.dark .modal-two-col input[type="number"],
+html.dark .modal-two-col textarea {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark .modal-two-col input::placeholder,
+html.dark .modal-two-col textarea::placeholder {
+  color: rgba(203, 213, 225, 0.9) !important;
+}
+
+/* Force white text in grades page modal inputs for dark mode */
+html.dark .dark-mode-input,
+html.dark input.dark-mode-input,
+html.dark input[type="text"].dark-mode-input,
+html.dark input[type="number"].dark-mode-input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark .dark-mode-input::placeholder,
+html.dark input.dark-mode-input::placeholder {
+  color: rgba(203, 213, 225, 0.9) !important;
 }
 
 /* Native selects and options can render with dark text — force them to light */
@@ -5262,8 +5291,8 @@ html.dark select,
 html.dark .input,
 html.dark .form-control {
   background: rgba(30, 41, 59, 0.5) !important; /* Subtle dark background */
-  color: rgba(255, 255, 255, 0.95) !important;
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.95) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
   border-color: rgba(71, 85, 105, 0.5) !important;
 }
 
@@ -5289,7 +5318,7 @@ html.dark textarea::placeholder,
 html.dark select::placeholder,
 html.dark .input::placeholder,
 html.dark .form-control::placeholder {
-  color: rgba(148, 163, 184, 0.7) !important;
+  color: rgba(203, 213, 225, 0.8) !important;
   opacity: 1 !important;
 }
 

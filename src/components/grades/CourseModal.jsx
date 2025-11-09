@@ -34,6 +34,19 @@ function calculateCourseGrade(assessments = []) {
 export default function CourseModal({ open, course, onClose, onSaved }) {
   const [local, setLocal] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  // Detect dark mode
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!course) return setLocal(null);
@@ -229,6 +242,29 @@ export default function CourseModal({ open, course, onClose, onSaved }) {
 
   return (
     <Modal title={`${local.name} — Details`} open={open} onClose={onClose} footer={footer} size="lg">
+      <style dangerouslySetInnerHTML={{__html: `
+        html.dark .modal-two-col .card input,
+        html.dark .modal-two-col .card input.form-control,
+        html.dark .modal-two-col .card input[type="number"],
+        html.dark .modal-two-col .card input[type="text"],
+        html.dark .modal-two-col div input,
+        html.dark .modal-two-col div input.form-control {
+          color: #ffffff !important;
+          -webkit-text-fill-color: #ffffff !important;
+        }
+        html.dark .modal-two-col .card input::placeholder,
+        html.dark .modal-two-col div input::placeholder {
+          color: rgba(203, 213, 225, 0.9) !important;
+        }
+        /* Override any autofill styles */
+        html.dark .modal-two-col input:-webkit-autofill,
+        html.dark .modal-two-col input:-webkit-autofill:hover,
+        html.dark .modal-two-col input:-webkit-autofill:focus,
+        html.dark .modal-two-col input:-webkit-autofill:active {
+          -webkit-text-fill-color: #ffffff !important;
+          box-shadow: 0 0 0px 1000px rgba(30, 41, 59, 0.5) inset !important;
+        }
+      `}} />
       <div className="modal-two-col" style={{ display: 'flex', gap: 18 }}>
         <aside style={{ width: 320 }}>
           <div style={{ fontSize: 14, color: 'var(--muted-600)' }}>{local.code} • {local.semester}</div>
@@ -249,15 +285,53 @@ export default function CourseModal({ open, course, onClose, onSaved }) {
               <div key={ai} className="card cozy" style={{ padding: 12 }}>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <input className="form-control" value={a.name} placeholder="Assessment name" onChange={e => updateAssessment(ai, { name: e.target.value })} />
+                    <input 
+                      className="form-control" 
+                      value={a.name} 
+                      placeholder="Assessment name" 
+                      onChange={e => updateAssessment(ai, { name: e.target.value })}
+                      style={isDark ? { color: '#ffffff', WebkitTextFillColor: '#ffffff' } : {}}
+                    />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                      <input type="number" min="0" step="1" className="form-control" style={{ width: 120 }} value={a.weight} onChange={e => updateAssessment(ai, { weight: e.target.value })} />
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="1" 
+                        className="form-control" 
+                        style={isDark ? { width: 120, color: '#ffffff', WebkitTextFillColor: '#ffffff' } : { width: 120 }} 
+                        value={a.weight} 
+                        onChange={e => updateAssessment(ai, { weight: e.target.value })} 
+                      />
                       <div style={{ flex: 1 }}>
                         {(a.items || []).map((it, ii) => (
                           <div key={ii} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                            <input className="form-control" style={{ flex: 1 }} value={it.name} placeholder="Item name" onChange={e => updateAssessmentItem(ai, ii, 'name', e.target.value)} />
-                            <input type="number" min="0" step="0.1" className="form-control" style={{ width: 100 }} placeholder="Grade" value={it.grade} onChange={e => updateAssessmentItem(ai, ii, 'grade', e.target.value)} />
-                            <input type="number" min="1" step="1" className="form-control" style={{ width: 100 }} placeholder="Max" value={it.maxGrade} onChange={e => updateAssessmentItem(ai, ii, 'maxGrade', e.target.value)} />
+                            <input 
+                              className="form-control" 
+                              style={isDark ? { flex: 1, color: '#ffffff', WebkitTextFillColor: '#ffffff' } : { flex: 1 }} 
+                              value={it.name} 
+                              placeholder="Item name" 
+                              onChange={e => updateAssessmentItem(ai, ii, 'name', e.target.value)} 
+                            />
+                            <input 
+                              type="number" 
+                              min="0" 
+                              step="0.1" 
+                              className="form-control" 
+                              style={isDark ? { width: 100, color: '#ffffff', WebkitTextFillColor: '#ffffff' } : { width: 100 }} 
+                              placeholder="Grade" 
+                              value={it.grade} 
+                              onChange={e => updateAssessmentItem(ai, ii, 'grade', e.target.value)} 
+                            />
+                            <input 
+                              type="number" 
+                              min="1" 
+                              step="1" 
+                              className="form-control" 
+                              style={isDark ? { width: 100, color: '#ffffff', WebkitTextFillColor: '#ffffff' } : { width: 100 }} 
+                              placeholder="Max" 
+                              value={it.maxGrade} 
+                              onChange={e => updateAssessmentItem(ai, ii, 'maxGrade', e.target.value)} 
+                            />
                             <button className="btn" onClick={() => removeItemFromAssessment(ai, ii)} aria-label="Remove item">Remove</button>
                           </div>
                         ))}

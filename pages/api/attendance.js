@@ -91,9 +91,36 @@ async function handleGet(req, res) {
   try {
     const { getToken } = await import('next-auth/jwt');
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    effectiveUserId = token && token.userId ? token.userId : null;
+    // Accept tokens that store user id as `userId` or `sub` (NextAuth variations)
+    effectiveUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+    if (token && !effectiveUserId) {
+      try { console.log('Attendance GET: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
+    }
   } catch (e) {
     console.warn('Failed to resolve token in attendance GET', e);
+  }
+
+  // Development fallback: allow debug cookies (userId / debug_userId) when next-auth token is not present
+  if (!effectiveUserId) {
+    try {
+      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+        if (req.cookies.userId) {
+          effectiveUserId = req.cookies.userId;
+          console.log('Attendance GET: using dev cookie userId fallback');
+        } else if (req.cookies.debug_userId) {
+          effectiveUserId = req.cookies.debug_userId;
+          console.log('Attendance GET: using dev cookie debug_userId fallback');
+        }
+      }
+    } catch (e) {
+      // ignore cookie parsing issues
+    }
+  }
+  // Debug: log resolved user for troubleshooting missing sessions
+  try {
+    console.log('Attendance GET called - resolved user:', effectiveUserId, 'query:', req.query);
+  } catch (e) {
+    // ignore logging failures
   }
 
   if (!effectiveUserId) {
@@ -222,6 +249,11 @@ async function handleGet(req, res) {
       updatedAt: session.updated_at
     }));
 
+    // Debug: log counts to help diagnose missing-data reports
+    try {
+      console.log('Attendance GET result - user:', effectiveUserId, 'courseId:', courseId, 'sessionsFound:', (formattedSessions || []).length);
+    } catch (e) {}
+
     return res.status(200).json({ success: true, sessions: formattedSessions, total: formattedSessions.length, course: { id: course.id, name: course.name, code: course.code, color: course.color } });
   } catch (error) {
     console.error('Error fetching attendance sessions:', error);
@@ -242,9 +274,27 @@ async function handlePost(req, res) {
   try {
     const { getToken } = await import('next-auth/jwt');
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    effectiveUserId = token && token.userId ? token.userId : null;
+    effectiveUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+    if (token && !effectiveUserId) {
+      try { console.log('Attendance POST: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
+    }
   } catch (e) {
     console.warn('Failed to resolve token in attendance POST', e);
+  }
+
+  // Development cookie fallback for POST as well
+  if (!effectiveUserId) {
+    try {
+      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+        if (req.cookies.userId) {
+          effectiveUserId = req.cookies.userId;
+          console.log('Attendance POST: using dev cookie userId fallback');
+        } else if (req.cookies.debug_userId) {
+          effectiveUserId = req.cookies.debug_userId;
+          console.log('Attendance POST: using dev cookie debug_userId fallback');
+        }
+      }
+    } catch (e) {}
   }
 
   if (!effectiveUserId) {
@@ -402,9 +452,27 @@ async function handlePut(req, res) {
     try {
       const { getToken } = await import('next-auth/jwt');
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      tokenUserId = token && token.userId ? token.userId : null;
+      tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+      if (token && !tokenUserId) {
+        try { console.log('Attendance PUT: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
+      }
     } catch (e) {
       console.warn('Failed to resolve token in attendance PUT', e);
+    }
+
+    // Development cookie fallback for PUT
+    if (!tokenUserId) {
+      try {
+        if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+          if (req.cookies.userId) {
+            tokenUserId = req.cookies.userId;
+            console.log('Attendance PUT: using dev cookie userId fallback');
+          } else if (req.cookies.debug_userId) {
+            tokenUserId = req.cookies.debug_userId;
+            console.log('Attendance PUT: using dev cookie debug_userId fallback');
+          }
+        }
+      } catch (e) {}
     }
 
     if (!tokenUserId) return res.status(401).json({ success: false, error: 'Not authenticated' });
@@ -567,10 +635,31 @@ async function handleDelete(req, res) {
   try {
     const { getToken } = await import('next-auth/jwt');
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    tokenUserId = token && token.userId ? token.userId : null;
+    // Accept token.userId or token.sub
+    tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+    if (token && !tokenUserId) {
+      try { console.log('Attendance DELETE: token present but missing userId/sub claims:', Object.keys(token || {})); } catch (e) {}
+    }
   } catch (e) {
     console.warn('Failed to resolve token in attendance DELETE', e);
   }
+
+  // Development cookie fallback (match courses API behavior)
+  if (!tokenUserId) {
+    try {
+      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+        if (req.cookies.userId) {
+          tokenUserId = req.cookies.userId;
+          console.log('Attendance DELETE: using dev cookie userId fallback');
+        } else if (req.cookies.debug_userId) {
+          tokenUserId = req.cookies.debug_userId;
+          console.log('Attendance DELETE: using dev cookie debug_userId fallback');
+        }
+      }
+    } catch (e) {}
+  }
+
+  try { console.log('Attendance DELETE called - resolved user:', tokenUserId, 'body:', req.body); } catch (e) {}
 
   if (!tokenUserId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 

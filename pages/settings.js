@@ -144,6 +144,11 @@ export default function Settings() {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('appearance');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -159,6 +164,10 @@ export default function Settings() {
           if (server) {
             setSettings({ ...DEFAULTS, ...server });
             try { localStorage.setItem('up:settings', JSON.stringify({ ...DEFAULTS, ...server })); } catch (e) {}
+            // Set theme from server settings
+            if (setTheme && typeof setTheme === 'function' && server.theme) {
+              setTheme(server.theme);
+            }
             return;
           }
         }
@@ -167,10 +176,13 @@ export default function Settings() {
       }
       const local = loadSettings();
       setSettings(local);
-      try { if (setTheme && typeof setTheme === 'function') setTheme(local.theme || 'system'); } catch (e) {}
+      // Set theme from local settings on mount
+      if (setTheme && typeof setTheme === 'function' && local.theme) {
+        setTheme(local.theme);
+      }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [setTheme]);
 
   // ChangePasswordForm component scoped inside settings file
   function ChangePasswordForm() {
@@ -235,17 +247,14 @@ export default function Settings() {
 
   function update(key, value) {
     setSettings((s) => ({ ...s, [key]: value }));
+    // Immediately apply theme changes
+    if (key === 'theme' && setTheme && typeof setTheme === 'function') {
+      setTheme(value);
+    }
   }
 
-  useEffect(() => {
-    try {
-      if (setTheme && typeof setTheme === 'function') {
-        setTheme(settings.theme || 'system');
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [settings.theme, setTheme]);
+  // Remove the problematic useEffect that was causing theme switching issues
+  // The theme is now set immediately when the button is clicked
 
   async function handleSave() {
     setError('');
@@ -281,6 +290,76 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 3000);
     if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('app:settings:changed', { detail: settings }));
     setIsSaving(false);
+  }
+
+  async function handleDownloadData() {
+    setIsDownloading(true);
+    try {
+      // Fetch all user data
+      const [eventsRes, coursesRes, gradesRes, attendanceRes] = await Promise.all([
+        fetch('/api/events'),
+        fetch('/api/courses'),
+        fetch('/api/grades'),
+        fetch('/api/attendance')
+      ]);
+
+      const data = {
+        exportDate: new Date().toISOString(),
+        events: eventsRes.ok ? (await eventsRes.json()).events || [] : [],
+        courses: coursesRes.ok ? (await coursesRes.json()).courses || [] : [],
+        grades: gradesRes.ok ? (await gradesRes.json()).data || [] : [],
+        attendance: attendanceRes.ok ? (await attendanceRes.json()).sessions || [] : [],
+        settings: settings
+      };
+
+      // Create and download JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `university-planner-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError('Failed to download data. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+
+    try {
+      const res = await fetch('/api/users/delete-account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword })
+      });
+
+      if (res.ok) {
+        // Account deleted successfully - redirect to signin
+        window.location.href = '/signin?deleted=true';
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setDeleteError(json?.error || 'Failed to delete account. Please check your password.');
+      }
+    } catch (err) {
+      setDeleteError('Network error. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   const sections = [
@@ -398,24 +477,6 @@ export default function Settings() {
                       })}
                     </div>
                   </div>
-
-                  <div className="border-t border-gray-200 my-6" />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                    <CustomDropdown
-                      value={settings.language}
-                      options={[
-                        { value: 'en', label: 'English' },
-                        { value: 'es', label: 'Spanish' },
-                        { value: 'fr', label: 'French' },
-                        { value: 'de', label: 'German' },
-                        { value: 'ar', label: 'Arabic' },
-                      ]}
-                      onChange={(val) => update('language', val)}
-                      label="Select language"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             )}
@@ -465,27 +526,6 @@ export default function Settings() {
                       ))}
                     </div>
                   </div>
-
-                  <div className="border-t border-gray-200 my-6" />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-                    <CustomDropdown
-                      value={settings.timezone}
-                      options={[
-                        { value: 'auto', label: 'Automatic' },
-                        { value: 'America/New_York', label: 'Eastern Time (ET)' },
-                        { value: 'America/Chicago', label: 'Central Time (CT)' },
-                        { value: 'America/Denver', label: 'Mountain Time (MT)' },
-                        { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-                        { value: 'Europe/London', label: 'London (GMT)' },
-                        { value: 'Europe/Paris', label: 'Paris (CET)' },
-                        { value: 'Asia/Dubai', label: 'Dubai (GST)' },
-                      ]}
-                      onChange={(val) => update('timezone', val)}
-                      label="Select timezone"
-                    />
-                  </div>
                 </CardContent>
               </Card>
             )}
@@ -497,67 +537,88 @@ export default function Settings() {
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5" />
                     Notifications
+                    <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
                   </CardTitle>
-                  <CardDescription>Manage how you receive updates and reminders</CardDescription>
+                  <CardDescription>Manage how you receive updates and reminders (feature in development)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <div className="flex items-start gap-3">
-                      <Bell className="w-5 h-5 text-gray-600 mt-0.5" />
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Bell className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+                      </div>
                       <div>
-                        <p className="font-medium text-gray-900">Enable all notifications</p>
-                        <p className="text-sm text-gray-600 mt-1">Receive reminders and alerts for scheduled events</p>
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">Notification System</p>
+                        <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
+                          We're working on a comprehensive notification system to keep you updated on deadlines, class schedules, and important events.
+                        </p>
+                        <Badge variant="secondary" className="mt-3 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                  </div>
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
+
+                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg opacity-60">
+                    <div className="flex items-start gap-3">
+                      <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Enable all notifications</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive reminders and alerts for scheduled events</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-not-allowed">
                       <input
                         type="checkbox"
                         checked={settings.notifications}
                         onChange={(e) => update('notifications', e.target.checked)}
+                        disabled
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
                     </label>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
 
-                  <div className="space-y-4">
+                  <div className="space-y-4 opacity-60">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
-                        <Mail className="w-5 h-5 text-gray-600 mt-0.5" />
+                        <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
                         <div>
-                          <p className="font-medium text-gray-900">Email notifications</p>
-                          <p className="text-sm text-gray-600 mt-1">Get notified via email for important updates</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">Email notifications</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get notified via email for important updates</p>
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label className="relative inline-flex items-center cursor-not-allowed">
                         <input
                           type="checkbox"
                           checked={settings.emailNotifications}
                           onChange={(e) => update('emailNotifications', e.target.checked)}
+                          disabled
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
                       </label>
                     </div>
 
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
-                        <Smartphone className="w-5 h-5 text-gray-600 mt-0.5" />
+                        <Smartphone className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
                         <div>
-                          <p className="font-medium text-gray-900">Push notifications</p>
-                          <p className="text-sm text-gray-600 mt-1">Receive push notifications on your device</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">Push notifications</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive push notifications on your device</p>
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label className="relative inline-flex items-center cursor-not-allowed">
                         <input
                           type="checkbox"
                           checked={settings.pushNotifications}
                           onChange={(e) => update('pushNotifications', e.target.checked)}
+                          disabled
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
                       </label>
                     </div>
                   </div>
@@ -576,43 +637,101 @@ export default function Settings() {
                   <CardDescription>Manage your account security and authentication</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  {/* Password Section */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      Password
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">Keep your account secure with a strong password</p>
+                    <ChangePasswordForm />
+                  </div>
+
+                  <div className="border-t border-gray-200 my-6" />
+
+                  {/* Email Management */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email Address
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">Update your email for account recovery and notifications</p>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Change Email Address
+                    </Button>
+                    <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                  </div>
+
+                  <div className="border-t border-gray-200 my-6" />
+
+                  {/* Two-Factor Authentication */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
                     <div className="flex items-start gap-3">
-                      <Lock className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-blue-900">Two-Factor Authentication</p>
-                        <p className="text-sm text-blue-700 mt-1">Add an extra layer of security to your account</p>
-                        <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Shield className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-blue-900">Two-Factor Authentication (2FA)</p>
+                        <p className="text-sm text-blue-700 mt-1">Add an extra layer of security to your account with 2FA</p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <Button variant="outline" className="text-sm" disabled>
+                            Enable 2FA
+                          </Button>
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-gray-200 my-6" />
 
+                  {/* Active Sessions */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Password</h4>
-                    <p className="text-sm text-gray-600 mb-4">Last changed 30 days ago</p>
-
-                    {/* Change password inline form */}
-                    <ChangePasswordForm />
+                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <Monitor className="w-4 h-4" />
+                      Active Sessions
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">Manage devices where you're currently signed in</p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <Monitor className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-green-900">Current Device</p>
+                            <p className="text-xs text-green-700">Browser • Active now</p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 font-semibold">Active</Badge>
+                      </div>
+                      <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" disabled>
+                        Sign Out All Other Sessions
+                      </Button>
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                    </div>
                   </div>
 
                   <div className="border-t border-gray-200 my-6" />
 
+                  {/* Account Recovery */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Active Sessions</h4>
-                    <p className="text-sm text-gray-600 mb-4">Manage devices where you're currently signed in</p>
+                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Account Recovery
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">Set up recovery options in case you lose access to your account</p>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Monitor className="w-5 h-5 text-gray-600" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">Current Device</p>
-                            <p className="text-xs text-gray-500">Chrome on Windows • Active now</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="bg-green-100 text-green-700">Active</Badge>
-                      </div>
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Add Recovery Email
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <Smartphone className="w-4 h-4 mr-2" />
+                        Add Recovery Phone Number
+                      </Button>
+                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -631,19 +750,38 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-4">Data & Privacy</h4>
-                    <Button variant="outline" className="w-full justify-start flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Download your data
+                    <h4 className="font-medium text-gray-900 mb-2">Data & Privacy</h4>
+                    <p className="text-sm text-gray-600 mb-4">Download all your data in JSON format</p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start flex items-center gap-2"
+                      onClick={handleDownloadData}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-4 h-4" />
+                          Download your data
+                        </>
+                      )}
                     </Button>
                   </div>
 
                   <div className="border-t border-gray-200 my-6" />
 
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Account</h4>
-                    <p className="text-sm text-gray-600 mb-4">Permanently delete your account and all associated data</p>
-                    <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <h4 className="font-medium text-red-900 mb-2">Danger Zone</h4>
+                    <p className="text-sm text-gray-600 mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <Button 
+                      variant="outline" 
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
+                      onClick={() => setShowDeleteModal(true)}
+                    >
                       Delete Account
                     </Button>
                   </div>
@@ -681,6 +819,78 @@ export default function Settings() {
             </Card>
           </div>
         </div>
+
+        {/* Delete Account Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete Account</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                    This action cannot be undone. All your data including events, courses, grades, and attendance records will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Enter your password to confirm
+                  </label>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Enter password"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleDeleteAccount();
+                    }}
+                  />
+                </div>
+
+                {deleteError && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeletePassword('');
+                      setDeleteError('');
+                    }}
+                    disabled={isDeleting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || !deletePassword}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Account'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

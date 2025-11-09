@@ -26,7 +26,8 @@ const AttendanceTracker = () => {
 
   // Fetch courses on component mount
   const fetchCourses = useCallback(async () => {
-    try {
+  let data;
+  try {
       setCoursesLoading(true);
       setError(null);
       
@@ -52,7 +53,7 @@ const AttendanceTracker = () => {
         return;
       }
       
-      const data = await response.json();
+  data = await response.json();
       console.log('Courses API Response:', data);
       
       if (!data.success) {
@@ -263,7 +264,8 @@ useEffect(() => {
   const handleSaveSession = async (payload) => {
     try {
       // await existing addSessionWithPayload helper which manages saving
-      await addSessionWithPayload(payload);
+      const created = await addSessionWithPayload(payload);
+      if (!created) return; // failed to create; notification already shown by helper
       const course = courses.find(c => c.id === (payload.courseId || selectedCourseId));
       const formattedDate = new Date(payload.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       setSuccessMessage(`Session added for ${course ? course.code : selectedCourse} on ${formattedDate}`);
@@ -474,11 +476,17 @@ useEffect(() => {
       if (!response.ok) {
         const errMsg = await parseErrorResponse(response);
         setNotification({ type: 'error', message: errMsg });
-        throw new Error(errMsg);
+        // Do not throw here to avoid crashing the UI overlay. Surface a friendly notification
+        // and return null so callers can handle the failure gracefully.
+        return null;
       }
 
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to add session');
+      if (!data.success) {
+        const err = data.error || 'Failed to add session';
+        setNotification({ type: 'error', message: err });
+        return null;
+      }
 
       setSessions(prev => sortSessionsByDate([...(prev || []), data.session]));
       setNotification({ type: 'success', message: 'Session added' });
@@ -491,11 +499,17 @@ useEffect(() => {
         console.warn('Failed to dispatch attendance:created event', e);
       }
     } catch (err) {
-      setError(err.message || 'Unknown error adding session');
+      // Surface friendly notification but do not throw — keep modal open for correction
+      const em = err && err.message ? err.message : 'Unknown error adding session';
+      setNotification({ type: 'error', message: em });
       console.error('Error adding session with payload:', err);
+      return null;
     } finally {
       setSaving(false);
     }
+
+    // On success, return the created session (caller can use this to decide whether to close modal)
+    return (typeof data !== 'undefined' && data.session) ? data.session : null;
   };
 
   const updateSession = async (id, field, value) => {
@@ -549,13 +563,17 @@ useEffect(() => {
       if (!response.ok) {
         const errorMessage = await parseErrorResponse(response);
         setNotification({ type: 'error', message: errorMessage || `HTTP ${response.status}: Failed to update session` });
-        throw new Error(errorMessage || `HTTP ${response.status}: Failed to update session`);
+        // Revert optimistic update and surface a friendly notification instead of throwing
+        try { fetchAttendanceData(); } catch (e) {}
+        return;
       }
 
       const data = await response.json();
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to update session');
+        setNotification({ type: 'error', message: data.error || 'Failed to update session' });
+        try { fetchAttendanceData(); } catch (e) {}
+        return;
       }
 
       // Update with server response and sort to maintain order
@@ -586,13 +604,15 @@ useEffect(() => {
       if (!response.ok) {
         const errorMessage = await parseErrorResponse(response);
         setNotification({ type: 'error', message: errorMessage || `HTTP ${response.status}: Failed to delete session` });
-        throw new Error(errorMessage || `HTTP ${response.status}: Failed to delete session`);
+        // Surface friendly notification and return
+        return;
       }
 
       const data = await response.json();
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to delete session');
+        setNotification({ type: 'error', message: data.error || 'Failed to delete session' });
+        return;
       }
 
       setSessions(prevSessions => prevSessions.filter(session => session.id !== id));
@@ -616,10 +636,14 @@ useEffect(() => {
       if (!response.ok) {
         const errMsg = await parseErrorResponse(response);
         setNotification({ type: 'error', message: errMsg });
-        throw new Error(errMsg);
+        // Friendly fail without throwing
+        return;
       }
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to update session');
+      if (!data.success) {
+        setNotification({ type: 'error', message: data.error || 'Failed to update session' });
+        return;
+      }
       setSessions(prev => sortSessionsByDate(prev.map(s => s.id === data.session.id ? data.session : s)));
       setNotification({ type: 'success', message: 'Session updated' });
       setEditingSession(null);
@@ -643,10 +667,14 @@ useEffect(() => {
       if (!response.ok) {
         const errMsg = await parseErrorResponse(response);
         setNotification({ type: 'error', message: errMsg });
-        throw new Error(errMsg);
+        // Friendly fail without throwing
+        return;
       }
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to delete session');
+      if (!data.success) {
+        setNotification({ type: 'error', message: data.error || 'Failed to delete session' });
+        return;
+      }
       setSessions(prev => prev.filter(s => s.id !== id));
       setNotification({ type: 'success', message: 'Session deleted' });
       setEditingSession(null);
@@ -848,7 +876,7 @@ useEffect(() => {
   <div className="max-w-7xl mx-auto">
   <div className={`attendance-content ${showAddSessionModal ? 'blur-md pointer-events-none' : ''}`}>
     {/* Header */}
-  <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95">
+  <header className="bg-white border border-slate-200 shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95 rounded-xl">
   <div className="max-w-7xl mx-auto px-6 py-5">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-4">
@@ -856,7 +884,7 @@ useEffect(() => {
           <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Attendance Tracker</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Attendance Tracker</h1>
           <p className="text-sm text-slate-600">University Planner - Track your class attendance</p>
         </div>
       </div>
@@ -931,7 +959,7 @@ useEffect(() => {
 </header>
 
         {selectedCourseId && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             {/* Sessions Table */}
             <div className="lg:col-span-2">
               {/* Upcoming Sessions removed per user request */}

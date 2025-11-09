@@ -7,7 +7,10 @@ export default function AddCourseModal({ open, onClose, onCreate }) {
   useEffect(() => { if (open) setTimeout(() => firstRef.current && firstRef.current.focus(), 10); }, [open]);
 
   const submit = async () => {
-    if (!form.name.trim()) { alert('Please enter a course name'); return; }
+    if (!form.name.trim()) { 
+      alert('Please enter a course name'); 
+      return; 
+    }
     try {
       const resp = await fetch('/api/grades', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const js = await resp.json();
@@ -17,7 +20,10 @@ export default function AddCourseModal({ open, onClose, onCreate }) {
       } else {
         alert('Failed to create course');
       }
-    } catch (e) { console.error(e); alert('Failed to create course'); }
+    } catch (e) { 
+      console.error(e); 
+      alert('Failed to create course'); 
+    }
   };
 
   const valid = form.name && form.name.trim().length > 0;

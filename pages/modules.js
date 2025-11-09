@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock } from 'lucide-react';
 import Notification from '../src/components/Notification';
+import SemesterSettings from '../src/components/SemesterSettings';
+import { showCustomConfirm } from '@/utils/dialogs';
 
 const ModulesManager = () => {
   const [courses, setCourses] = useState([]);
@@ -304,10 +306,16 @@ const ModulesManager = () => {
     
     let confirmMessage = `Are you sure you want to delete "${courseName}"?`;
     if (hasAttendance) {
-      confirmMessage += ` This will also delete ${course.attendanceSessionsCount} attendance session${course.attendanceSessionsCount === 1 ? '' : 's'}.`;
+      confirmMessage += `\n\nThis will also delete ${course.attendanceSessionsCount} attendance session${course.attendanceSessionsCount === 1 ? '' : 's'}.`;
     }
     
-    if (!window.confirm(confirmMessage)) {
+    const confirmed = await showCustomConfirm(
+      'Delete Module?',
+      confirmMessage,
+      { type: 'danger', confirmText: 'Delete' }
+    );
+    
+    if (!confirmed) {
       return;
     }
 
@@ -467,7 +475,7 @@ const ModulesManager = () => {
                 <BookOpen className="text-indigo-600" size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">Modules Manager</h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">Modules Manager</h1>
                 <p className="text-gray-600">Manage your university courses and modules</p>
                 {!loading && (
                   <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
@@ -488,6 +496,9 @@ const ModulesManager = () => {
             </button>
           </div>
         </div>
+
+        {/* Semester Configuration */}
+        <SemesterSettings />
 
         {/* Add/Edit Modal */}
         {showAddForm && (

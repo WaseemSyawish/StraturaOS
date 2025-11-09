@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
+import { useToast } from '@/providers/toast-provider';
 
 export default function CourseCard({
   course,

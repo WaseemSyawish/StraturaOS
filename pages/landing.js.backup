@@ -1,0 +1,378 @@
+import React, { useEffect, useState } from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
+import { Calendar, BookOpen, Bell, Users, TrendingUp, Shield, Zap, Clock, Star, CheckCircle2, GraduationCap, BarChart3 } from 'lucide-react';
+
+export default function Welcome() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const root = document.documentElement;
+    const hadDark = root.classList.contains('dark');
+    if (hadDark) root.classList.remove('dark');
+    
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      if (hadDark) root.classList.add('dark');
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #faf5ff 0%, #ffffff 50%, #f5f3ff 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    }}>
+      <Head>
+        <title>University Planner - Your Academic Success Companion</title>
+        <meta name="description" content="Transform your academic journey with smart planning, beautiful design, and powerful features." />
+      </Head>
+
+      {/* Navigation */}
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        transition: 'all 0.3s ease',
+        background: scrolled ? 'rgba(255, 255, 255, 0.8)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(12px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(168, 85, 247, 0.1)' : '1px solid transparent',
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '1rem 2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Link href="/landing" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem',
+            textDecoration: 'none',
+            transition: 'transform 0.2s ease'
+          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+            }}>
+              <GraduationCap size={24} color="white" />
+            </div>
+            <span style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              University Planner
+            </span>
+          </Link>
+
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <Link href="#features" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              Features
+            </Link>
+            <Link href="#how-it-works" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              How It Works
+            </Link>
+            <Link href="/signin" style={{ color: '#4b5563', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#a855f7'} onMouseLeave={(e) => e.currentTarget.style.color = '#4b5563'}>
+              Sign In
+            </Link>
+            <Link href="/signup" style={{
+              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+              color: 'white',
+              padding: '0.625rem 1.5rem',
+              borderRadius: '10px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
+              transition: 'all 0.2s ease'
+            }} onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.4)';
+            }} onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.3)';
+            }}>
+              Get Started Free
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main style={{ paddingTop: '6rem' }}>
+        <section style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '4rem 2rem',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '4rem',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: '20px',
+              padding: '0.5rem 1rem',
+              marginBottom: '1.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: '#7c3aed'
+            }}>
+              ✨ Your Academic Success Starts Here
+            </div>
+            
+            <h1 style={{ 
+              fontSize: '3.5rem', 
+              fontWeight: 800, 
+              lineHeight: 1.1,
+              marginBottom: '1.5rem',
+              background: 'linear-gradient(135deg, #1f2937 0%, #4b5563 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              Plan Smarter,<br />Study Better,<br />
+              <span style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>
+                Achieve More
+              </span>
+            </h1>
+            
+            <p style={{ 
+              fontSize: '1.25rem', 
+              color: '#6b7280', 
+              lineHeight: 1.7,
+              marginBottom: '2rem'
+            }}>
+              The all-in-one platform that helps students manage courses, track assignments, and stay on top of their academic journey with beautiful, intuitive tools.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <Link href="/signup" style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                color: 'white',
+                padding: '1rem 2rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '1.125rem',
+                boxShadow: '0 8px 20px rgba(168, 85, 247, 0.3)',
+                transition: 'all 0.2s ease',
+                display: 'inline-block'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 28px rgba(168, 85, 247, 0.4)';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(168, 85, 247, 0.3)';
+              }}>
+                Start Planning Now
+              </Link>
+              
+              <Link href="/signin" style={{
+                background: 'white',
+                color: '#7c3aed',
+                padding: '1rem 2rem',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '1.125rem',
+                border: '2px solid #e9d5ff',
+                transition: 'all 0.2s ease',
+                display: 'inline-block'
+              }} onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#a855f7';
+                e.currentTarget.style.background = '#faf5ff';
+              }} onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e9d5ff';
+                e.currentTarget.style.background = 'white';
+              }}>
+                Sign In
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', gap: '2rem', color: '#6b7280', fontSize: '0.875rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 size={16} color="#a855f7" />
+                <span>Free forever</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 size={16} color="#a855f7" />
+                <span>No credit card</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 size={16} color="#a855f7" />
+                <span>Setup in 2 minutes</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Hero Illustration */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '2rem',
+              boxShadow: '0 20px 60px rgba(168, 85, 247, 0.15)',
+              border: '1px solid rgba(168, 85, 247, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative gradient */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '6px',
+                background: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 50%, #a855f7 100%)',
+              }} />
+              
+              {/* Mock Calendar UI */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>This Week</h3>
+                  <Calendar size={20} color="#a855f7" />
+                </div>
+                
+                {[
+                  { title: 'Computer Science Lecture', time: '9:00 AM', color: '#a855f7' },
+                  { title: 'Math Assignment Due', time: '11:30 AM', color: '#ec4899' },
+                  { title: 'Study Group Meeting', time: '2:00 PM', color: '#3b82f6' }
+                ].map((event, i) => (
+                  <div key={i} style={{
+                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)',
+                    borderLeft: `3px solid ${event.color}`,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.25rem' }}>
+                      {event.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Clock size={12} />
+                      {event.time}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', paddingTop: '1rem', borderTop: '1px solid #f3e8ff' }}>
+                {[
+                  { label: 'Courses', value: '6', icon: BookOpen },
+                  { label: 'Tasks', value: '12', icon: CheckCircle2 },
+                  { label: 'Grade', value: 'A-', icon: Star }
+                ].map((stat, i) => (
+                  <div key={i} style={{ textAlign: 'center' }}>
+                    <div style={{ 
+                      width: '40px', 
+                      height: '40px', 
+                      margin: '0 auto 0.5rem',
+                      background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%)',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <stat.icon size={20} color="#a855f7" />
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1f2937' }}>{stat.value}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Floating badges */}
+            <div style={{
+              position: 'absolute',
+              top: '-1rem',
+              right: '-1rem',
+              background: 'white',
+              padding: '0.75rem 1rem',
+              borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(168, 85, 247, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              border: '1px solid rgba(168, 85, 247, 0.1)'
+            }}>
+              <TrendingUp size={16} color="#10b981" />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f2937' }}>+15% this week</span>
+            </div>
+          </div>
+        </section>
+
+  <section id="features" className="container features">
+        <h2 className="section-title">Built for academic workflows</h2>
+        <div className="feature-grid">
+          <div className="feature card">
+            <h3>Unified calendar</h3>
+            <p className="muted">See lectures, deadlines and study time in one clear view.</p>
+          </div>
+          <div className="feature card">
+            <h3>Course management</h3>
+            <p className="muted">Track modules, tasks and grades across terms.</p>
+          </div>
+          <div className="feature card">
+            <h3>Team-friendly</h3>
+            <p className="muted">Share schedules and collaborate with classmates and tutors.</p>
+          </div>
+        </div>
+      </section>
+
+  <section id="testimonials" className="container testimonials" aria-label="Customer testimonials">
+        <h2 className="section-title">Trusted by students and tutors</h2>
+        <div className="testimonial-grid">
+          <div className="testimonial card">
+            <p className="muted">“University Planner transformed how I organise my semester — everything in one place, synced and predictable.”</p>
+            <div className="testimonial-meta">— Alex M., Student</div>
+          </div>
+          <div className="testimonial card">
+            <p className="muted">“Our department uses it for timetable coordination; it's lightweight and reliable.”</p>
+            <div className="testimonial-meta">— Dr. Chen, Lecturer</div>
+          </div>
+          <div className="testimonial card">
+            <p className="muted">“Great UX and fast to set up for new cohorts.”</p>
+            <div className="testimonial-meta">— Student Services</div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <div className="container footer-inner">
+          <div>© {new Date().getFullYear()} University Planner — Designed for higher education</div>
+          <div className="muted">Privacy • Terms</div>
+        </div>
+      </footer>
+    </div>
+  );
+}

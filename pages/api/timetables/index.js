@@ -1,11 +1,15 @@
 const prisma = require('../../../lib/prisma');
+const { resolveUser } = require('../../../lib/resolveUser');
 
 async function getUserId(req) {
-  const { getToken } = await import('next-auth/jwt');
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-  const tokenUserId = token && token.userId ? token.userId : null;
-  if (tokenUserId) return tokenUserId;
-  if (process.env.NODE_ENV === 'development' && req.query && req.query.userId) return String(req.query.userId);
+  const userId = await resolveUser(req);
+  if (userId) return userId;
+  
+  // In development, also accept explicit query param for testing
+  if (process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
+    return String(req.query.userId);
+  }
+  
   return null;
 }
 

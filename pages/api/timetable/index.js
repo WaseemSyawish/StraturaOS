@@ -1,15 +1,16 @@
 import prisma from '../../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
 
-// Helper: resolve user id from next-auth token, fallback to query.userId in development
+// Helper: resolve user id using shared resolver (accepts token or dev cookies)
 async function resolveUserId(req) {
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    if (token && token.userId) return String(token.userId);
-  } catch (e) {
-    // ignore
+  const userId = await resolveUser(req);
+  if (userId) return userId;
+  
+  // In development, also accept explicit query param override for testing
+  if (process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
+    return String(req.query.userId);
   }
-  if (process.env.NODE_ENV === 'development' && req.query && req.query.userId) return String(req.query.userId);
+  
   return null;
 }
 

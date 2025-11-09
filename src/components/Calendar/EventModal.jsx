@@ -197,9 +197,25 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
           <div className="flex items-center">
             {modalMode === 'edit' && (
               // Open the delete scope chooser immediately for clarity and discoverability
-              <button onClick={() => setShowScopeModal(true)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 mr-4">
-                <Trash2 className="w-4 h-4" /> Delete
-              </button>
+              <>
+                <button onClick={() => setShowScopeModal(true)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 mr-4">
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+                <button onClick={async () => {
+                  if (!selectedEvent) return;
+                  try {
+                    const ok = window.confirm('Archive this event? This will move it to archived events.');
+                    if (!ok) return;
+                    // Request server to archive this event (server will move row to archived_events)
+                    await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) });
+                  } catch (e) {
+                    console.warn('Archive request failed', e);
+                  }
+                  try { if (typeof window !== 'undefined') window.location.reload(); } catch (e) {}
+                }} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2 mr-4">
+                  Archive
+                </button>
+              </>
             )}
           </div>
 

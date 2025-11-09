@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useModal } from "@/providers/modal-context";
+import { useToast } from "@/providers/toast-provider";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
 import EditScopeModal from "@/components/Timetable/EditScopeModal";
 import { Event, CustomEventModal } from "@/types";
@@ -79,6 +80,7 @@ interface EventStyledProps {
 
 export default function EventStyled({ event, onDelete, CustomEventModal }: EventStyledProps) {
   const { setOpen } = useModal();
+  const { showToast } = useToast();
   const { handlers } = useScheduler();
   const deleteBtnRef = useRef<HTMLButtonElement | null>(null);
   const [showDeleteScope, setShowDeleteScope] = useState(false);
@@ -208,7 +210,7 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
         padding: '2px'
       }}
     >
-      {/* Delete button - styled to be subtle and appear on hover (keeps existing delete logic) */}
+      {/* Delete button - subtle X icon on hover */}
       <button
         ref={deleteBtnRef}
         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
@@ -216,8 +218,17 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
           (async () => {
             try {
               const evAny: any = event || {};
+              
+              // Store event data for undo
+              const eventData = { ...evAny };
+              
+              // Check if this is a Smart Timetable event
+              const isSmartEvent = !!(evAny?.meta?.schedulePattern);
+              
+              // Check if it's a recurring series
               const tplId = evAny && (evAny.raw && (evAny.raw.template_id || evAny.raw.templateId)) || evAny.template_id || evAny.templateId || null;
               let isSeries = !!(evAny && (evAny.recurrence || evAny.repeatOption || tplId));
+              
               if (!isSeries && event?.id) {
                 try {
                   const resp = await fetch(`/api/events/${encodeURIComponent(event.id)}`);
@@ -230,22 +241,69 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
                 } catch (e) {}
               }
 
+              // For non-series events, delete with undo
               if (!isSeries) {
-                try { handlers.handleDeleteEvent(event?.id); } catch (e) { }
-                try { onDelete?.(event?.id); } catch (e) { }
+                try { 
+                  // Delete the event
+                  handlers.handleDeleteEvent(event?.id);
+                  onDelete?.(event?.id);
+                  
+                  // Show undo toast
+                  showToast(
+                    isSmartEvent 
+                      ? `Deleted Smart Schedule event "${eventData.title}"`
+                      : `Deleted "${eventData.title}"`,
+                    'undo',
+                    {
+                      duration: 8000,
+                      onUndo: async () => {
+                        try {
+                          // Recreate the event
+                          const response = await fetch('/api/events', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(eventData),
+                          });
+                          
+                          if (response.ok) {
+                            const result = await response.json();
+                            const restoredEvent = result?.event || result;
+                            
+                            // Notify scheduler
+                            if (handlers && typeof handlers.handleLocalAddEvent === 'function') {
+                              handlers.handleLocalAddEvent(restoredEvent);
+                            }
+                            
+                            showToast('Event restored successfully', 'success', { duration: 3000 });
+                          } else {
+                            showToast('Failed to restore event', 'error', { duration: 4000 });
+                          }
+                        } catch (error) {
+                          console.error('Undo failed:', error);
+                          showToast('Failed to restore event', 'error', { duration: 4000 });
+                        }
+                      }
+                    }
+                  );
+                } catch (e) {
+                  showToast('Failed to delete event', 'error', { duration: 4000 });
+                }
                 return;
               }
 
+              // For recurring series, show scope modal
               setShowDeleteScope(true);
             } catch (err) {
               try { handlers.handleDeleteEvent(event?.id); onDelete?.(event?.id); } catch (e) { }
+              showToast('An error occurred', 'error', { duration: 4000 });
             }
           })();
         }}
-        className="absolute right-1 top-1 w-5 h-5 rounded bg-red-500/80 hover:bg-red-600 dark:bg-red-600/80 dark:hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-sm"
+        className="absolute right-1 top-1 w-5 h-5 rounded bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10"
         aria-label="Delete event"
+        title="Delete event"
       >
-        <X className="w-3 h-3" strokeWidth={2.5} />
+        <X className="w-3.5 h-3.5" />
       </button>
 
       {/* Scope chooser when deleting a recurring series from the timetable */}
@@ -253,27 +311,33 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
         visible={showDeleteScope}
         mode={'delete'}
         onClose={() => setShowDeleteScope(false)}
-            onConfirm={async (scope) => {
-              try {
-                setShowDeleteScope(false);
-                const id = event?.id;
-                if (!id) return;
-                if (scope === 'single') {
-                  handlers.handleDeleteEvent(id);
-                  onDelete?.(id);
-                  return;
-                }
-                // scope === 'all' -> delegate to provider which will attempt
-                // server bulk delete and refresh provider state (centralized logic).
-                try {
-                  await handlers.handleDeleteEvent(id, 'all');
-                } catch (e) {
-                  console.warn('[EventStyled] handlers.handleDeleteEvent(scope=all) failed', e);
-                }
-              } catch (err) {
-                console.warn('Delete scope handler failed', err);
-              }
-            }}
+        onConfirm={async (scope) => {
+          try {
+            setShowDeleteScope(false);
+            const id = event?.id;
+            if (!id) return;
+            
+            if (scope === 'single') {
+              handlers.handleDeleteEvent(id);
+              onDelete?.(id);
+              showToast(`Deleted "${event?.title}"`, 'success', { duration: 3000 });
+              return;
+            }
+            
+            // scope === 'all' -> delegate to provider which will attempt
+            // server bulk delete and refresh provider state (centralized logic).
+            try {
+              await handlers.handleDeleteEvent(id, 'all');
+              showToast(`Deleted all occurrences of "${event?.title}"`, 'success', { duration: 3000 });
+            } catch (e) {
+              console.warn('[EventStyled] handlers.handleDeleteEvent(scope=all) failed', e);
+              showToast('Failed to delete all occurrences', 'error', { duration: 4000 });
+            }
+          } catch (err) {
+            console.warn('Delete scope handler failed', err);
+            showToast('An error occurred', 'error', { duration: 4000 });
+          }
+        }}
       />
 
       {CustomComp ? (
@@ -339,6 +403,29 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
           }}>
             {event?.title || 'Untitled Event'}
           </div>
+          {(event as any)?.meta?.schedulePattern && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '2px 6px',
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.15)',
+              border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.25)'}`,
+              borderRadius: '4px',
+              fontSize: '9px',
+              fontWeight: 700,
+              color: isDark ? '#a5b4fc' : '#6366f1',
+              textTransform: 'uppercase',
+              letterSpacing: '0.3px',
+              marginBottom: '2px',
+              width: 'fit-content',
+            }}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              Smart
+            </div>
+          )}
           <div style={{
             fontSize: '11px',
             fontWeight: 500,

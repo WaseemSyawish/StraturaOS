@@ -133,17 +133,16 @@ export default async function handler(req, res) {
   // Allow GET to fetch events for a user (used by the client)
   if (req.method === 'GET') {
     try {
-      // Prefer server-side auth token user id when available to ensure isolation.
-      // In development, allow a query param for testing. In production, require a valid token.
-      const { getToken } = await import('next-auth/jwt');
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      const tokenUserId = token && token.userId ? token.userId : null;
-      let userId = null;
-      if (tokenUserId) {
-        userId = tokenUserId;
-      } else if (process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
+      // Use shared auth resolver (accepts next-auth token or dev cookies)
+      const { resolveUser } = await import('../../../lib/resolveUser');
+      let userId = await resolveUser(req);
+      
+      // In development, also allow explicit query param override for testing
+      if (!userId && process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
         userId = String(req.query.userId);
-      } else {
+      }
+      
+      if (!userId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -353,10 +352,9 @@ export default async function handler(req, res) {
   } catch (e) {
     // ignore stringify errors
   }
-      // Prefer token-derived user id; otherwise accept provided userId only in development for testing
-      const { getToken } = await import('next-auth/jwt');
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      const tokenUserId = token && token.userId ? token.userId : null;
+      // Use shared auth resolver (accepts next-auth token or dev cookies)
+      const { resolveUser } = await import('../../../lib/resolveUser');
+      const tokenUserId = await resolveUser(req);
       const suppliedUserId = req.body && req.body.userId ? String(req.body.userId) : null;
   const incomingLocation = req.body && (req.body.location || req.body.room) ? (req.body.location || req.body.room) : null;
   console.info('[api/events] POST payload:', JSON.stringify({ title, type, courseId, date, time, description, durationMinutes, location: incomingLocation }));

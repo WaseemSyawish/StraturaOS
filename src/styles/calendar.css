@@ -3,7 +3,29 @@
   --calendar-muted: #6b7280; /* gray-500 */
 }
 
-.calendar-container { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
-.calendar-day { padding: 6px; }
-.calendar-event { border-radius: 4px; border: 1px solid #e5e7eb; padding: 4px; background: #f8fafc; }
-.bg-primary { background: var(--calendar-accent); }
+.calendar-container {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
+}
+.calendar-day {
+  padding: 6px;
+}
+.calendar-event {
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  padding: 4px;
+  background: #f8fafc;
+}
+.bg-primary {
+  background: var(--calendar-accent);
+}
+
+/* Hide scrollbar in calendar events sidebar */
+.calendar-scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.calendar-scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

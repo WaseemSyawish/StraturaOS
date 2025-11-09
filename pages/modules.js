@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings } from 'lucide-react';
 import Notification from '../src/components/Notification';
 import SemesterSettings from '../src/components/SemesterSettings';
 import { showCustomConfirm } from '@/utils/dialogs';
@@ -40,6 +40,7 @@ const ModulesManager = () => {
   // Semesters from database
   const [semesters, setSemesters] = useState([]);
   const [currentSemester, setCurrentSemester] = useState(null);
+  const [showSemesterConfig, setShowSemesterConfig] = useState(false);
 
   // Predefined color options
   const colorOptions = [
@@ -397,16 +398,40 @@ const ModulesManager = () => {
     setError(null);
   };
 
+  // Dynamic semester-based course filtering
   const getCurrentSemesterCourses = () => {
-    return courses.filter(course => course.semester === '2025-1');
+    if (!currentSemester) return [];
+    return courses.filter(course => course.semester === currentSemester.id);
   };
 
   const getUpcomingSemesterCourses = () => {
-    return courses.filter(course => course.semester === '2025-2');
+    const today = new Date();
+    const upcomingSemesters = semesters
+      .filter(s => new Date(s.start_date) > today)
+      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+    
+    if (upcomingSemesters.length === 0) return [];
+    
+    const nextSemester = upcomingSemesters[0];
+    return courses.filter(course => course.semester === nextSemester.id);
   };
 
   const getPreviousSemesterCourses = () => {
-    return courses.filter(course => !['2025-1', '2025-2'].includes(course.semester));
+    const today = new Date();
+    const previousSemesterIds = semesters
+      .filter(s => new Date(s.end_date) < today)
+      .map(s => s.id);
+    
+    return courses.filter(course => previousSemesterIds.includes(course.semester));
+  };
+
+  const getUpcomingSemester = () => {
+    const today = new Date();
+    const upcomingSemesters = semesters
+      .filter(s => new Date(s.start_date) > today)
+      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+    
+    return upcomingSemesters[0] || null;
   };
 
   const getTotalCredits = (coursesList) => {
@@ -540,18 +565,37 @@ const ModulesManager = () => {
         {/* Semester Configuration - Collapsible Section */}
         <div className="mb-8">
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                Semester Configuration
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Manage your academic semesters for course organization
-              </p>
-            </div>
-            <div className="p-6">
-              <SemesterSettings />
-            </div>
+            <button
+              onClick={() => setShowSemesterConfig(!showSemesterConfig)}
+              className="w-full p-6 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    Semester Configuration
+                    {semesters.length > 0 && (
+                      <span className="text-xs font-normal px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+                        {semesters.length} {semesters.length === 1 ? 'semester' : 'semesters'}
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    Manage your academic semesters for course organization
+                  </p>
+                </div>
+              </div>
+              <ChevronDown 
+                className={`w-5 h-5 text-slate-500 dark:text-slate-400 transition-transform ${showSemesterConfig ? 'rotate-180' : ''}`}
+              />
+            </button>
+            {showSemesterConfig && (
+              <div className="p-6 animate-in">
+                <SemesterSettings />
+              </div>
+            )}
           </div>
         </div>
 
@@ -603,7 +647,7 @@ const ModulesManager = () => {
               role="dialog"
               aria-modal="true"
               style={{ transformOrigin: 'center', animation: 'popIn 160ms cubic-bezier(.2,.9,.25,1)' }}
-              className={`relative w-full max-w-2xl max-h-[85vh] bg-slate-900 rounded-2xl shadow-2xl transform transition-all duration-300 overflow-y-auto ${
+              className={`relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl transform transition-all duration-300 overflow-y-auto ${
                 modalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
               }`}
             >
@@ -612,16 +656,16 @@ const ModulesManager = () => {
                 {/* Header */}
                 <div className="mb-4 flex items-start justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-white mb-0.5">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-0.5">
                       {editingCourse ? 'Edit Module' : 'Create Module'}
                     </h2>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
                       {editingCourse ? 'Update module details' : 'Add a new module to your schedule'}
                     </p>
                   </div>
                   <button
                     onClick={closeModal}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   >
                     <X size={20} />
                   </button>
@@ -631,8 +675,8 @@ const ModulesManager = () => {
                 <div className="space-y-4">
                   {/* Module Name */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                       </svg>
                       Module Name
@@ -642,8 +686,8 @@ const ModulesManager = () => {
                       value={courseForm.name}
                       onChange={(e) => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="e.g., Web Technologies, Database Systems"
-                      className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                        formErrors.name ? 'border-red-500' : 'border-slate-700'
+                      className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                        formErrors.name ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
                       }`}
                       maxLength={100}
                     />
@@ -660,8 +704,8 @@ const ModulesManager = () => {
                   {/* Module Code & Credits Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                         </svg>
                         Module Code
@@ -671,8 +715,8 @@ const ModulesManager = () => {
                         value={courseForm.code}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, code: e.target.value }))}
                         placeholder="e.g., CS301"
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.code ? 'border-red-500' : 'border-slate-700'
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.code ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
                         }`}
                         maxLength={20}
                       />
@@ -682,8 +726,8 @@ const ModulesManager = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                         Credits
@@ -694,8 +738,8 @@ const ModulesManager = () => {
                         max="20"
                         value={courseForm.credits}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, credits: e.target.value }))}
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.credits ? 'border-red-500' : 'border-slate-700'
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.credits ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
                         }`}
                       />
                       {formErrors.credits && (
@@ -707,8 +751,8 @@ const ModulesManager = () => {
                   {/* Instructor & Semester Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Instructor
@@ -718,8 +762,8 @@ const ModulesManager = () => {
                         value={courseForm.instructor}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, instructor: e.target.value }))}
                         placeholder="e.g., Dr. Smith"
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.instructor ? 'border-red-500' : 'border-slate-700'
+                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                          formErrors.instructor ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
                         }`}
                         maxLength={100}
                       />
@@ -729,13 +773,13 @@ const ModulesManager = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         Semester
                         {currentSemester && (
-                          <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 font-medium">
+                          <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-600 dark:text-green-300 font-medium">
                             Current
                           </span>
                         )}
@@ -743,7 +787,7 @@ const ModulesManager = () => {
                       <select
                         value={courseForm.semester}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, semester: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-700 appearance-none cursor-pointer"
+                        className="w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-300 dark:border-slate-700 appearance-none cursor-pointer"
                       >
                         <option value="">Select semester...</option>
                         {semesters.length === 0 ? (
@@ -753,7 +797,7 @@ const ModulesManager = () => {
                             <option 
                               key={semester.id} 
                               value={semester.id.toString()} 
-                              className="bg-slate-800"
+                              className="bg-white dark:bg-slate-800"
                             >
                               {semester.name}
                               {currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}
@@ -766,8 +810,8 @@ const ModulesManager = () => {
 
                     {/* Color Selector - Inline Grid */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                       </svg>
                       Color
@@ -782,7 +826,7 @@ const ModulesManager = () => {
                             onClick={() => setCourseForm(prev => ({ ...prev, color }))}
                             className={`h-10 rounded-lg transition-all ${
                               isSelected 
-                                ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900 scale-105' 
+                                ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-105' 
                                  : 'hover:scale-105'
                               }`}                              style={{ backgroundColor: color }}
                             title={color}
@@ -800,10 +844,10 @@ const ModulesManager = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={closeModal}
-                    className="px-6 py-2.5 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                    className="px-6 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -864,95 +908,143 @@ const ModulesManager = () => {
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-3">No Modules Yet</h3>
               <p className="text-gray-600 mb-2">Start organizing your academic schedule by adding your first module.</p>
-              <p className="text-sm text-gray-500">Click the "Add Module" button above to get started.</p>
+              {!currentSemester && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800">
+                    💡 <strong>Tip:</strong> Configure your semester settings first to organize your modules by academic period.
+                  </p>
+                  <button
+                    onClick={() => setShowSemesterConfig(true)}
+                    className="mt-3 text-sm text-amber-700 hover:text-amber-900 font-medium underline"
+                  >
+                    Set up semester configuration
+                  </button>
+                </div>
+              )}
+              <p className="text-sm text-gray-500 mt-4">Click the "Add Module" button above to get started.</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Current Semester */}
-            <div className="cozy rounded-xl shadow-lg mb-6">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Calendar className="text-green-600" size={20} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-800">Current Semester (2025/2026 - Semester 1)</h2>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <BookOpen size={14} />
-                          {getCurrentSemesterCourses().length} modules
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <GraduationCap size={14} />
-                          {getTotalCredits(getCurrentSemesterCourses())} credits
-                        </span>
-                      </div>
-                    </div>
+            {/* No Active Semester Message */}
+            {!currentSemester && semesters.length === 0 && (
+              <div className="mb-6 p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">No Semester Configured</h3>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                      Set up your academic semesters to organize modules by time period.
+                    </p>
+                    <button
+                      onClick={() => setShowSemesterConfig(true)}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Configure Semesters
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="p-6">
-                {getCurrentSemesterCourses().length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
-                    <h3 className="text-lg font-medium mb-2">No modules for current semester</h3>
-                    <p className="mb-6">Start building your academic schedule by adding your first module.</p>
-                    <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getCurrentSemesterCourses().map(course => (
-                      <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
-            {/* Upcoming Semester */}
-            <div className="cozy rounded-xl shadow-lg mb-6">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Calendar className="text-blue-600" size={20} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-800">Upcoming Semester (2025/2026 - Semester 2)</h2>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <BookOpen size={14} />
-                          {getUpcomingSemesterCourses().length} modules
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <GraduationCap size={14} />
-                          {getTotalCredits(getUpcomingSemesterCourses())} credits
-                        </span>
+            {/* Current Semester - Dynamic */}
+            {currentSemester && (
+              <div className="cozy rounded-xl shadow-lg mb-6">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Calendar className="text-green-600" size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-800">Current Semester — {currentSemester.name}</h2>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <BookOpen size={14} />
+                            {getCurrentSemesterCourses().length} modules
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <GraduationCap size={14} />
+                            {getTotalCredits(getCurrentSemesterCourses())} credits
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            {new Date(currentSemester.start_date).toLocaleDateString()} - {new Date(currentSemester.end_date).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
                   </div>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Upcoming</span>
+                </div>
+                <div className="p-6">
+                  {getCurrentSemesterCourses().length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
+                      <h3 className="text-lg font-medium mb-2">No modules for current semester</h3>
+                      <p className="mb-6">Start building your academic schedule by adding your first module.</p>
+                      <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getCurrentSemesterCourses().map(course => (
+                        <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="p-6">
-                {getUpcomingSemesterCourses().length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Clock size={48} className="mx-auto mb-4 opacity-30" />
-                    <h3 className="text-lg font-medium mb-2">No modules planned</h3>
-                    <p>Plan ahead for next semester by adding modules.</p>
+            )}
+
+            {/* Upcoming Semester - Dynamic */}
+            {getUpcomingSemester() && (
+              <div className="cozy rounded-xl shadow-lg mb-6">
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Calendar className="text-blue-600" size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-800">Upcoming Semester — {getUpcomingSemester().name}</h2>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <BookOpen size={14} />
+                            {getUpcomingSemesterCourses().length} modules
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <GraduationCap size={14} />
+                            {getTotalCredits(getUpcomingSemesterCourses())} credits
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} />
+                            Starts {new Date(getUpcomingSemester().start_date).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Upcoming</span>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getUpcomingSemesterCourses().map(course => (
-                      <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} isUpcoming={true} />
-                    ))}
-                  </div>
-                )}
+                </div>
+                <div className="p-6">
+                  {getUpcomingSemesterCourses().length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock size={48} className="mx-auto mb-4 opacity-30" />
+                      <h3 className="text-lg font-medium mb-2">No modules planned</h3>
+                      <p>Plan ahead for next semester by adding modules.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getUpcomingSemesterCourses().map(course => (
+                        <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} isUpcoming={true} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Previous Semesters */}
             {getPreviousSemesterCourses().length > 0 && (

@@ -19,9 +19,15 @@ const COLORS = [
   { key: "blue", name: "Blue", variant: "primary" as Variant, class: "bg-blue-500", hover: "hover:bg-blue-600" },
   { key: "red", name: "Red", variant: "danger" as Variant, class: "bg-red-500", hover: "hover:bg-red-600" },
   { key: "green", name: "Green", variant: "success" as Variant, class: "bg-green-500", hover: "hover:bg-green-600" },
-  { key: "yellow", name: "Yellow", variant: "warning" as Variant, class: "bg-yellow-500", hover: "hover:bg-yellow-600" },
+  { key: "orange", name: "Orange", variant: "warning" as Variant, class: "bg-orange-500", hover: "hover:bg-orange-600" },
   { key: "purple", name: "Purple", variant: "primary" as Variant, class: "bg-purple-500", hover: "hover:bg-purple-600" },
   { key: "pink", name: "Pink", variant: "danger" as Variant, class: "bg-pink-500", hover: "hover:bg-pink-600" },
+  { key: "cyan", name: "Cyan", variant: "info" as Variant, class: "bg-cyan-500", hover: "hover:bg-cyan-600" },
+  { key: "lime", name: "Lime", variant: "success" as Variant, class: "bg-lime-500", hover: "hover:bg-lime-600" },
+  { key: "amber", name: "Amber", variant: "warning" as Variant, class: "bg-amber-500", hover: "hover:bg-amber-600" },
+  { key: "indigo", name: "Indigo", variant: "primary" as Variant, class: "bg-indigo-500", hover: "hover:bg-indigo-600" },
+  { key: "teal", name: "Teal", variant: "success" as Variant, class: "bg-teal-500", hover: "hover:bg-teal-600" },
+  { key: "rose", name: "Rose", variant: "danger" as Variant, class: "bg-rose-500", hover: "hover:bg-rose-600" },
 ];
 
 const EVENT_TYPES = [
@@ -50,9 +56,19 @@ const EVENT_TYPES = [
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
     </svg>
   )},
+  { value: "quiz", label: "Quiz", icon: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  )},
   { value: "assignment", label: "Assignment", icon: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  )},
+  { value: "project", label: "Project", icon: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </svg>
   )},
   { value: "deadline", label: "Deadline", icon: (
@@ -1264,7 +1280,7 @@ export default function AddEventModal({
                 <textarea 
                   id="description" 
                   {...register("description")} 
-                  rows={3}
+                  rows={2}
                   placeholder="Add notes, agenda, or other details..." 
                   className={cn(
                     "w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm resize-none",
@@ -1308,15 +1324,15 @@ export default function AddEventModal({
                 </div>
               </div>
 
-              {/* Type and Color Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Type and Color - Stacked for better space usage */}
+              <div className="space-y-3">
                 {/* Type Dropdown */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    Type
+                    Event Type
                   </Label>
                   <div className="relative">
                     <button 
@@ -1353,7 +1369,7 @@ export default function AddEventModal({
                           onClick={() => setTypeOpen(false)}
                         />
             <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-2xl overflow-hidden animate-in dropdown-scroll hide-scrollbar"
-              style={{ maxHeight: '200px' }}>
+              style={{ maxHeight: '240px', overflowY: 'auto' }}>
                           {EVENT_TYPES.map((type) => (
                             <button 
                               key={type.value} 
@@ -1381,73 +1397,36 @@ export default function AddEventModal({
                   </div>
                 </div>
 
-                {/* Color Selector */}
+                {/* Color Selector - Compact Grid */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                     </svg>
                     Color
                   </Label>
-                  <div className="relative">
-                    <button 
-                      type="button" 
-                      onClick={() => setColorOpen(!colorOpen)}
-                      className={cn(
-                        "w-full h-10 px-3 rounded-lg text-sm font-semibold text-white",
-                        "flex items-center justify-between gap-2",
-                        "transition-all duration-200 hover:brightness-110",
-                        "shadow-lg",
-                        COLORS.find(c => c.key === selectedColor)?.class
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={cn("w-4 h-4 rounded border-2 border-white/30", COLORS.find(c => c.key === selectedColor)?.class)} />
-                        {COLORS.find(c => c.key === selectedColor)?.name}
-                      </span>
-                      <svg 
-                        className={cn("w-4 h-4 transition-transform duration-200", colorOpen && "rotate-180")} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
+                  <div className="grid grid-cols-6 gap-2">
+                    {COLORS.map((color) => (
+                      <button
+                        key={color.key}
+                        type="button"
+                        onClick={() => handleColorChange(color.key)}
+                        className={cn(
+                          "h-9 rounded-lg transition-all duration-200",
+                          "hover:scale-110 hover:shadow-lg",
+                          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+                          color.class,
+                          selectedColor === color.key && "ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400 dark:ring-offset-gray-900 scale-105"
+                        )}
+                        title={color.name}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    
-                    {colorOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setColorOpen(false)}
-                        />
-                        <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-2xl overflow-hidden animate-in">
-                          {COLORS.map((color) => (
-                            <button 
-                              key={color.key} 
-                              type="button" 
-                              onClick={() => handleColorChange(color.key)}
-                              className={cn(
-                                "w-full text-left px-3 py-2.5 text-sm font-semibold",
-                                "text-gray-900 dark:text-white flex items-center gap-2.5",
-                                "transition-all duration-150",
-                                color.class,
-                                "hover:brightness-110",
-                                selectedColor === color.key && "ring-2 ring-inset ring-blue-500/30 dark:ring-white/30"
-                              )}
-                            >
-                              <span className={cn("w-4 h-4 rounded border-2 border-white/30", color.class)} />
-                              <span className="flex-1">{color.name}</span>
-                              {selectedColor === color.key && (
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                        {selectedColor === color.key && (
+                          <svg className="w-4 h-4 text-white mx-auto drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

@@ -406,7 +406,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
+              <div className="p-6 overflow-y-auto calendar-scrollbar-hide" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
                 {selectedDate ? (
                   (() => {
                     const evs = getEventsForDate(selectedDate);

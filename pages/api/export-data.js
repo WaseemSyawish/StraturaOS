@@ -10,14 +10,20 @@ export default async function handler(req, res) {
     const { resolveUser } = await import('../../lib/resolveUser');
     let userId = await resolveUser(req);
     
+    console.log('[export-data] Resolved userId:', userId);
+    
     // Development fallback
     if (!userId && process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
       userId = String(req.query.userId);
+      console.log('[export-data] Using dev fallback userId:', userId);
     }
     
     if (!userId) {
+      console.error('[export-data] No userId found - unauthorized');
       return res.status(401).json({ error: 'Unauthorized - Please sign in' });
     }
+
+    console.log('[export-data] Fetching data for userId:', userId);
 
     // Fetch all user data in parallel
     const [events, courses, assessments, attendanceSessions, semesterSettings] = await Promise.all([

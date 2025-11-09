@@ -513,12 +513,18 @@ export default function SignInPolished() {
             >
               <div className="flex items-start gap-4 mb-4">
                 <div 
-                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                     background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
                   }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: '#ffffff', color: '#ffffff' }}>
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>

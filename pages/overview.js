@@ -71,7 +71,7 @@ function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
 
 export default function UniversityOverview() {
   const [currentDate] = useState(new Date());
-  const [userName] = useState('Waseem');
+  const [userName, setUserName] = useState('');
   const router = useRouter();
   
   // Modal context for creating events
@@ -85,6 +85,24 @@ export default function UniversityOverview() {
       return () => console.log('[Overview] unmounted from', router.asPath);
     } catch (e) { /* ignore */ }
   }, [router.asPath]);
+
+  // Fetch user name from session
+  useEffect(() => {
+    async function fetchUserName() {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.name) {
+            setUserName(data.name);
+          }
+        }
+      } catch (err) {
+        console.error('[Overview] Failed to fetch user name:', err);
+      }
+    }
+    fetchUserName();
+  }, []);
 
   // Data fetched from backend
   const [events, setEvents] = useState([]);

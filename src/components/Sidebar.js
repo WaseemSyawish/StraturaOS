@@ -97,7 +97,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     >
       {/* Header */}
       <div className="p-6 border-b border-gray-100 dark:border-white/6">
-        <div className="flex items-center justify-between">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isCollapsed && (
             <h1 className="text-xl font-semibold text-indigo-700 dark:text-indigo-300" style={{ letterSpacing: '-0.5px' }}>
               University Planner

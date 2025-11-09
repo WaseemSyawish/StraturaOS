@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock } from 'lucide-react';
 import Notification from '../src/components/Notification';
+import SemesterSettings from '../src/components/SemesterSettings';
 import { showCustomConfirm } from '@/utils/dialogs';
 
 const ModulesManager = () => {
@@ -531,6 +532,24 @@ const ModulesManager = () => {
               <Plus size={20} />
               Add Module
             </button>
+          </div>
+        </div>
+
+        {/* Semester Configuration - Collapsible Section */}
+        <div className="mb-8">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                Semester Configuration
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Manage your academic semesters for course organization
+              </p>
+            </div>
+            <div className="p-6">
+              <SemesterSettings />
+            </div>
           </div>
         </div>
 

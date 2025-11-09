@@ -957,57 +957,61 @@ const ModulesManager = () => {
               </div>
             )}
 
-            {/* Current Semester - Dynamic */}
-            {currentSemester && (
-              <div className="cozy rounded-xl shadow-lg mb-6">
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <Calendar className="text-green-600" size={20} />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-800">Current Semester — {currentSemester.name}</h2>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <BookOpen size={14} />
-                            {getCurrentSemesterCourses().length} modules
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <GraduationCap size={14} />
-                            {getTotalCredits(getCurrentSemesterCourses())} credits
-                          </span>
+            {/* Current Modules - ALWAYS SHOW */}
+            <div className="cozy rounded-xl shadow-lg mb-6">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Calendar className="text-green-600" size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-800">
+                        {currentSemester ? `Current Semester — ${currentSemester.name}` : 'All Modules'}
+                      </h2>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <BookOpen size={14} />
+                          {getCurrentSemesterCourses().length} modules
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <GraduationCap size={14} />
+                          {getTotalCredits(getCurrentSemesterCourses())} credits
+                        </span>
+                        {currentSemester && (
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
                             {new Date(currentSemester.start_date).toLocaleDateString()} - {new Date(currentSemester.end_date).toLocaleDateString()}
                           </span>
-                        </div>
+                        )}
                       </div>
                     </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
                   </div>
+                  {currentSemester && (
+                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
+                  )}
                 </div>
-                <div className="p-6">
-                  {getCurrentSemesterCourses().length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
-                      <h3 className="text-lg font-medium mb-2">No modules for current semester</h3>
-                      <p className="mb-6">Start building your academic schedule by adding your first module.</p>
-                      <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {getCurrentSemesterCourses().map(course => (
+              </div>
+              <div className="p-6">
+                {getCurrentSemesterCourses().length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
+                    <h3 className="text-lg font-medium mb-2">No modules yet</h3>
+                    <p className="mb-6">Start building your academic schedule by adding your first module.</p>
+                    <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {getCurrentSemesterCourses().map(course => (
                         <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} />
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-            )}
 
-            {/* Upcoming Semester - Dynamic */}
-            {getUpcomingSemester() && (
+            {/* Upcoming Semester - TEMPORARILY HIDDEN */}
+            {false && getUpcomingSemester() && (
               <div className="cozy rounded-xl shadow-lg mb-6">
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
@@ -1054,8 +1058,8 @@ const ModulesManager = () => {
               </div>
             )}
 
-            {/* Previous Semesters */}
-            {getPreviousSemesterCourses().length > 0 && (
+            {/* Previous Semesters - TEMPORARILY HIDDEN */}
+            {false && getPreviousSemesterCourses().length > 0 && (
               <div className="cozy rounded-xl shadow-lg">
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">

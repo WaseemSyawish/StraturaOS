@@ -1,74 +1,23 @@
 /**
- * Comprehensive Next.js config for optimal performance.
- * - Production optimizations: compression, minification
- * - Development optimizations: faster rebuilds, persistent caching
- * - Excludes large data folders from watch
+ * Simplified Next.js config to fix webpack runtime errors
  */
 const path = require('path');
-const webpack = require('webpack');
 
 module.exports = {
   reactStrictMode: false,
-  
-  // Production optimizations
   compress: true,
   poweredByHeader: false,
   
   webpack: (config, { dev, isServer }) => {
-    // Enable persistent caching for faster rebuilds
-    config.cache = config.cache || {};
-    config.cache.type = 'filesystem';
-
-    // Production optimizations
-    if (!dev) {
-      // Minimize bundle size
-      config.optimization = {
-        ...config.optimization,
-        minimize: true,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Vendor chunk
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20
-            },
-            // Common chunk
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true
-            }
-          }
-        }
-      };
+    // Disable problematic optimizations that cause webpack runtime errors
+    if (!dev && config.optimization) {
+      // Keep default Next.js splitting, don't override
+      delete config.optimization.splitChunks;
     }
-
-    // Reduce the number of files webpack watches in dev
-    if (dev) {
-      const watchOptions = config.watchOptions || {};
-      watchOptions.ignored = [
-        /node_modules/,
-        /\.next/,
-        /data/, // large JSON fixtures
-        /scripts/,
-        /\.vscode/,
-        /public/,
-      ];
-      config.watchOptions = watchOptions;
-    }
-
+    
     return config;
   },
   
-  // Reduce telemetry and logging
   eslint: {
     ignoreDuringBuilds: true,
   },

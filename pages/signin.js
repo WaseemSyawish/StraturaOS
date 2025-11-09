@@ -509,7 +509,7 @@ export default function SignInPolished() {
                     background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
                   }}
                 >
-                  <Lock className="w-6 h-6 text-white" />
+                  <Lock className="w-6 h-6" style={{ color: '#ffffff', stroke: '#ffffff' }} />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold" style={{ color: '#0f172a' }}>

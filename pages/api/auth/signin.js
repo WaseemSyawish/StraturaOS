@@ -4,15 +4,19 @@ const fs = require('fs');
 const path = require('path');
 
 function setSessionCookie(res, payload) {
+  console.log('[signin] Setting session cookie with payload:', JSON.stringify(payload, null, 2));
   const maxAge = 60 * 60 * 24 * 7; // 7 days in seconds
   const secret = process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret';
   const token = jwt.sign(payload, secret, { expiresIn: maxAge });
+  console.log('[signin] Generated JWT token (first 50 chars):', token.substring(0, 50));
   // Use a single cookie name 'session' for simplicity
   const secureFlag = process.env.NODE_ENV === 'production' ? 'Secure; ' : '';
   // HttpOnly, Path=/, SameSite=Lax and Max-Age (in seconds)
+  const cookieValue = `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; ${secureFlag}`;
+  console.log('[signin] Setting cookie:', cookieValue.substring(0, 100) + '...');
   res.setHeader(
     'Set-Cookie',
-    `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; ${secureFlag}`
+    cookieValue
   );
 }
 

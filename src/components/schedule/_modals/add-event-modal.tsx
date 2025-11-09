@@ -1192,7 +1192,7 @@ export default function AddEventModal({
 
   // Main form - ENHANCED with compact layout
   return (
-  <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto">
+  <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-b-2xl hide-modal-scrollbar">
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes slideIn {
           from {
@@ -1220,6 +1220,14 @@ export default function AddEventModal({
           width: 0px;
           height: 0px;
           background: transparent;
+        }
+        /* Hide modal scrollbar */
+        .hide-modal-scrollbar {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE 10+ */
+        }
+        .hide-modal-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
         }
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
@@ -1249,7 +1257,7 @@ export default function AddEventModal({
                   {...register("title")} 
                   placeholder="e.g., Team Meeting, Study Session" 
                   className={cn(
-                    "h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
+                    "w-full h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
                     "focus:outline-none focus:ring-2 focus:ring-blue-500",
                     errors.title ? "border-red-500" : "border-gray-200 dark:border-gray-700"
                   )} 

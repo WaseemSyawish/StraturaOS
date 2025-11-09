@@ -913,23 +913,12 @@ useEffect(() => {
 
     {/* Success Banner */}
     {successMessage && (
-      <div className="max-w-7xl mx-auto px-6 pt-6 animate-slide-down">
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <CheckCircle className="text-emerald-600 w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-emerald-900 font-semibold text-sm">Session Added Successfully</p>
-            <p className="text-emerald-700 text-sm">{successMessage}</p>
-          </div>
-          <button
-            onClick={() => setSuccessMessage(null)}
-            className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 p-2 rounded-lg transition-colors flex-shrink-0"
-            aria-label="Dismiss"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <Notification 
+          type="success" 
+          message={successMessage} 
+          onClose={() => setSuccessMessage(null)} 
+        />
       </div>
     )}
 

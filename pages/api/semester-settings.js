@@ -1,41 +1,11 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from './auth/[...nextauth]';
-import { getToken } from 'next-auth/jwt';
 import prisma from '../../lib/prisma';
 
-// Helper to resolve userId from session with development fallbacks
-async function resolveUserId(req, res) {
-  try {
-    // Try next-auth token first
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (tokenUserId) return tokenUserId;
-
-    // In development, allow fallback cookies
-    if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-      if (req.cookies.userId) return req.cookies.userId;
-      if (req.cookies.debug_userId) return req.cookies.debug_userId;
-    }
-
-    // Try session as final fallback
-    const session = await getServerSession(req, res, authOptions);
-    if (!session?.user?.email) return null;
-    
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true }
-    });
-    
-    return user?.id || null;
-  } catch (err) {
-    console.error('resolveUserId error', err);
-    return null;
-  }
-}
+// Import the centralized resolveUser that checks all cookie types
+const { resolveUser } = require('../../lib/resolveUser');
 
 export default async function handler(req, res) {
   try {
-    const userId = await resolveUserId(req, res);
+    const userId = await resolveUser(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }

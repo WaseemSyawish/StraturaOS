@@ -483,21 +483,47 @@ const GradesPage = () => {
         if (!mounted) return;
         setCourses(allCourses);
 
-        // Derive semesters list dynamically from server records, but ensure 2025-1 and 2025-2 are present
-        const semesterTokens = Array.from(new Set(allCourses.map(c => c.semester).filter(Boolean)));
+        // Fetch semester settings from the new dynamic system
+        let semesterSettings = [];
+        try {
+          const semRes = await fetch('/api/semester-settings');
+          if (semRes.ok) {
+            const semData = await semRes.json();
+            if (semData.success && Array.isArray(semData.semesters)) {
+              semesterSettings = semData.semesters;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to fetch semester settings:', e);
+        }
 
-        // Ensure these two common tokens exist so the dropdown always contains them
-        const required = ['2025-1', '2025-2'];
-        for (const r of required) if (!semesterTokens.includes(r)) semesterTokens.push(r);
+        // Build semester dropdown from semester_settings table
+        if (semesterSettings.length > 0) {
+          // Use the new dynamic semester system
+          const built = [
+            { value: 'all', label: 'All Semesters' },
+            ...semesterSettings.map(sem => ({
+              value: sem.id, // Use semester ID for filtering
+              label: sem.name // Display semester name
+            }))
+          ];
+          setSemesters(built);
+        } else {
+          // Fallback: derive from course semester fields (backward compatibility)
+          const semesterTokens = Array.from(new Set(allCourses.map(c => c.semester).filter(Boolean)));
 
-        const humanize = (s) => {
-          const m = String(s).match(/^(\d{4})-(\d)$/);
-          if (m) return `${m[1]}/${Number(m[1]) + 1} - Semester ${m[2]}`;
-          return String(s).replace(/[-_]/g, ' ');
-        };
+          const humanize = (s) => {
+            const m = String(s).match(/^(\d{4})-(\d)$/);
+            if (m) return `${m[1]}/${Number(m[1]) + 1} - Semester ${m[2]}`;
+            return String(s).replace(/[-_]/g, ' ');
+          };
 
-        const built = [{ value: 'all', label: 'All Semesters' }, ...semesterTokens.map(s => ({ value: s, label: humanize(s) }))];
-        setSemesters(built);
+          const built = [
+            { value: 'all', label: 'All Semesters' }, 
+            ...semesterTokens.map(s => ({ value: s, label: humanize(s) }))
+          ];
+          setSemesters(built);
+        }
 
         // compute credits and courses count
         const creditsSum = allCourses.reduce((s, c) => s + (c.credits ? Number(c.credits) : 0), 0);

@@ -95,19 +95,27 @@ export default function UniversityOverview() {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
         if (res.ok) {
           const data = await res.json();
-          // Just set the name, don't redirect on auth failures
-          setUserName(data.name || 'User');
-          setIsAuthenticated(true);
+          if (data.authenticated) {
+            // User is authenticated - set name and fetch data
+            setUserName(data.name || 'User');
+            setIsAuthenticated(true);
+          } else {
+            // Not authenticated but don't redirect - just show as guest
+            console.log('[Overview] Not authenticated, allowing guest access');
+            setUserName('Guest');
+            setIsAuthenticated(false);
+          }
         } else {
-          // Allow access anyway
-          setUserName('User');
-          setIsAuthenticated(true);
+          // Auth API failed but don't redirect - allow guest access
+          console.log('[Overview] Auth API failed with status:', res.status);
+          setUserName('Guest');
+          setIsAuthenticated(false);
         }
       } catch (err) {
-        console.error('[Overview] Auth check failed:', err);
-        // Allow access anyway
-        setUserName('User');
-        setIsAuthenticated(true);
+        console.error('[Overview] Auth check error:', err);
+        // Error during auth check - allow guest access
+        setUserName('Guest');
+        setIsAuthenticated(false);
       } finally {
         setAuthChecked(true);
       }

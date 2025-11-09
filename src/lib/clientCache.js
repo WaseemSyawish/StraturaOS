@@ -1,8 +1,17 @@
 // Enhanced client-side cache with TTL, invalidation, and size limits
+// IMPORTANT: This cache only works in browser (client-side), not during SSR
 const MAX_CACHE_SIZE = 50; // Prevent memory bloat
-const cache = (typeof window !== 'undefined' && window.__UP_CACHE) ? window.__UP_CACHE : (typeof window !== 'undefined' ? (window.__UP_CACHE = {}) : {});
+
+// Initialize cache only in browser environment
+let cache = {};
+if (typeof window !== 'undefined') {
+  cache = window.__UP_CACHE || (window.__UP_CACHE = {});
+}
 
 export function getCached(key) {
+  // Return null during SSR
+  if (typeof window === 'undefined') return null;
+  
   try {
     const entry = cache[key];
     if (!entry) return null;
@@ -16,6 +25,9 @@ export function getCached(key) {
 }
 
 export function setCached(key, value, ttlMs = 60 * 1000) {
+  // Skip during SSR
+  if (typeof window === 'undefined') return;
+  
   try {
     // Enforce cache size limit
     const keys = Object.keys(cache);
@@ -36,6 +48,9 @@ export function setCached(key, value, ttlMs = 60 * 1000) {
 }
 
 export function invalidateCache(pattern) {
+  // Skip during SSR
+  if (typeof window === 'undefined') return;
+  
   try {
     if (typeof pattern === 'string') {
       delete cache[pattern];
@@ -48,6 +63,9 @@ export function invalidateCache(pattern) {
 }
 
 export function clearCache() {
+  // Skip during SSR
+  if (typeof window === 'undefined') return;
+  
   try {
     Object.keys(cache).forEach(k => delete cache[k]);
   } catch (e) { /* ignore */ }

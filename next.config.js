@@ -1,6 +1,6 @@
 /**
  * Comprehensive Next.js config for optimal performance.
- * - Production optimizations: compression, minification, image optimization
+ * - Production optimizations: compression, minification
  * - Development optimizations: faster rebuilds, persistent caching
  * - Excludes large data folders from watch
  */
@@ -12,9 +12,6 @@ module.exports = {
   // Production optimizations
   compress: true,
   poweredByHeader: false,
-  
-  // Optimize page loading
-  optimizeFonts: true,
   
   webpack: (config, { dev, isServer }) => {
     // Enable persistent caching for faster rebuilds
@@ -74,7 +71,4 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
-  // Enable SWC minification (faster than Terser)
-  swcMinify: true,
 };

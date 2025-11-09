@@ -92,21 +92,49 @@ export default function UniversityOverview() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        console.log('[Overview] Starting auth check...');
+        const res = await fetch('/api/auth/me', { 
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        console.log('[Overview] Auth response status:', res.status);
+        
         if (res.ok) {
           const data = await res.json();
+          console.log('[Overview] Auth data:', data);
           if (data.authenticated) {
             setUserName(data.name || 'User');
             setIsAuthenticated(true);
+            console.log('[Overview] User authenticated:', data.name);
+          } else {
+            console.log('[Overview] User not authenticated');
+            setUserName('User');
           }
+        } else {
+          console.log('[Overview] Auth check failed with status:', res.status);
+          setUserName('User');
         }
       } catch (err) {
         console.error('[Overview] Auth check error:', err);
+        setUserName('User');
       } finally {
+        console.log('[Overview] Auth check complete, setting authChecked=true');
         setAuthChecked(true);
       }
     }
-    checkAuth();
+    
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.log('[Overview] Auth check timeout, forcing authChecked=true');
+      setAuthChecked(true);
+      setUserName('User');
+    }, 5000); // 5 second timeout
+    
+    checkAuth().finally(() => clearTimeout(timeout));
+    
+    return () => clearTimeout(timeout);
   }, [router]);
 
   // Data fetched from backend

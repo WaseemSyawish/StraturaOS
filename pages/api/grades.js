@@ -61,6 +61,9 @@ export default async function handler(req, res) {
     case 'GET':
       // Get courses for authenticated user only
       try {
+        // Add cache headers for performance
+        res.setHeader('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=30');
+        
         const userId = await resolveUser(req);
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 

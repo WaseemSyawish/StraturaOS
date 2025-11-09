@@ -2,6 +2,9 @@
 // Removed an earlier simplistic file-based handler to avoid duplicate default exports.
 import { PrismaClient } from '@prisma/client';
 
+// Import the centralized resolveUser that checks all cookie types
+const { resolveUser } = require('../../lib/resolveUser');
+
 let prisma;
 let prismaUsable = true;
 
@@ -86,36 +89,9 @@ async function handleGet(req, res) {
   // Allow clients to pass courseCode or course (name) as a convenience.
   // We'll attempt to resolve to a concrete courseId below after auth.
 
-  // Resolve user from next-auth token only (required)
-  let effectiveUserId = null;
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    // Accept tokens that store user id as `userId` or `sub` (NextAuth variations)
-    effectiveUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (token && !effectiveUserId) {
-      try { console.log('Attendance GET: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
-    }
-  } catch (e) {
-    console.warn('Failed to resolve token in attendance GET', e);
-  }
-
-  // Development fallback: allow debug cookies (userId / debug_userId) when next-auth token is not present
-  if (!effectiveUserId) {
-    try {
-      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-        if (req.cookies.userId) {
-          effectiveUserId = req.cookies.userId;
-          console.log('Attendance GET: using dev cookie userId fallback');
-        } else if (req.cookies.debug_userId) {
-          effectiveUserId = req.cookies.debug_userId;
-          console.log('Attendance GET: using dev cookie debug_userId fallback');
-        }
-      }
-    } catch (e) {
-      // ignore cookie parsing issues
-    }
-  }
+  // Resolve user using centralized auth function
+  const effectiveUserId = await resolveUser(req);
+  
   // Debug: log resolved user for troubleshooting missing sessions
   try {
     console.log('Attendance GET called - resolved user:', effectiveUserId, 'query:', req.query);
@@ -269,33 +245,8 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const { date, status, points, courseId, notes } = req.body;
 
-  // Resolve user id from token (required)
-  let effectiveUserId = null;
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    effectiveUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (token && !effectiveUserId) {
-      try { console.log('Attendance POST: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
-    }
-  } catch (e) {
-    console.warn('Failed to resolve token in attendance POST', e);
-  }
-
-  // Development cookie fallback for POST as well
-  if (!effectiveUserId) {
-    try {
-      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-        if (req.cookies.userId) {
-          effectiveUserId = req.cookies.userId;
-          console.log('Attendance POST: using dev cookie userId fallback');
-        } else if (req.cookies.debug_userId) {
-          effectiveUserId = req.cookies.debug_userId;
-          console.log('Attendance POST: using dev cookie debug_userId fallback');
-        }
-      }
-    } catch (e) {}
-  }
+  // Resolve user using centralized auth function
+  const effectiveUserId = await resolveUser(req);
 
   if (!effectiveUserId) {
     return res.status(401).json({ success: false, error: 'Not authenticated' });
@@ -447,33 +398,8 @@ async function handlePut(req, res) {
   }
 
   try {
-    // Resolve auth token to identify user and verify the session belongs to them
-    let tokenUserId = null;
-    try {
-      const { getToken } = await import('next-auth/jwt');
-      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-      tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-      if (token && !tokenUserId) {
-        try { console.log('Attendance PUT: token present but no userId/sub claims:', Object.keys(token || {})); } catch (e) {}
-      }
-    } catch (e) {
-      console.warn('Failed to resolve token in attendance PUT', e);
-    }
-
-    // Development cookie fallback for PUT
-    if (!tokenUserId) {
-      try {
-        if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-          if (req.cookies.userId) {
-            tokenUserId = req.cookies.userId;
-            console.log('Attendance PUT: using dev cookie userId fallback');
-          } else if (req.cookies.debug_userId) {
-            tokenUserId = req.cookies.debug_userId;
-            console.log('Attendance PUT: using dev cookie debug_userId fallback');
-          }
-        }
-      } catch (e) {}
-    }
+    // Resolve auth token using centralized function
+    const tokenUserId = await resolveUser(req);
 
     if (!tokenUserId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
@@ -630,34 +556,8 @@ async function handleDelete(req, res) {
     });
   }
 
-  // Resolve user id from token (required)
-  let tokenUserId = null;
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    // Accept token.userId or token.sub
-    tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (token && !tokenUserId) {
-      try { console.log('Attendance DELETE: token present but missing userId/sub claims:', Object.keys(token || {})); } catch (e) {}
-    }
-  } catch (e) {
-    console.warn('Failed to resolve token in attendance DELETE', e);
-  }
-
-  // Development cookie fallback (match courses API behavior)
-  if (!tokenUserId) {
-    try {
-      if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
-        if (req.cookies.userId) {
-          tokenUserId = req.cookies.userId;
-          console.log('Attendance DELETE: using dev cookie userId fallback');
-        } else if (req.cookies.debug_userId) {
-          tokenUserId = req.cookies.debug_userId;
-          console.log('Attendance DELETE: using dev cookie debug_userId fallback');
-        }
-      }
-    } catch (e) {}
-  }
+  // Resolve user using centralized auth function
+  const tokenUserId = await resolveUser(req);
 
   try { console.log('Attendance DELETE called - resolved user:', tokenUserId, 'body:', req.body); } catch (e) {}
 

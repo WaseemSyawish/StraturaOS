@@ -133,6 +133,9 @@ export default async function handler(req, res) {
   // Allow GET to fetch events for a user (used by the client)
   if (req.method === 'GET') {
     try {
+      // Add cache headers for performance
+      res.setHeader('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=30');
+      
       // Use shared auth resolver (accepts next-auth token or dev cookies)
       const { resolveUser } = await import('../../../lib/resolveUser');
       let userId = await resolveUser(req);

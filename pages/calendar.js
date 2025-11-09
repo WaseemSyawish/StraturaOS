@@ -365,15 +365,12 @@ export default function CalendarPage() {
                           }`}>
                             {day.date.getDate()}
                           </div>
+                          {holiday && (
+                            <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" title={holiday} />
+                          )}
                         </div>
 
-                        {holiday && (
-                          <div className="mb-2 flex-shrink-0">
-                            <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap gap-1.5 overflow-hidden">
+                        <div className="flex flex-wrap gap-1.5 overflow-hidden max-h-[2.5rem]">
                           {dayEvents.slice(0, 3).map((item) => (
                             <div
                               key={item.id}

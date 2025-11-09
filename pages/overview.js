@@ -7,7 +7,7 @@ import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 
-function CalendarHeader({ userName }) {
+const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
   const router = useRouter();
   return (
     <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
@@ -47,9 +47,9 @@ function CalendarHeader({ userName }) {
       </div>
     </header>
   );
-}
+});
 
-function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
+const StatCard = React.memo(function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
   return (
     <div className="group bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       <div className="flex items-start justify-between mb-4">
@@ -67,7 +67,7 @@ function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
       </p>
     </div>
   );
-}
+});
 
 export default function UniversityOverview() {
   const [currentDate] = useState(new Date());
@@ -177,21 +177,25 @@ export default function UniversityOverview() {
   const [assignmentsDueCount, setAssignmentsDueCount] = useState(0);
   const [studyHoursLogged, setStudyHoursLogged] = useState(0);
 
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  // Memoize week calculations for performance
+  const weekDays = useMemo(() => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], []);
+  const startOfWeek = useMemo(() => {
+    const date = new Date(currentDate);
+    date.setDate(currentDate.getDate() - currentDate.getDay());
+    return date;
+  }, [currentDate]);
 
   // Derived lists from fetched data
-  const isSameDay = (a, b) => {
+  const isSameDay = useCallback((a, b) => {
     try {
       if (!a || !b) return false;
       const da = new Date(String(a));
       const db = new Date(String(b));
       return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
     } catch (e) { return false; }
-  };
+  }, []);
 
-  const formatTime = (v) => {
+  const formatTime = useCallback((v) => {
     try {
       if (!v) return '';
       // v may be 'HH:MM' or an ISO string
@@ -200,16 +204,16 @@ export default function UniversityOverview() {
       if (isNaN(d.getTime())) return '';
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (e) { return ''; }
-  };
+  }, []);
 
-  const formatDue = (ev) => {
+  const formatDue = useCallback((ev) => {
     try {
       if (!ev) return '';
       if (ev.startDate) return new Date(ev.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       if (ev.date) return typeof ev.date === 'string' ? ev.date : new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       return '';
     } catch (e) { return ''; }
-  };
+  }, []);
 
   const todayClasses = useMemo(() => {
     try {
@@ -288,7 +292,7 @@ export default function UniversityOverview() {
       try { console.timeEnd && console.timeEnd('overview:memo:todayClasses'); } catch (e) {}
       return list;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:todayClasses'); } catch (e) {} return []; }
-  }, [events, courses, currentDate]);
+  }, [events, courses, currentDate, mounted, isSameDay, formatTime]);
 
   const upcomingDeadlines = useMemo(() => {
     try {
@@ -315,7 +319,7 @@ export default function UniversityOverview() {
       try { console.timeEnd && console.timeEnd('overview:memo:upcomingDeadlines'); } catch (e) {}
       return list;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:upcomingDeadlines'); } catch (e) {} return []; }
-  }, [events, currentDate, completedDeadlines]);
+  }, [events, currentDate, completedDeadlines, formatDue]);
 
   const visibleUpcomingDeadlines = useMemo(() => {
     try {

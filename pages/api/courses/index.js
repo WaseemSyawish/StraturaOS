@@ -12,6 +12,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
+      // Add cache headers for performance
+      res.setHeader('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=30');
+      
       const userId = await resolveUser(req);
       try { console.log('GET /api/courses - resolved userId:', userId, 'query:', req.query, 'NODE_ENV:', process.env.NODE_ENV); } catch (e) {}
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });

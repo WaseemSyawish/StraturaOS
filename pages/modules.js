@@ -53,6 +53,10 @@ const ModulesManager = () => {
   const fetchSemesters = async () => {
     try {
       const response = await fetch('/api/semester-settings');
+      if (!response.ok) {
+        console.warn('Failed to fetch semesters, continuing without semester filtering');
+        return; // Silently fail - modules will show all courses
+      }
       const data = await response.json();
       if (data.success && data.settings) {
         setSemesters(data.settings);
@@ -85,7 +89,8 @@ const ModulesManager = () => {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch semesters:', err);
+      console.warn('Failed to fetch semesters:', err);
+      // Silently fail - modules will show all courses without semester filtering
     }
   };
 
@@ -563,7 +568,8 @@ const ModulesManager = () => {
           </div>
         </div>
 
-        {/* Semester Configuration - Collapsible Section */}
+        {/* Semester Configuration - TEMPORARILY DISABLED until API is fixed */}
+        {false && (
         <div className="mb-8">
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <button
@@ -599,6 +605,7 @@ const ModulesManager = () => {
             )}
           </div>
         </div>
+        )}
 
         {/* Add/Edit Modal */}
         {showAddForm && (

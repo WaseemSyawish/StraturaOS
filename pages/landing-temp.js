@@ -330,5 +330,8 @@ export default function Welcome() {
             </div>
           </div>
         </section>
-
+      </main>
+    </div>
+  );
+}
 

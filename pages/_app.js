@@ -1,4 +1,10 @@
 // pages/_app.js
+
+// SSR Polyfill - CRITICAL: Define 'self' for Node.js environment BEFORE any imports
+if (typeof self === 'undefined' && typeof global !== 'undefined') {
+  global.self = global;
+}
+
 import Head from 'next/head'
 import '../src/App.css'
 import '../src/index.css'

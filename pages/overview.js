@@ -95,8 +95,9 @@ export default function UniversityOverview() {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
         if (res.ok) {
           const data = await res.json();
-          if (data.authenticated && data.name) {
-            setUserName(data.name);
+          if (data.authenticated) {
+            // User is authenticated - set name (or default if missing)
+            setUserName(data.name || 'User');
             setIsAuthenticated(true);
           } else {
             // Not authenticated - redirect to signin

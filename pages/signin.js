@@ -498,7 +498,7 @@ export default function SignInPolished() {
         {/* Password Reset Modal */}
         {showResetModal && (
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 forgot-password-modal"
             style={{
               background: 'rgba(0, 0, 0, 0.5)',
               backdropFilter: 'blur(4px)'
@@ -513,6 +513,7 @@ export default function SignInPolished() {
             >
               <div className="flex items-start gap-4 mb-4">
                 <div 
+                  className="lock-icon-container"
                   style={{
                     width: '48px',
                     height: '48px',

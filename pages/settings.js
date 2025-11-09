@@ -296,10 +296,15 @@ export default function Settings() {
     setIsDownloading(true);
     setError('');
     try {
-      const res = await fetch('/api/export-data');
+      const res = await fetch('/api/export-data', {
+        credentials: 'same-origin'
+      });
       
       if (!res.ok) {
-        throw new Error('Failed to export data');
+        // Get the actual error message from the API
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[settings] Export failed:', res.status, errorData);
+        throw new Error(errorData.error || `Failed to export data (${res.status})`);
       }
 
       // Get the blob from response

@@ -207,6 +207,13 @@ html.dark {
   stroke: currentColor !important;
 }
 
+/* OVERRIDE: Force Lock icon in forgot password modal to be white */
+.signin-page [style*="linear-gradient(135deg, #a855f7"] svg,
+.signin-page .forgot-password-modal svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
 /* Force the brand logo SVG to be white on the auth pages (overrides the
    generic svg rule above). This ensures the graduation icon appears white
    even if other svg rules attempt to recolor icons. */

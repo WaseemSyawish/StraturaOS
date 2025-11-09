@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "date": "2025-11-10",
+    "name": "Election Day",
+    "type": "public"
+  },
+  {
+    "date": "2025-11-11",
+    "name": "Election Day",
+    "type": "public"
+  },
+  {
+    "date": "2025-11-12",
+    "name": "Election Day",
+    "type": "public"
+  }
+]

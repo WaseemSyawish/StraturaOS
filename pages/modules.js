@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock } from 'lucide-react';
 import Notification from '../src/components/Notification';
-import SemesterSettings from '../src/components/SemesterSettings';
 import { showCustomConfirm } from '@/utils/dialogs';
 
 const ModulesManager = () => {
@@ -534,9 +533,6 @@ const ModulesManager = () => {
             </button>
           </div>
         </div>
-
-        {/* Semester Configuration */}
-        <SemesterSettings />
 
         {/* Add/Edit Modal */}
         {showAddForm && (

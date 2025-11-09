@@ -9,9 +9,14 @@ export default function SignInPolished() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [resetCurrentPassword, setResetCurrentPassword] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [showResetCurrentPassword, setShowResetCurrentPassword] = useState(false);
+  const [showResetNewPassword, setShowResetNewPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -120,8 +125,8 @@ export default function SignInPolished() {
     setResetError('');
     setResetSuccess(false);
 
-    if (!resetEmail) {
-      setResetError('Please enter your email address');
+    if (!resetEmail || !resetCurrentPassword || !resetNewPassword) {
+      setResetError('All fields are required');
       return;
     }
 
@@ -131,12 +136,21 @@ export default function SignInPolished() {
       return;
     }
 
+    if (resetNewPassword.length < 8) {
+      setResetError('New password must be at least 8 characters');
+      return;
+    }
+
     setResetLoading(true);
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail.trim() })
+        body: JSON.stringify({ 
+          email: resetEmail.trim(),
+          currentPassword: resetCurrentPassword,
+          newPassword: resetNewPassword
+        })
       });
 
       const json = await res.json().catch(() => ({}));
@@ -144,26 +158,16 @@ export default function SignInPolished() {
       if (res.ok) {
         setResetSuccess(true);
         setResetEmail('');
+        setResetCurrentPassword('');
+        setResetNewPassword('');
         
-        // If dev mode and we got a dev link, show it
-        if (json?.devLink && process.env.NODE_ENV === 'development') {
-          console.log('🔗 Password Reset Link (DEV MODE):', json.devLink);
-          // Show clickable link in success message
-          setResetError(''); // Clear any previous errors
-          setTimeout(() => {
-            if (confirm('Email not configured. Open reset link now? (Check console for link)')) {
-              window.location.href = json.devLink;
-            }
-          }, 100);
-        }
-        
-        // Close modal after 3 seconds
+        // Auto-close modal after 2 seconds
         setTimeout(() => {
           setShowResetModal(false);
           setResetSuccess(false);
-        }, 3000);
+        }, 2000);
       } else {
-        setResetError(json?.error || 'Failed to send reset email. Please try again.');
+        setResetError(json?.error || 'Failed to reset password. Please try again.');
       }
     } catch (err) {
       setResetError('Network error. Please try again.');
@@ -251,7 +255,10 @@ export default function SignInPolished() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" style={{ zIndex: 10 }}>
-                    <Lock className="h-5 w-5" style={{ color: '#94a3b8' }} />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
                   </div>
                   <input
                     key={showPassword ? 'text' : 'password'}
@@ -512,17 +519,17 @@ export default function SignInPolished() {
                     background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
                   }}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff', stroke: '#ffffff' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ffffff' }}>
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                   </svg>
                 </div>
                 <div>
                   <h3 className="text-lg font-bold" style={{ color: '#0f172a' }}>
-                    Reset Password
+                    Change Password
                   </h3>
                   <p className="text-sm mt-1" style={{ color: '#64748b' }}>
-                    Enter your email and we'll send you instructions to reset your password
+                    Enter your current password and choose a new one
                   </p>
                 </div>
               </div>
@@ -559,6 +566,90 @@ export default function SignInPolished() {
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="reset-current-password" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </div>
+                    <input
+                      id="reset-current-password"
+                      type={showResetCurrentPassword ? "text" : "password"}
+                      value={resetCurrentPassword}
+                      onChange={(e) => setResetCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.75rem 2.5rem 0.75rem 2.5rem',
+                        borderRadius: '0.5rem',
+                        backgroundColor: '#f8fafc',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
+                        outline: 'none',
+                        fontSize: '1rem',
+                        lineHeight: '1.5',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetCurrentPassword(!showResetCurrentPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      {showResetCurrentPassword ? <EyeOff className="h-5 w-5" style={{ color: '#94a3b8' }} /> : <Eye className="h-5 w-5" style={{ color: '#94a3b8' }} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="reset-new-password" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                    </div>
+                    <input
+                      id="reset-new-password"
+                      type={showResetNewPassword ? "text" : "password"}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 8 characters)"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '0.75rem 2.5rem 0.75rem 2.5rem',
+                        borderRadius: '0.5rem',
+                        backgroundColor: '#f8fafc',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
+                        outline: 'none',
+                        fontSize: '1rem',
+                        lineHeight: '1.5',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetNewPassword(!showResetNewPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      {showResetNewPassword ? <EyeOff className="h-5 w-5" style={{ color: '#94a3b8' }} /> : <Eye className="h-5 w-5" style={{ color: '#94a3b8' }} />}
+                    </button>
+                  </div>
+                </div>
+
                 {resetError && (
                   <div 
                     className="rounded-lg p-3 flex items-start gap-3"
@@ -583,10 +674,10 @@ export default function SignInPolished() {
                     <GraduationCap className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
                     <div>
                       <p className="text-sm font-medium" style={{ color: '#16a34a' }}>
-                        Reset instructions sent!
+                        Password updated successfully!
                       </p>
                       <p className="text-sm mt-1" style={{ color: '#16a34a' }}>
-                        Check your email for password reset instructions.
+                        You can now use your new password to sign in.
                       </p>
                     </div>
                   </div>
@@ -618,20 +709,20 @@ export default function SignInPolished() {
                     disabled={resetLoading || !resetEmail}
                     className="flex-1 py-2.5 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
                     style={{
-                      background: resetLoading || !resetEmail ? '#9333ea' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                      background: resetLoading || !resetEmail || !resetCurrentPassword || !resetNewPassword ? '#9333ea' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
                       color: '#ffffff',
-                      opacity: resetLoading || !resetEmail ? 0.7 : 1,
-                      cursor: resetLoading || !resetEmail ? 'not-allowed' : 'pointer',
+                      opacity: resetLoading || !resetEmail || !resetCurrentPassword || !resetNewPassword ? 0.7 : 1,
+                      cursor: resetLoading || !resetEmail || !resetCurrentPassword || !resetNewPassword ? 'not-allowed' : 'pointer',
                       boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
                     }}
                   >
                     {resetLoading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Sending...
+                        Updating...
                       </>
                     ) : (
-                      'Send Reset Link'
+                      'Change Password'
                     )}
                   </button>
                 </div>

@@ -6,14 +6,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get user ID from session/cookie
-    const userId = req.cookies?.userId || req.query?.userId;
+    // Import and use the same auth mechanism as other APIs
+    const { resolveUser } = await import('../../lib/resolveUser');
+    let userId = await resolveUser(req);
+    
+    // Development fallback
+    if (!userId && process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
+      userId = String(req.query.userId);
+    }
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized - Please sign in' });
     }
 
-    // Fetch all user data
+    // Fetch all user data in parallel
     const [events, courses, assessments, attendanceSessions, semesterSettings] = await Promise.all([
       // Events
       prisma.event.findMany({

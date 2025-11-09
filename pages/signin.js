@@ -173,7 +173,9 @@ export default function SignInPolished() {
 
   return (
     <>
-      <title>Sign in</title>
+      <Head>
+        <title>Sign In — University Planner</title>
+      </Head>
       <style>{`
         .signin-page button svg {
           color: #ffffff !important;

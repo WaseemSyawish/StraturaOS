@@ -1,5 +1,6 @@
 import { getToken } from 'next-auth/jwt';
 const prisma = require('../../../lib/prisma');
+const jwt = require('jsonwebtoken');
 
 // Returns 200 + user when authenticated, otherwise 401
 export default async function handler(req, res) {
@@ -7,6 +8,21 @@ export default async function handler(req, res) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
     // Resolve user id from token or (development) local cookies set by local-signin.
     let userId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
+    
+    // ALSO check for custom session cookie from /api/auth/signin
+    if (!userId && req.cookies && req.cookies.session) {
+      try {
+        const secret = process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret';
+        const decoded = jwt.verify(req.cookies.session, secret);
+        if (decoded && decoded.userId) {
+          userId = decoded.userId;
+          console.log('[/api/auth/me] Found userId from custom session cookie:', userId);
+        }
+      } catch (e) {
+        console.error('[/api/auth/me] Failed to decode custom session cookie:', e.message);
+      }
+    }
+    
     if (!userId) {
       try {
         if (req && req.cookies && req.cookies.userId) userId = req.cookies.userId;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
@@ -19,13 +20,14 @@ function CalendarHeader({ userName }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => router.push('/settings')}
-            className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
-            title="Settings"
-          >
-            <Settings className="w-4.5 h-4.5" />
-          </button>
+          <Link href="/settings" prefetch={true}>
+            <button 
+              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
+              title="Settings"
+            >
+              <Settings className="w-4.5 h-4.5" />
+            </button>
+          </Link>
 
           <button 
             onClick={async () => {
@@ -308,39 +310,49 @@ export default function UniversityOverview() {
       const getCached = cacheMod.getCached;
       const setCached = cacheMod.setCached;
 
-      let fetchedEvents = getCached('/api/events');
-      if (!fetchedEvents) {
-        const evJson = await safeFetchJson('/api/events');
-        fetchedEvents = evJson && Array.isArray(evJson.events) ? evJson.events : [];
-        try { setCached('/api/events', fetchedEvents, 60 * 1000); } catch (e) {}
+      // Check if we have ALL data cached before making any requests
+      const cachedEvents = getCached('/api/events');
+      const cachedCourses = getCached('/api/courses');
+      const cachedGrades = getCached('/api/grades');
+      
+      // If everything is cached, use cache and skip network calls
+      if (cachedEvents && cachedCourses && cachedGrades) {
+        setEvents(cachedEvents || []);
+        setCourses(cachedCourses || []);
+        setGradesData(cachedGrades || []);
+        setLoading(false);
+        console.log('[Overview] loadAll complete (from cache)');
+        try { console.timeEnd && console.timeEnd('overview:loadAll'); } catch (e) {}
+        return;
       }
-      setEvents(fetchedEvents || []);
 
-      let cachedCourses = getCached('/api/courses');
-      if (!cachedCourses) {
-        const coursesJson = await safeFetchJson('/api/courses');
-        if (coursesJson && coursesJson.success && Array.isArray(coursesJson.courses)) {
-          cachedCourses = coursesJson.courses;
-          try { setCached('/api/courses', cachedCourses, 60 * 1000); } catch (e) {}
-        }
-      }
-      if (cachedCourses) setCourses(cachedCourses);
+      // Parallel fetch for better performance
+      const [evJson, coursesJson, gradesJson] = await Promise.all([
+        cachedEvents ? Promise.resolve({ events: cachedEvents }) : fetch('/api/events', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ events: [] })),
+        cachedCourses ? Promise.resolve({ success: true, courses: cachedCourses }) : fetch('/api/courses', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, courses: [] })),
+        cachedGrades ? Promise.resolve({ success: true, data: cachedGrades }) : fetch('/api/grades', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, data: [] }))
+      ]);
 
-      let cachedGrades = getCached('/api/grades');
-      if (!cachedGrades) {
-        const gradesJson = await safeFetchJson('/api/grades');
-        if (gradesJson && gradesJson.success && Array.isArray(gradesJson.data)) {
-          cachedGrades = gradesJson.data;
-          try { setCached('/api/grades', cachedGrades, 60 * 1000); } catch (e) {}
-        }
-      }
-      if (cachedGrades) setGradesData(cachedGrades);
+      const fetchedEvents = Array.isArray(evJson.events) ? evJson.events : [];
+      const fetchedCourses = coursesJson && coursesJson.success && Array.isArray(coursesJson.courses) ? coursesJson.courses : [];
+      const fetchedGrades = gradesJson && gradesJson.success && Array.isArray(gradesJson.data) ? gradesJson.data : [];
+
+      setEvents(fetchedEvents);
+      setCourses(fetchedCourses);
+      setGradesData(fetchedGrades);
+
+      // Cache with 5-minute TTL for better navigation performance
+      try { 
+        setCached('/api/events', fetchedEvents, 5 * 60 * 1000);
+        setCached('/api/courses', fetchedCourses, 5 * 60 * 1000);
+        setCached('/api/grades', fetchedGrades, 5 * 60 * 1000);
+      } catch (e) {}
     } finally {
       setLoading(false);
     }
     console.log('[Overview] loadAll complete');
     try { console.timeEnd && console.timeEnd('overview:loadAll'); } catch (e) {}
-  }, []);
+  }, []); // Empty deps - only recreate on mount
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
@@ -861,13 +873,12 @@ export default function UniversityOverview() {
                     </div>
                     <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">No classes today</p>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-xs mx-auto">You have a free day! Perfect time to catch up on assignments or relax.</p>
-                    <button
-                      className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                      onClick={() => router.push('/timetable')}
-                    >
-                      <Calendar className="w-4 h-4" />
-                      View Timetable
-                    </button>
+                    <Link href="/timetable" prefetch={true}>
+                      <button className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                        <Calendar className="w-4 h-4" />
+                        View Timetable
+                      </button>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -887,12 +898,11 @@ export default function UniversityOverview() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      className="text-sm text-purple-100 hover:text-white transition-colors font-semibold"
-                      onClick={() => router.push('/calendar')}
-                    >
-                      View All
-                    </button>
+                    <Link href="/calendar" prefetch={true}>
+                      <button className="text-sm text-purple-100 hover:text-white transition-colors font-semibold">
+                        View All
+                      </button>
+                    </Link>
                     {completedList.length > 0 && (
                       <button
                         className="inline-flex items-center gap-2 text-sm bg-white/20 hover:bg-white/30 text-white px-3.5 py-1.5 rounded-lg transition-all duration-200 font-semibold shadow-sm hover:shadow-md"
@@ -1126,20 +1136,18 @@ export default function UniversityOverview() {
                   const color = colors[courses.indexOf(course) % colors.length];
                   
                   return (
-                    <div 
-                      key={course.id}
-                      className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}
-                      onClick={() => router.push('/courses')}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{course.code}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{course.name}</p>
+                    <Link href="/courses" key={course.id} prefetch={true}>
+                      <div className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}>
+                        <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{course.code}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{course.name}</p>
+                        </div>
+                        <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                       </div>
-                      <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

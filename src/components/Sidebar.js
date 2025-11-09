@@ -133,7 +133,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                     `;
             return (
               <li key={item.href}>
-                <Link href={item.href} className={classes}>
+                <Link href={item.href} className={classes} prefetch={true}>
                   <>
                     <Icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'} text-gray-600 dark:text-slate-300`} aria-hidden />
                     {!isCollapsed && <span className="truncate">{item.label}</span>}

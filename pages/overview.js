@@ -74,7 +74,6 @@ export default function UniversityOverview() {
   const [userName, setUserName] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [redirectAttempted, setRedirectAttempted] = useState(false);
   const router = useRouter();
   
   // Modal context for creating events
@@ -97,41 +96,18 @@ export default function UniversityOverview() {
         if (res.ok) {
           const data = await res.json();
           if (data.authenticated) {
-            // User is authenticated - set name and fetch data
             setUserName(data.name || 'User');
             setIsAuthenticated(true);
-            setAuthChecked(true);
-          } else {
-            // Not authenticated - redirect to signin ONCE
-            if (!redirectAttempted) {
-              console.log('[Overview] Not authenticated, redirecting to signin');
-              setRedirectAttempted(true);
-              router.push('/signin');
-            }
-          }
-        } else {
-          // Auth API failed - redirect to signin ONCE
-          if (!redirectAttempted) {
-            console.log('[Overview] Auth API failed, redirecting to signin');
-            setRedirectAttempted(true);
-            router.push('/signin');
           }
         }
       } catch (err) {
         console.error('[Overview] Auth check error:', err);
-        // Error during auth check - redirect to signin ONCE
-        if (!redirectAttempted) {
-          console.log('[Overview] Auth error, redirecting to signin');
-          setRedirectAttempted(true);
-          router.push('/signin');
-        }
+      } finally {
+        setAuthChecked(true);
       }
     }
-    
-    if (!authChecked && !redirectAttempted) {
-      checkAuth();
-    }
-  }, [router, authChecked, redirectAttempted]);
+    checkAuth();
+  }, [router]);
 
   // Data fetched from backend
   const [events, setEvents] = useState([]);

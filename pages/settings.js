@@ -294,30 +294,22 @@ export default function Settings() {
 
   async function handleDownloadData() {
     setIsDownloading(true);
+    setError('');
     try {
-      // Fetch all user data
-      const [eventsRes, coursesRes, gradesRes, attendanceRes] = await Promise.all([
-        fetch('/api/events'),
-        fetch('/api/courses'),
-        fetch('/api/grades'),
-        fetch('/api/attendance')
-      ]);
+      const res = await fetch('/api/export-data');
+      
+      if (!res.ok) {
+        throw new Error('Failed to export data');
+      }
 
-      const data = {
-        exportDate: new Date().toISOString(),
-        events: eventsRes.ok ? (await eventsRes.json()).events || [] : [],
-        courses: coursesRes.ok ? (await coursesRes.json()).courses || [] : [],
-        grades: gradesRes.ok ? (await gradesRes.json()).data || [] : [],
-        attendance: attendanceRes.ok ? (await attendanceRes.json()).sessions || [] : [],
-        settings: settings
-      };
-
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      // Get the blob from response
+      const blob = await res.blob();
+      
+      // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `university-planner-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `university-planner-export-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -327,6 +319,7 @@ export default function Settings() {
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       setError('Failed to download data. Please try again.');
+      console.error('Download error:', err);
     } finally {
       setIsDownloading(false);
     }

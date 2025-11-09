@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
@@ -736,7 +737,11 @@ export default function UniversityOverview() {
   }, [events, completedDeadlines, completedAtMap]);
 
   return (
-    <div className="min-h-screen bg-white" style={{ background: '#ffffff' }}>
+    <>
+      <Head>
+        <title>Overview — University Planner</title>
+      </Head>
+      <div className="min-h-screen bg-white" style={{ background: '#ffffff' }}>
       <CalendarHeader userName={userName} />
       
       <div className="max-w-[1450px] mx-auto px-6 py-8">
@@ -1161,6 +1166,7 @@ export default function UniversityOverview() {
         </div>
       )}
     </div>
+    </>
   );
 }
 

@@ -25,7 +25,7 @@ const ModulesManager = () => {
     code: '',
     credits: 3,
     color: '#3B82F6',
-    semester: '2025-1',
+    semester: '',
     instructor: '',
     description: ''
   });
@@ -37,6 +37,10 @@ const ModulesManager = () => {
   const modalRef = useRef(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Semesters from database
+  const [semesters, setSemesters] = useState([]);
+  const [currentSemester, setCurrentSemester] = useState(null);
+
   // Predefined color options
   const colorOptions = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
@@ -44,12 +48,45 @@ const ModulesManager = () => {
     '#F97316', '#6366F1', '#14B8A6', '#F472B6'
   ];
 
-  // Semester options
-  const semesterOptions = [
-    { value: '2025-1', label: '2025/2026 - Semester 1' },
-    { value: '2025-2', label: '2025/2026 - Semester 2' },
-    // Removed older 2024 semester options per UX request
-  ];
+  // Fetch semesters from database
+  const fetchSemesters = async () => {
+    try {
+      const response = await fetch('/api/semester-settings');
+      const data = await response.json();
+      if (data.success && data.settings) {
+        setSemesters(data.settings);
+        // Auto-detect current semester (today falls within date range)
+        const today = new Date();
+        const active = data.settings.find(s => {
+          const start = new Date(s.start_date);
+          const end = new Date(s.end_date);
+          return today >= start && today <= end;
+        });
+        
+        if (active) {
+          setCurrentSemester(active);
+          // Set as default for new courses
+          if (!courseForm.semester) {
+            setCourseForm(prev => ({ ...prev, semester: active.id.toString() }));
+          }
+        } else {
+          // No current semester - find the closest upcoming one
+          const upcoming = data.settings
+            .filter(s => new Date(s.start_date) > today)
+            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))[0];
+          
+          if (upcoming) {
+            setCurrentSemester(upcoming);
+            if (!courseForm.semester) {
+              setCourseForm(prev => ({ ...prev, semester: upcoming.id.toString() }));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch semesters:', err);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -62,6 +99,7 @@ const ModulesManager = () => {
         }
         const meJson = await me.json();
         setCurrentUser(meJson);
+        await fetchSemesters(); // Fetch semesters first
         fetchCourses();
       } catch (e) {
         console.error('Error resolving user', e);
@@ -679,17 +717,32 @@ const ModulesManager = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         Semester
+                        {currentSemester && (
+                          <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 font-medium">
+                            Current
+                          </span>
+                        )}
                       </label>
                       <select
                         value={courseForm.semester}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, semester: e.target.value }))}
                         className="w-full h-10 px-3 rounded-lg border text-sm bg-slate-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-700 appearance-none cursor-pointer"
                       >
-                        {semesterOptions.map(option => (
-                          <option key={option.value} value={option.value} className="bg-slate-800">
-                            {option.label}
-                          </option>
-                        ))}
+                        <option value="">Select semester...</option>
+                        {semesters.length === 0 ? (
+                          <option value="" disabled>No semesters configured - Add one in settings below</option>
+                        ) : (
+                          semesters.map(semester => (
+                            <option 
+                              key={semester.id} 
+                              value={semester.id.toString()} 
+                              className="bg-slate-800"
+                            >
+                              {semester.name}
+                              {currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
                   </div>

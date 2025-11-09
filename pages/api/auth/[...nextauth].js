@@ -81,18 +81,16 @@ export default NextAuth({
       options: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        // In dev (http) we must not use SameSite=None+Secure or the cookie won't be set
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
         path: '/',
       }
-    }
-    ,
+    },
     csrfToken: {
       name: 'next-auth.csrf-token',
       options: {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        sameSite: 'lax', // Changed from 'none' to 'lax'
         path: '/',
       }
     }

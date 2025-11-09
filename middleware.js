@@ -10,6 +10,17 @@ export function middleware(req) {
     const url = req.nextUrl.clone();
     const { pathname } = url;
 
+    // Block direct browser access to API routes (but allow programmatic fetch calls)
+    if (pathname.startsWith('/api/')) {
+      const referer = req.headers.get('referer') || '';
+      const acceptHeader = req.headers.get('accept') || '';
+      
+      // If it's a browser navigation (HTML page request), block it
+      if (acceptHeader.includes('text/html') && !referer) {
+        return new NextResponse('API route not accessible directly', { status: 403 });
+      }
+    }
+
     // Allow non-protected paths through
     if (!PROTECTED_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) return NextResponse.next();
 

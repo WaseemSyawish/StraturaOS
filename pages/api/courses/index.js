@@ -1,10 +1,7 @@
 const prisma = require('../../../lib/prisma');
-
-// Import the centralized resolveUser that checks all cookie types
 const { resolveUser } = require('../../../lib/resolveUser');
 
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS');
     return res.status(204).end();

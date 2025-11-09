@@ -1,9 +1,7 @@
-import prisma from '../../lib/prisma';
-
-// Import the centralized resolveUser that checks all cookie types
+const prisma = require('../../lib/prisma');
 const { resolveUser } = require('../../lib/resolveUser');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     const userId = await resolveUser(req);
     if (!userId) {

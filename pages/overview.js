@@ -72,6 +72,8 @@ function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
 export default function UniversityOverview() {
   const [currentDate] = useState(new Date());
   const [userName, setUserName] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
   
   // Modal context for creating events
@@ -86,23 +88,36 @@ export default function UniversityOverview() {
     } catch (e) { /* ignore */ }
   }, [router.asPath]);
 
-  // Fetch user name from session
+  // Check authentication FIRST before loading any data
   useEffect(() => {
-    async function fetchUserName() {
+    async function checkAuth() {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
         if (res.ok) {
           const data = await res.json();
           if (data.authenticated && data.name) {
             setUserName(data.name);
+            setIsAuthenticated(true);
+          } else {
+            // Not authenticated - redirect to signin
+            router.push('/signin');
+            return;
           }
+        } else {
+          // Auth check failed - redirect to signin
+          router.push('/signin');
+          return;
         }
       } catch (err) {
-        console.error('[Overview] Failed to fetch user name:', err);
+        console.error('[Overview] Auth check failed:', err);
+        router.push('/signin');
+        return;
+      } finally {
+        setAuthChecked(true);
       }
     }
-    fetchUserName();
-  }, []);
+    checkAuth();
+  }, [router]);
 
   // Data fetched from backend
   const [events, setEvents] = useState([]);
@@ -372,7 +387,12 @@ export default function UniversityOverview() {
     try { console.timeEnd && console.timeEnd('overview:loadAll'); } catch (e) {}
   }, []); // Empty deps - only recreate on mount
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  // Only load data after authentication is confirmed
+  useEffect(() => { 
+    if (authChecked && isAuthenticated) {
+      loadAll(); 
+    }
+  }, [loadAll, authChecked, isAuthenticated]);
 
   // Reload events when modal closes - MUST be after loadAll and showToast are defined
   const prevModalOpenRef = useRef(false);
@@ -765,6 +785,23 @@ export default function UniversityOverview() {
       return sorted;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {} return []; }
   }, [events, completedDeadlines, completedAtMap]);
+
+  // Show loading screen while checking authentication
+  if (!authChecked) {
+    return (
+      <>
+        <Head>
+          <title>Overview — University Planner</title>
+        </Head>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

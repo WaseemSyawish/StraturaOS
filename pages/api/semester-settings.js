@@ -1,3 +1,5 @@
+// Semester settings API - manages user semester configurations
+// Updated: 2025-11-10 - Force rebuild for ES6 module fixes
 import prisma from '../../lib/prisma';
 import { resolveUser } from '../../lib/resolveUser';
 

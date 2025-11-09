@@ -400,7 +400,8 @@ const ModulesManager = () => {
 
   // Dynamic semester-based course filtering
   const getCurrentSemesterCourses = () => {
-    if (!currentSemester) return [];
+    // If no semesters configured, show ALL courses
+    if (!currentSemester || semesters.length === 0) return courses;
     return courses.filter(course => course.semester === currentSemester.id);
   };
 

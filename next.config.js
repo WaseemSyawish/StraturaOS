@@ -18,6 +18,18 @@ module.exports = {
     config.cache = config.cache || {};
     config.cache.type = 'filesystem';
 
+    // Fix for 'self is not defined' error during SSR
+    if (isServer) {
+      // Provide a polyfill for 'self' in the server bundle
+      config.plugins = config.plugins || [];
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'self': 'undefined',
+        })
+      );
+    }
+
     // Production optimizations
     if (!dev) {
       // Minimize bundle size

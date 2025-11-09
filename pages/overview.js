@@ -339,9 +339,19 @@ export default function UniversityOverview() {
     setLoading(true);
     console.log('[Overview] loadAll start');
     try {
-      const cacheMod = await import('@/lib/clientCache');
-      const getCached = cacheMod.getCached;
-      const setCached = cacheMod.setCached;
+      // Dynamically import cache only in browser
+      let getCached = () => null;
+      let setCached = () => {};
+      
+      if (typeof window !== 'undefined') {
+        try {
+          const cacheMod = await import('@/lib/clientCache');
+          getCached = cacheMod.getCached;
+          setCached = cacheMod.setCached;
+        } catch (e) {
+          console.warn('[Overview] Failed to load cache module:', e);
+        }
+      }
 
       // Check if we have ALL data cached before making any requests
       const cachedEvents = getCached('/api/events');

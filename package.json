@@ -34,7 +34,7 @@
     "dev": "node -e \"if(process.env.CLEAN_NEXT==='true'){require('./scripts/clean-next.js')}\" && next dev",
     "add-event-columns": "node scripts/add_event_columns.js",
     "prebuild": "node ./scripts/clean-next.js",
-    "build": "npx prisma generate && next build",
+    "build": "npx prisma generate && node -r ./node-polyfill.js node_modules/.bin/next build",
     "postinstall": "npx prisma generate",
     "clean": "node ./scripts/clean-next.js",
     "prestart": "node ./scripts/clean-next.js",

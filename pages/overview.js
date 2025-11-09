@@ -379,8 +379,10 @@ export default function UniversityOverview() {
   }, []); // Empty deps - only recreate on mount
 
   // Only load data after authentication is confirmed
-  useEffect(() => { 
-    if (authChecked && isAuthenticated) {
+  useEffect(() => {
+    console.log('[Overview] Data loading check - authChecked:', authChecked, 'isAuthenticated:', isAuthenticated);
+    if (authChecked) {
+      console.log('[Overview] Auth checked, loading data regardless of auth status');
       loadAll(); 
     }
   }, [loadAll, authChecked, isAuthenticated]);

@@ -74,6 +74,7 @@ export default function UniversityOverview() {
   const [userName, setUserName] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   const router = useRouter();
   
   // Modal context for creating events
@@ -99,29 +100,38 @@ export default function UniversityOverview() {
             // User is authenticated - set name and fetch data
             setUserName(data.name || 'User');
             setIsAuthenticated(true);
+            setAuthChecked(true);
           } else {
-            // Not authenticated but don't redirect - just show as guest
-            console.log('[Overview] Not authenticated, allowing guest access');
-            setUserName('Guest');
-            setIsAuthenticated(false);
+            // Not authenticated - redirect to signin ONCE
+            if (!redirectAttempted) {
+              console.log('[Overview] Not authenticated, redirecting to signin');
+              setRedirectAttempted(true);
+              router.push('/signin');
+            }
           }
         } else {
-          // Auth API failed but don't redirect - allow guest access
-          console.log('[Overview] Auth API failed with status:', res.status);
-          setUserName('Guest');
-          setIsAuthenticated(false);
+          // Auth API failed - redirect to signin ONCE
+          if (!redirectAttempted) {
+            console.log('[Overview] Auth API failed, redirecting to signin');
+            setRedirectAttempted(true);
+            router.push('/signin');
+          }
         }
       } catch (err) {
         console.error('[Overview] Auth check error:', err);
-        // Error during auth check - allow guest access
-        setUserName('Guest');
-        setIsAuthenticated(false);
-      } finally {
-        setAuthChecked(true);
+        // Error during auth check - redirect to signin ONCE
+        if (!redirectAttempted) {
+          console.log('[Overview] Auth error, redirecting to signin');
+          setRedirectAttempted(true);
+          router.push('/signin');
+        }
       }
     }
-    checkAuth();
-  }, [router]);
+    
+    if (!authChecked && !redirectAttempted) {
+      checkAuth();
+    }
+  }, [router, authChecked, redirectAttempted]);
 
   // Data fetched from backend
   const [events, setEvents] = useState([]);

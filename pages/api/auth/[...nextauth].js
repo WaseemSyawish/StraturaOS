@@ -40,7 +40,15 @@ export default NextAuth({
       }
     })
   ],
-  session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 30 }, // 30 days
+  session: { 
+    strategy: 'jwt', 
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    updateAge: 60 * 60 * 24 // Update session every 24 hours
+  },
+  pages: {
+    signIn: '/signin',
+    error: '/signin',
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -81,8 +89,9 @@ export default NextAuth({
       options: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Changed from 'none' to 'lax' for better compatibility
+        sameSite: 'lax',
         path: '/',
+        maxAge: 60 * 60 * 24 * 30 // 30 days in seconds
       }
     },
     csrfToken: {
@@ -90,7 +99,7 @@ export default NextAuth({
       options: {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Changed from 'none' to 'lax'
+        sameSite: 'lax',
         path: '/',
       }
     }

@@ -7,12 +7,14 @@ Your modules page now has a **dynamic semester system** based on date ranges and
 ## Current State
 
 ✅ **Your 3 existing courses are safe!**
-- They currently have `semester: "2025 - 1"` 
+
+- They currently have `semester: "2025 - 1"`
 - They will display under **"All Modules"** until you configure semesters
 
 ## How It Works Now
 
 ### 1. **Semester Configuration**
+
 - Click the "Semester Configuration" section on the modules page
 - Create semesters with:
   - **Name**: Any name you want (e.g., "Fall 2025", "Spring 2026", "2025 - 1")
@@ -30,17 +32,20 @@ The system automatically shows:
 ### 3. **Smart Course Matching**
 
 Courses are matched to semesters by:
+
 1. **Semester name** - If course.semester matches semesterSetting.name
 2. **Semester ID** - For newly created courses
 
 ## Migration Path for Your Existing Courses
 
 ### Option 1: Match Existing Semester Name
+
 1. Create a new semester named exactly **"2025 - 1"**
 2. Set appropriate start and end dates
 3. Your courses will automatically appear in that semester!
 
 ### Option 2: Create New Semesters & Reassign
+
 1. Create semesters with new names (e.g., "Fall 2025")
 2. Edit each course
 3. Select the new semester from the dropdown
@@ -85,6 +90,7 @@ Semester 2:
 ## Need Help?
 
 Your courses are **safe and displaying**. The semester system is now fully functional with:
+
 - ✅ Database schema updated
 - ✅ API endpoints working
 - ✅ UI fully restored

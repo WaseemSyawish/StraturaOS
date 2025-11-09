@@ -154,7 +154,19 @@ export default async function handler(req, res) {
       // retry by explicitly selecting all fields except `meta` so the query succeeds.
       let events;
       try {
-        events = await prisma.event.findMany({ where: { user_id: userId }, orderBy: { date: 'desc' } });
+        events = await prisma.event.findMany({ 
+          where: { user_id: userId }, 
+          orderBy: { date: 'desc' },
+          include: {
+            courses: {
+              select: {
+                name: true,
+                code: true,
+                color: true
+              }
+            }
+          }
+        });
       } catch (e) {
         // Detect a missing `meta` field or unknown-argument error and retry
         // with an explicit select that does not reference meta.
@@ -171,8 +183,8 @@ export default async function handler(req, res) {
               type: true,
               location: true,
               archived: true,
-                course_id: true,
-                color: true,
+              course_id: true,
+              color: true,
               template_id: true,
               date: true,
               time: true,
@@ -181,7 +193,14 @@ export default async function handler(req, res) {
               completed: true,
               user_id: true,
               created_at: true,
-              updated_at: true
+              updated_at: true,
+              courses: {
+                select: {
+                  name: true,
+                  code: true,
+                  color: true
+                }
+              }
             }
           });
         } else {

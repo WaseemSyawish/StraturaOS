@@ -83,6 +83,12 @@ function mapToSchedulerEvents(list) {
     let color = null;
     let variant = null;
     let parsedDuration = null;
+    
+    // First, check if the event has a linked course with a color
+    if (e.courses && e.courses.color) {
+      color = e.courses.color;
+    }
+    
     try {
       const metaMatch = String(desc).match(/\[META\]([\s\S]*?)\[META\]/);
       if (metaMatch && metaMatch[1]) {

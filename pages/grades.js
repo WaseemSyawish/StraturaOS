@@ -423,11 +423,8 @@ const GradesPage = () => {
       setLoading(true);
       try {
         const me = await fetch('/api/auth/me');
-        if (me.status === 401 || me.status === 403) {
-          if (typeof window !== 'undefined') window.location.href = '/signin';
-          return;
-        }
-
+        // Don't redirect on auth failure, just continue loading data
+        
         // Fetch courses and grades; tolerate missing grades endpoint
         const [coursesResP, gradesResP] = await Promise.allSettled([
           fetch('/api/courses'),

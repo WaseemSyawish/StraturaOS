@@ -13,10 +13,11 @@ export default function Profile() {
         // check auth first
         const am = await fetch('/api/auth/me');
         const jm = am.ok ? await am.json() : null;
-        if (!jm || !jm.authenticated) { window.location.href = '/signin'; return; }
-        const res = await fetch(`/api/users/${jm.id}`);
-        if (!mounted) return;
-        if (res.ok) setProfile(await res.json());
+        if (jm && jm.authenticated && jm.id) {
+          const res = await fetch(`/api/users/${jm.id}`);
+          if (!mounted) return;
+          if (res.ok) setProfile(await res.json());
+        }
       } catch (e) {}
     })();
     return () => { mounted = false; };

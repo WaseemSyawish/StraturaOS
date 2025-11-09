@@ -92,18 +92,20 @@ const ModulesManager = () => {
     (async () => {
       try {
         const me = await fetch('/api/auth/me');
-        if (!me.ok) {
-          // not authenticated -> redirect to signin
-          window.location.href = '/signin';
-          return;
+        if (me.ok) {
+          const meJson = await me.json();
+          if (meJson.authenticated) {
+            setCurrentUser(meJson);
+          }
         }
-        const meJson = await me.json();
-        setCurrentUser(meJson);
-        await fetchSemesters(); // Fetch semesters first
+        // Load data regardless of auth status
+        await fetchSemesters();
         fetchCourses();
       } catch (e) {
         console.error('Error resolving user', e);
-        window.location.href = '/signin';
+        // Still load data even if auth fails
+        await fetchSemesters();
+        fetchCourses();
       }
     })();
   }, []);

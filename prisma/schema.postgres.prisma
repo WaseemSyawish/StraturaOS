@@ -161,3 +161,17 @@ model Attachment {
 
   @@map("attachments")
 }
+
+model SemesterSetting {
+  id         String    @id @default(uuid())
+  name       String    // e.g., "Fall 2025", "2025 - 1", "Spring 2026"
+  start_date DateTime
+  end_date   DateTime
+  is_active  Boolean   @default(true)
+  user_id    String
+  created_at DateTime? @default(now())
+  updated_at DateTime? @default(now())
+
+  @@index([user_id, start_date], map: "idx_semester_user_date")
+  @@map("semester_settings")
+}

@@ -275,7 +275,7 @@ const ModulesManager = () => {
       code: course.code || '',
       credits: course.credits || 3,
       color: course.color || '#3B82F6',
-      semester: course.semester || '2025-1',
+      semester: course.semester || (currentSemester?.id || ''),
       instructor: course.instructor || '',
       description: course.description || ''
     });
@@ -407,7 +407,18 @@ const ModulesManager = () => {
   const getCurrentSemesterCourses = () => {
     // If no semesters configured, show ALL courses
     if (!currentSemester || semesters.length === 0) return courses;
-    return courses.filter(course => course.semester === currentSemester.id);
+    
+    // Match courses to current semester by name
+    // This handles both new format (semester settings) and old format ("2025 - 1")
+    return courses.filter(course => {
+      // Direct match: course.semester matches semesterSetting.name
+      if (course.semester === currentSemester.name) return true;
+      
+      // Also match by ID for newly created courses
+      if (course.semester === currentSemester.id) return true;
+      
+      return false;
+    });
   };
 
   const getUpcomingSemesterCourses = () => {
@@ -419,16 +430,21 @@ const ModulesManager = () => {
     if (upcomingSemesters.length === 0) return [];
     
     const nextSemester = upcomingSemesters[0];
-    return courses.filter(course => course.semester === nextSemester.id);
+    return courses.filter(course => 
+      course.semester === nextSemester.name || course.semester === nextSemester.id
+    );
   };
 
   const getPreviousSemesterCourses = () => {
     const today = new Date();
-    const previousSemesterIds = semesters
-      .filter(s => new Date(s.end_date) < today)
-      .map(s => s.id);
+    const previousSemesters = semesters
+      .filter(s => new Date(s.end_date) < today);
     
-    return courses.filter(course => previousSemesterIds.includes(course.semester));
+    return courses.filter(course => 
+      previousSemesters.some(sem => 
+        course.semester === sem.name || course.semester === sem.id
+      )
+    );
   };
 
   const getUpcomingSemester = () => {
@@ -568,8 +584,7 @@ const ModulesManager = () => {
           </div>
         </div>
 
-        {/* Semester Configuration - TEMPORARILY DISABLED until API is fixed */}
-        {false && (
+        {/* Semester Configuration */}
         <div className="mb-8">
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <button
@@ -605,7 +620,6 @@ const ModulesManager = () => {
             )}
           </div>
         </div>
-        )}
 
         {/* Add/Edit Modal */}
         {showAddForm && (
@@ -798,19 +812,55 @@ const ModulesManager = () => {
                         className="w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-300 dark:border-slate-700 appearance-none cursor-pointer"
                       >
                         <option value="">Select semester...</option>
-                        {semesters.length === 0 ? (
-                          <option value="" disabled>No semesters configured - Add one in settings below</option>
-                        ) : (
-                          semesters.map(semester => (
-                            <option 
-                              key={semester.id} 
-                              value={semester.id.toString()} 
-                              className="bg-white dark:bg-slate-800"
-                            >
-                              {semester.name}
-                              {currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}
-                            </option>
-                          ))
+                        {/* Show configured semesters from semester_settings */}
+                        {semesters.map(semester => (
+                          <option 
+                            key={semester.id} 
+                            value={semester.id} 
+                            className="bg-white dark:bg-slate-800"
+                          >
+                            {semester.name}
+                            {currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}
+                          </option>
+                        ))}
+                        
+                        {/* Show legacy semester values from existing courses that aren't in semester_settings */}
+                        {(() => {
+                          const configuredSemesterIds = semesters.map(s => s.id);
+                          const legacySemesters = [...new Set(
+                            courses
+                              .map(c => c.semester)
+                              .filter(s => s && !configuredSemesterIds.includes(s))
+                          )];
+                          
+                          if (legacySemesters.length > 0) {
+                            return (
+                              <>
+                                <option disabled className="bg-slate-100 dark:bg-slate-900 text-slate-500">
+                                  ──────────
+                                </option>
+                                <option disabled className="bg-slate-100 dark:bg-slate-900 text-slate-500 text-xs">
+                                  Legacy semesters (migrate these)
+                                </option>
+                                {legacySemesters.map(sem => (
+                                  <option 
+                                    key={sem} 
+                                    value={sem}
+                                    className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
+                                  >
+                                    {sem} (legacy)
+                                  </option>
+                                ))}
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
+                        {semesters.length === 0 && (
+                          <option value="" disabled className="text-slate-500">
+                            Configure semesters below to assign modules
+                          </option>
                         )}
                       </select>
                     </div>
@@ -1010,8 +1060,8 @@ const ModulesManager = () => {
                 </div>
               </div>
 
-            {/* Upcoming Semester - TEMPORARILY HIDDEN */}
-            {false && getUpcomingSemester() && (
+            {/* Upcoming Semester */}
+            {getUpcomingSemester() && (
               <div className="cozy rounded-xl shadow-lg mb-6">
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">
@@ -1058,8 +1108,8 @@ const ModulesManager = () => {
               </div>
             )}
 
-            {/* Previous Semesters - TEMPORARILY HIDDEN */}
-            {false && getPreviousSemesterCourses().length > 0 && (
+            {/* Previous Semesters */}
+            {getPreviousSemesterCourses().length > 0 && (
               <div className="cozy rounded-xl shadow-lg">
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center justify-between">

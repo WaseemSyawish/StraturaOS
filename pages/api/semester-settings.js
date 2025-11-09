@@ -1,7 +1,7 @@
 const prisma = require('../../lib/prisma');
 const { resolveUser } = require('../../lib/resolveUser');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     console.log('[semester-settings] Method:', req.method, 'Path:', req.url);
     console.log('[semester-settings] Prisma client:', typeof prisma, 'has semesterSetting:', !!prisma?.semesterSetting);

@@ -1,7 +1,7 @@
 const prisma = require('../../../lib/prisma');
 const { resolveUser } = require('../../../lib/resolveUser');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS');
     return res.status(204).end();

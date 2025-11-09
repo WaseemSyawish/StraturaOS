@@ -1,6 +1,6 @@
 const { resolveUser } = require('../../../lib/resolveUser');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     console.log('[auth-debug] Environment:', process.env.NODE_ENV);
     console.log('[auth-debug] NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);

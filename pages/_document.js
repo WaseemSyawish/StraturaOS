@@ -1,11 +1,6 @@
 import React from 'react'
 import Document, { Html, Head, Main, NextScript } from 'next/document'
 
-// SSR Polyfill - MUST be at the top before any other code
-if (typeof self === 'undefined' && typeof global !== 'undefined') {
-  global.self = global;
-}
-
 class MyDocument extends Document {
   render() {
     return (

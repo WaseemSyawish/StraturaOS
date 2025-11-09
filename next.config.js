@@ -7,11 +7,6 @@
 const path = require('path');
 const webpack = require('webpack');
 
-// Load polyfills for SSR
-if (typeof self === 'undefined') {
-  global.self = global;
-}
-
 module.exports = {
   reactStrictMode: false,
   
@@ -23,17 +18,6 @@ module.exports = {
     // Enable persistent caching for faster rebuilds
     config.cache = config.cache || {};
     config.cache.type = 'filesystem';
-
-    // CRITICAL: Inject self polyfill at the VERY START of every server bundle
-    if (isServer) {
-      config.plugins.push(
-        new webpack.BannerPlugin({
-          banner: 'if (typeof self === "undefined") { global.self = global; }',
-          raw: true,
-          entryOnly: false,
-        })
-      );
-    }
 
     // Production optimizations
     if (!dev) {

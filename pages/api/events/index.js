@@ -1,4 +1,4 @@
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 // Helper: treat date-only strings (YYYY-MM-DD) as a date without local-midnight
 // to avoid timezone shifts when parsed by `new Date(string)`.

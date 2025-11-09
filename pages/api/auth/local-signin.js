@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
   // Only allow this legacy helper in development to avoid demo authentication in production

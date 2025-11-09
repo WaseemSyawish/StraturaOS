@@ -1,4 +1,4 @@
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 function localDateOnlyString(d) {
   if (!d) return null;

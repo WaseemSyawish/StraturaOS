@@ -1,6 +1,6 @@
 import { resolveUser } from '../../../lib/resolveUser';
-const bcrypt = require('bcryptjs');
-const prisma = require('../../../lib/prisma');
+import bcrypt from 'bcryptjs';
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
   try {

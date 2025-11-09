@@ -1,6 +1,6 @@
 import { getToken } from 'next-auth/jwt';
-const prisma = require('../../../lib/prisma');
-const jwt = require('jsonwebtoken');
+import prisma from '../../../lib/prisma';
+import jwt from 'jsonwebtoken';
 
 // Returns 200 + user when authenticated, otherwise 401
 export default async function handler(req, res) {

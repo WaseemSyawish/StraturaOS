@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

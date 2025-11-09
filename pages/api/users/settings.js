@@ -1,5 +1,5 @@
 import { resolveUser } from '../../../lib/resolveUser';
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
   try {

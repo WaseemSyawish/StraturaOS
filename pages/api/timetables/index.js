@@ -1,5 +1,5 @@
-const prisma = require('../../../lib/prisma');
-const { resolveUser } = require('../../../lib/resolveUser');
+import prisma from '../../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
 
 async function getUserId(req) {
   const userId = await resolveUser(req);

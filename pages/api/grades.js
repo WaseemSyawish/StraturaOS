@@ -40,7 +40,7 @@ const writeGradesData = (data) => {
 };
 
 // Import the centralized resolveUser that checks all cookie types
-const { resolveUser } = require('../../lib/resolveUser');
+import { resolveUser } from '../../lib/resolveUser';
 
 // Try to load Prisma client (shared instance). If unavailable we'll fall back to file storage.
 let prismaClient = null;

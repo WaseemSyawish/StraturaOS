@@ -3,7 +3,7 @@
 import { PrismaClient } from '@prisma/client';
 
 // Import the centralized resolveUser that checks all cookie types
-const { resolveUser } = require('../../lib/resolveUser');
+import { resolveUser } from '../../lib/resolveUser';
 
 let prisma;
 let prismaUsable = true;

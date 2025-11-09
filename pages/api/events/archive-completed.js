@@ -1,4 +1,4 @@
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 // POST /api/events/archive-completed?hours=24&dry=true
 export default async function handler(req, res) {

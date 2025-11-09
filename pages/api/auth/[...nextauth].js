@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 
 // Security: require NEXTAUTH_SECRET in production
 if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {

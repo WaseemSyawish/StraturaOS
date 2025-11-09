@@ -1,7 +1,7 @@
-const prisma = require('../../../lib/prisma');
-const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
+import prisma from '../../../lib/prisma';
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 function setSessionCookie(res, payload) {
   console.log('[signin] Setting session cookie with payload:', JSON.stringify(payload, null, 2));

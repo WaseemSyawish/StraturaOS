@@ -1,5 +1,5 @@
 // pages/api/legacy/events.js
-const prisma = require('../../../lib/prisma');
+import prisma from '../../../lib/prisma';
 const fallback = require('../../../lib/eventsFallback');
 const { MIN_SCHEDULE_OFFSET_MS, MIN_SCHEDULE_OFFSET_LABEL } = require('../../../lib/config');
 

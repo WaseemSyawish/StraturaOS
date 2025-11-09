@@ -11,14 +11,18 @@ export function middleware(req) {
     const { pathname } = url;
 
     // Block direct browser access to API routes (but allow programmatic fetch calls)
+    // Only block if user is directly navigating to the API route in browser address bar
     if (pathname.startsWith('/api/')) {
       const referer = req.headers.get('referer') || '';
       const acceptHeader = req.headers.get('accept') || '';
       
-      // If it's a browser navigation (HTML page request), block it
+      // If it's a browser navigation (HTML page request) with no referer, block it
+      // But allow if there's a referer (means it's from our app) or if accept is not HTML
       if (acceptHeader.includes('text/html') && !referer) {
         return new NextResponse('API route not accessible directly', { status: 403 });
       }
+      // Allow all other API requests (including fetch from our app)
+      return NextResponse.next();
     }
 
     // Allow non-protected paths through

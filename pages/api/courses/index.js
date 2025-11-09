@@ -51,7 +51,12 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ success: true, courses });
     } catch (err) {
       console.error('GET /api/courses error', err);
-      return res.status(500).json({ success: false, error: 'Failed to fetch courses' });
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch courses',
+        details: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      });
     }
   }
 

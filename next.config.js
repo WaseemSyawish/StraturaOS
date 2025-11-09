@@ -18,15 +18,6 @@ module.exports = {
     config.cache = config.cache || {};
     config.cache.type = 'filesystem';
 
-    // Exclude client-only modules from server bundle
-    if (isServer) {
-      config.externals = config.externals || [];
-      // Don't bundle clientCache on server (it uses window)
-      config.resolve = config.resolve || {};
-      config.resolve.alias = config.resolve.alias || {};
-      config.resolve.alias['@/lib/clientCache'] = false;
-    }
-
     // Production optimizations
     if (!dev) {
       // Minimize bundle size

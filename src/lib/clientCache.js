@@ -1,16 +1,20 @@
 // Enhanced client-side cache with TTL, invalidation, and size limits
 // IMPORTANT: This cache only works in browser (client-side), not during SSR
-const MAX_CACHE_SIZE = 50; // Prevent memory bloat
 
-// Initialize cache only in browser environment
-let cache = {};
-if (typeof window !== 'undefined') {
-  cache = window.__UP_CACHE || (window.__UP_CACHE = {});
+// Use a function to lazily initialize cache to avoid SSR issues
+function getCache() {
+  if (typeof window === 'undefined') return null;
+  if (!window.__UP_CACHE) {
+    window.__UP_CACHE = {};
+  }
+  return window.__UP_CACHE;
 }
 
+const MAX_CACHE_SIZE = 50; // Prevent memory bloat
+
 export function getCached(key) {
-  // Return null during SSR
-  if (typeof window === 'undefined') return null;
+  const cache = getCache();
+  if (!cache) return null;
   
   try {
     const entry = cache[key];
@@ -25,8 +29,8 @@ export function getCached(key) {
 }
 
 export function setCached(key, value, ttlMs = 60 * 1000) {
-  // Skip during SSR
-  if (typeof window === 'undefined') return;
+  const cache = getCache();
+  if (!cache) return;
   
   try {
     // Enforce cache size limit
@@ -34,8 +38,8 @@ export function setCached(key, value, ttlMs = 60 * 1000) {
     if (keys.length >= MAX_CACHE_SIZE) {
       // Remove oldest entries
       const sortedKeys = keys.sort((a, b) => {
-        const aExpire = cache[a].expire || 0;
-        const bExpire = cache[b].expire || 0;
+        const aExpire = cache[a]?.expire || 0;
+        const bExpire = cache[b]?.expire || 0;
         return aExpire - bExpire;
       });
       // Remove oldest 10 entries
@@ -48,8 +52,8 @@ export function setCached(key, value, ttlMs = 60 * 1000) {
 }
 
 export function invalidateCache(pattern) {
-  // Skip during SSR
-  if (typeof window === 'undefined') return;
+  const cache = getCache();
+  if (!cache) return;
   
   try {
     if (typeof pattern === 'string') {
@@ -63,8 +67,8 @@ export function invalidateCache(pattern) {
 }
 
 export function clearCache() {
-  // Skip during SSR
-  if (typeof window === 'undefined') return;
+  const cache = getCache();
+  if (!cache) return;
   
   try {
     Object.keys(cache).forEach(k => delete cache[k]);

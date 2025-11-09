@@ -45,6 +45,7 @@ export default NextAuth({
     maxAge: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24 // Update session every 24 hours
   },
+  useSecureCookies: process.env.NODE_ENV === 'production',
   pages: {
     signIn: '/signin',
     error: '/signin',
@@ -56,10 +57,10 @@ export default NextAuth({
         token.userId = user.id ? String(user.id) : token.userId;
         token.name = user.name || token.name;
         token.email = user.email || token.email;
-        console.log('[nextauth] jwt callback - created token for user:', token.userId, 'email:', token.email);
+        console.log('[nextauth] jwt callback - created token for user:', token.userId, 'email:', token.email, 'name:', token.name);
       } else {
         // token-only refresh - keep existing token.userId
-        console.log('[nextauth] jwt callback - token refresh, userId:', token.userId);
+        console.log('[nextauth] jwt callback - token refresh, userId:', token.userId, 'name:', token.name);
       }
       return token;
     },
@@ -68,7 +69,7 @@ export default NextAuth({
       session.user.id = token.userId;
       session.user.name = token.name || session.user.name;
       session.user.email = token.email || session.user.email;
-      console.log('[nextauth] session callback - session for user:', session.user.id);
+      console.log('[nextauth] session callback - session for user:', session.user.id, 'name:', session.user.name);
       return session;
     }
   },

@@ -273,8 +273,8 @@ async function handlePost(req, res) {
     if (!p) {
       const fb = await getCoursesFallback();
       course = fb.find(courseId);
-      if (course) {
-        if (!effectiveUserId || course.user_id !== effectiveUserId) effectiveUserId = course.user_id;
+      if (!course || course.user_id !== effectiveUserId) {
+        return res.status(403).json({ success: false, error: 'Not authorized to add attendance for this course' });
       }
     } else {
       try {
@@ -288,8 +288,8 @@ async function handlePost(req, res) {
           console.warn('Prisma engine not available during course find (POST); using fallback');
           const fb = await getCoursesFallback();
           course = fb.find(courseId);
-          if (course) {
-            if (!effectiveUserId || course.user_id !== effectiveUserId) effectiveUserId = course.user_id;
+          if (!course || course.user_id !== effectiveUserId) {
+            return res.status(403).json({ success: false, error: 'Not authorized to add attendance for this course' });
           }
         } else throw err;
       }

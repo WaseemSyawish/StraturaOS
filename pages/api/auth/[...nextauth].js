@@ -8,7 +8,16 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
   throw new Error('NEXTAUTH_SECRET environment variable is required in production for NextAuth');
 }
 
+// Ensure NEXTAUTH_URL has protocol
+const nextAuthUrl = process.env.NEXTAUTH_URL 
+  ? (process.env.NEXTAUTH_URL.startsWith('http') ? process.env.NEXTAUTH_URL : `https://${process.env.NEXTAUTH_URL}`)
+  : undefined;
+
+console.log('[nextauth] NEXTAUTH_URL:', nextAuthUrl);
+console.log('[nextauth] NODE_ENV:', process.env.NODE_ENV);
+
 export default NextAuth({
+  url: nextAuthUrl,
   providers: [
     CredentialsProvider({
       name: 'Credentials',

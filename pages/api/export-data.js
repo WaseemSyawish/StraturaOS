@@ -25,17 +25,21 @@ export default async function handler(req, res) {
 
     console.log('[export-data] Fetching data for userId:', userId);
 
+    // Ensure userId is the correct type
+    const userIdInt = typeof userId === 'string' ? parseInt(userId) : userId;
+    console.log('[export-data] Using userId (as int):', userIdInt);
+
     // Fetch all user data in parallel
     const [events, courses, assessments, attendanceSessions, semesterSettings] = await Promise.all([
       // Events
       prisma.event.findMany({
-        where: { user_id: parseInt(userId) },
+        where: { user_id: userIdInt },
         orderBy: { date: 'asc' }
       }),
       
       // Courses
       prisma.course.findMany({
-        where: { user_id: parseInt(userId) },
+        where: { user_id: userIdInt },
         include: {
           categories: true
         },
@@ -46,7 +50,7 @@ export default async function handler(req, res) {
       prisma.assessment.findMany({
         where: {
           course: {
-            user_id: parseInt(userId)
+            user_id: userIdInt
           }
         },
         include: {
@@ -62,13 +66,13 @@ export default async function handler(req, res) {
       
       // Attendance Sessions
       prisma.attendanceSession.findMany({
-        where: { user_id: parseInt(userId) },
+        where: { user_id: userIdInt },
         orderBy: { date: 'desc' }
       }),
       
       // Semester Settings
       prisma.semesterSetting.findMany({
-        where: { user_id: parseInt(userId) },
+        where: { user_id: userIdInt },
         orderBy: { start_date: 'desc' }
       })
     ]);
@@ -153,7 +157,9 @@ export default async function handler(req, res) {
     
     return res.status(200).json(exportData);
   } catch (error) {
-    console.error('Export data error:', error);
+    console.error('[export-data] Error:', error);
+    console.error('[export-data] Error message:', error.message);
+    console.error('[export-data] Error stack:', error.stack);
     return res.status(500).json({ 
       error: 'Failed to export data',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined

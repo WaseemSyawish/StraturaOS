@@ -207,9 +207,8 @@ html.dark {
   stroke: currentColor !important;
 }
 
-/* OVERRIDE: Force Lock icon in forgot password modal to be white */
-.signin-page [style*="linear-gradient(135deg, #a855f7"] svg,
-.signin-page .forgot-password-modal svg {
+/* OVERRIDE: Force Lock icon ONLY in forgot password modal to be white (not the form icons) */
+.signin-page .forgot-password-modal .lock-icon-container svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
 }

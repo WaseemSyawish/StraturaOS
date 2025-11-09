@@ -1,4 +1,4 @@
-const { resolveUser } = require('../../../lib/resolveUser');
+import { resolveUser } from '../../../lib/resolveUser';
 
 export default async function handler(req, res) {
   try {

@@ -255,13 +255,16 @@ export default function UniversityOverview() {
           }
         } catch (e) {}
 
-        let moduleCode = ev.course_id || (ev.meta && (ev.meta.course || ev.meta.courseCode)) || '';
+        let moduleCode = (ev.meta && (ev.meta.course || ev.meta.courseCode)) || '';
         try {
-          if ((!moduleCode || moduleCode === '') && Array.isArray(courses)) {
-            let found = courses.find(c => c && String(c.id) === String(ev.course_id));
-            if (!found) found = courses.find(c => c && (String(c.code) === String(ev.course_id) || String(c.courseCode) === String(ev.course_id)));
-            if (found && (found.code || found.courseCode)) moduleCode = found.code || found.courseCode;
+          // First try to find the course by course_id and get its code
+          if (ev.course_id && Array.isArray(courses)) {
+            const found = courses.find(c => c && String(c.id) === String(ev.course_id));
+            if (found && (found.code || found.courseCode)) {
+              moduleCode = found.code || found.courseCode;
+            }
           }
+          // If still no code, try extracting from title/name/description
           if ((!moduleCode || moduleCode === '') && (ev.title || ev.name || ev.description)) {
             const extracted = extractModuleCode(ev.title || ev.name || ev.description, courses);
             if (extracted) moduleCode = extracted;

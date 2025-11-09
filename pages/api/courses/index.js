@@ -1,5 +1,5 @@
-const prisma = require('../../../lib/prisma');
-const { resolveUser } = require('../../../lib/resolveUser');
+import prisma from '../../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {

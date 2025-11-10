@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { Archive, Search, Calendar, Clock, Tag, X, RotateCcw, Trash2, ChevronDown, ChevronUp, BookOpen, AlertCircle, CheckCircle, Home, Settings, LogOut, FileText, TrendingUp, GraduationCap, Users, Package } from 'lucide-react';
+import { fetchWithCache, invalidateCache } from '../lib/cache';
 
 const ArchivedEventsPage = () => {
   const [events, setEvents] = useState([]);
@@ -47,27 +48,20 @@ const ArchivedEventsPage = () => {
       try {
         setLoading(true);
         
-        // Fetch events with archived included
-        const eventsRes = await fetch('/api/events?includeArchived=true');
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
-          console.log('[Archived] Raw API response:', eventsData);
-          // Filter to only archived events
-          const allEvents = eventsData.data || eventsData || [];
-          console.log('[Archived] All events:', allEvents.length);
-          const archived = allEvents.filter(ev => ev.archived === true);
-          console.log('[Archived] Archived events filtered:', archived.length, archived);
-          setEvents(archived);
-        } else {
-          console.error('[Archived] Failed to fetch events:', eventsRes.status);
-        }
+        // Fetch events with archived included (use cache with 1 min TTL)
+        const eventsData = await fetchWithCache('/api/events?includeArchived=true', { credentials: 'same-origin' }, 60000);
+        console.log('[Archived] Raw API response:', eventsData);
+        
+        // Filter to only archived events
+        const allEvents = eventsData.data || eventsData || [];
+        console.log('[Archived] All events:', allEvents.length);
+        const archived = allEvents.filter(ev => ev.archived === true);
+        console.log('[Archived] Archived events filtered:', archived.length, archived);
+        setEvents(archived);
 
-        // Fetch courses
-        const coursesRes = await fetch('/api/courses');
-        if (coursesRes.ok) {
-          const coursesData = await coursesRes.json();
-          setCourses(coursesData.data || coursesData || []);
-        }
+        // Fetch courses (use cache with 2 min TTL)
+        const coursesData = await fetchWithCache('/api/courses', { credentials: 'same-origin' }, 120000);
+        setCourses(coursesData.data || coursesData || []);
 
         setLoading(false);
       } catch (err) {
@@ -93,6 +87,9 @@ const ArchivedEventsPage = () => {
       if (res.ok) {
         // Remove from list
         setEvents(prev => prev.filter(e => String(e.id) !== String(eventId)));
+        // Invalidate caches
+        invalidateCache('/api/events?includeArchived=true' + JSON.stringify({ credentials: 'same-origin' }));
+        invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
         // Show success message
         alert(`"${event?.title || 'Event'}" has been unarchived successfully!`);
       } else {
@@ -116,6 +113,9 @@ const ArchivedEventsPage = () => {
 
       if (res.ok) {
         setEvents(prev => prev.filter(e => String(e.id) !== String(eventId)));
+        // Invalidate caches
+        invalidateCache('/api/events?includeArchived=true' + JSON.stringify({ credentials: 'same-origin' }));
+        invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
         alert(`"${event?.title || 'Event'}" has been permanently deleted.`);
       } else {
         alert('Failed to delete event. Please try again.');

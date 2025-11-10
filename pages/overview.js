@@ -6,6 +6,7 @@ import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle,
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
+import { fetchWithCache, invalidateCache } from '../lib/cache';
 
 const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
   const router = useRouter();
@@ -392,11 +393,11 @@ export default function UniversityOverview() {
     setLoading(true);
     console.log('[Overview] loadAll start');
     try {
-      // Parallel fetch for better performance (NO CACHING TO AVOID SSR ISSUES)
+      // Use cached data with 2 minute TTL for much better performance
       const [evJson, coursesJson, gradesJson] = await Promise.all([
-        fetch('/api/events', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ events: [] })),
-        fetch('/api/courses', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, courses: [] })),
-        fetch('/api/grades', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ success: false, data: [] }))
+        fetchWithCache('/api/events', { credentials: 'same-origin' }, 120000),
+        fetchWithCache('/api/courses', { credentials: 'same-origin' }, 120000),
+        fetchWithCache('/api/grades', { credentials: 'same-origin' }, 120000)
       ]);
 
       const fetchedEvents = Array.isArray(evJson.events) ? evJson.events : [];
@@ -711,7 +712,9 @@ export default function UniversityOverview() {
       const json = await res.json().catch(() => null);
       showToast(`"${eventToArchive?.title || 'Event'}" archived successfully`, 'success');
       
-      // No need to reload - optimistic update already removed it from list
+      // Invalidate events cache to ensure fresh data on next load
+      invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
+      
       return json && (json.event || json) ? (json.event || json) : null;
     } catch (e) {
       setEvents(prev);
@@ -769,7 +772,8 @@ export default function UniversityOverview() {
     } else {
       // persist any server-updated timestamps into events list
       setEvents(prev => prev.map(e => (e && String(e.id) === String(id) ? { ...e, completed: !!nextValue, completedAt: server.completedAt || server.completed_at || (nextValue ? new Date().toISOString() : null) } : e)));
-      // No need to reload - optimistic update already applied
+      // Invalidate cache to ensure fresh data on next load
+      invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
     }
   };
 

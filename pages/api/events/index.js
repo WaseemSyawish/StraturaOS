@@ -176,6 +176,7 @@ export default async function handler(req, res) {
         // If includeArchived is requested, also fetch from archived_events table
         if (includeArchived) {
           try {
+            console.log('[api/events] Fetching archived events for userId:', userId);
             archivedEvents = await prisma.archivedEvent.findMany({
               where: { user_id: userId },
               orderBy: { date: 'desc' },
@@ -189,10 +190,11 @@ export default async function handler(req, res) {
                 }
               }
             });
+            console.log('[api/events] Found archived events:', archivedEvents.length);
             // Mark these as archived for the client
             archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
           } catch (archiveErr) {
-            console.warn('[api/events] Could not fetch archived events:', archiveErr.message);
+            console.error('[api/events] Could not fetch archived events:', archiveErr);
             // Continue without archived events if table doesn't exist
           }
         }

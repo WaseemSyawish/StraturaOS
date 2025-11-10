@@ -323,9 +323,17 @@ export default async function handler(req, res) {
               // Build an ISO instant representing the local y/m/d hh:mm. Use the
               // local Date constructor so the HH:MM represents the wall-clock
               // time intended by the client (avoid treating the components as UTC).
+              // IMPORTANT: Times are stored as Arabia time (GMT+3). We need to adjust
+              // if the server is in a different timezone.
               try {
-                const iso = new Date(y, m, day, hh, mm, 0).toISOString();
-                out.startDate = iso;
+                // Arabia Standard Time is GMT+3 (180 minutes offset from UTC)
+                const arabiaOffsetMinutes = -180; // Arabia is UTC+3, so offset is -180
+                const localDate = new Date(y, m, day, hh, mm, 0);
+                const serverOffsetMinutes = localDate.getTimezoneOffset();
+                // Adjust for timezone difference between server and Arabia
+                const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
+                const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
+                out.startDate = adjustedDate.toISOString();
               } catch (e) {
                 out.startDate = (new Date(String(dateVal))).toISOString();
               }
@@ -369,18 +377,28 @@ export default async function handler(req, res) {
                   const dateVal = out.date || out.start_date || null;
                   if (dateVal) {
                     let dt = null;
-                    const sVal = String(dateVal);
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
-                      const parts = sVal.split('-').map(Number);
-                      dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                    if (Object.prototype.toString.call(dateVal) === '[object Date]') {
+                      dt = dateVal;
                     } else {
-                      dt = new Date(sVal);
+                      const sVal = String(dateVal);
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+                        const parts = sVal.split('-').map(Number);
+                        dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                      } else {
+                        dt = new Date(sVal);
+                      }
                     }
                     if (dt && !isNaN(dt.getTime())) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      out.endDate = new Date(y, m, day, ehh, emm, 0).toISOString();
+                      // Create date with timezone adjustment for Arabia (GMT+3)
+                      const arabiaOffsetMinutes = -180;
+                      const localDate = new Date(y, m, day, ehh, emm, 0);
+                      const serverOffsetMinutes = localDate.getTimezoneOffset();
+                      const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
+                      const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
+                      out.endDate = adjustedDate.toISOString();
                     }
                   }
                 }
@@ -396,18 +414,28 @@ export default async function handler(req, res) {
                   const dateVal = out.date || out.start_date || null;
                   if (dateVal) {
                     let dt = null;
-                    const sVal = String(dateVal);
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
-                      const parts = sVal.split('-').map(Number);
-                      dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                    if (Object.prototype.toString.call(dateVal) === '[object Date]') {
+                      dt = dateVal;
                     } else {
-                      dt = new Date(sVal);
+                      const sVal = String(dateVal);
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+                        const parts = sVal.split('-').map(Number);
+                        dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                      } else {
+                        dt = new Date(sVal);
+                      }
                     }
                     if (dt && !isNaN(dt.getTime())) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      out.endDate = new Date(y, m, day, ehh, emm, 0).toISOString();
+                      // Create date with timezone adjustment for Arabia (GMT+3)
+                      const arabiaOffsetMinutes = -180;
+                      const localDate = new Date(y, m, day, ehh, emm, 0);
+                      const serverOffsetMinutes = localDate.getTimezoneOffset();
+                      const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
+                      const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
+                      out.endDate = adjustedDate.toISOString();
                     }
                   }
                 }

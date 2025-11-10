@@ -149,10 +149,15 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      // Check if client wants to include archived events
+      const includeArchived = req.query.includeArchived === 'true';
+
       // Some local databases may not have the `meta` column (older schema).
       // Attempt the normal query, but if Prisma complains about a missing column,
       // retry by explicitly selecting all fields except `meta` so the query succeeds.
       let events;
+      let archivedEvents = [];
+      
       try {
         events = await prisma.event.findMany({ 
           where: { user_id: userId }, 
@@ -167,6 +172,30 @@ export default async function handler(req, res) {
             }
           }
         });
+        
+        // If includeArchived is requested, also fetch from archived_events table
+        if (includeArchived) {
+          try {
+            archivedEvents = await prisma.archivedEvent.findMany({
+              where: { user_id: userId },
+              orderBy: { date: 'desc' },
+              include: {
+                courses: {
+                  select: {
+                    name: true,
+                    code: true,
+                    color: true
+                  }
+                }
+              }
+            });
+            // Mark these as archived for the client
+            archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
+          } catch (archiveErr) {
+            console.warn('[api/events] Could not fetch archived events:', archiveErr.message);
+            // Continue without archived events if table doesn't exist
+          }
+        }
       } catch (e) {
         // Detect a missing `meta` field or unknown-argument error and retry
         // with an explicit select that does not reference meta.
@@ -203,10 +232,50 @@ export default async function handler(req, res) {
               }
             }
           });
+          
+          // Also fetch archived events with explicit select if needed
+          if (includeArchived) {
+            try {
+              archivedEvents = await prisma.archivedEvent.findMany({
+                where: { user_id: userId },
+                orderBy: { date: 'desc' },
+                select: {
+                  id: true,
+                  title: true,
+                  type: true,
+                  location: true,
+                  course_id: true,
+                  color: true,
+                  template_id: true,
+                  date: true,
+                  time: true,
+                  end_date: true,
+                  description: true,
+                  completed: true,
+                  user_id: true,
+                  created_at: true,
+                  updated_at: true,
+                  courses: {
+                    select: {
+                      name: true,
+                      code: true,
+                      color: true
+                    }
+                  }
+                }
+              });
+              archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
+            } catch (archiveErr) {
+              console.warn('[api/events] Could not fetch archived events (no meta):', archiveErr.message);
+            }
+          }
         } else {
           throw e;
         }
       }
+      
+      // Merge active and archived events
+      events = [...events, ...archivedEvents];
       // If the DB/schema doesn't support `meta` we may have embedded a JSON
       // blob into the description as a fallback (prefix `__META__:`). Detect
       // and extract that here so API consumers receive the original metadata

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 
 export default function EventForm({ values = {}, onChange = () => {}, courseOptions = [], repeatOption, onOpenRepeat, date }) {
   // showRepeatPanel removed; repeat options handled by external modal now
   const [showRepeatPanel] = useState(false);
-  // values: { title, selectedCourse, startTime, endTime, durationMinutes, room, description, date }
+  // values: { title, selectedCourse, startTime, endTime, durationMinutes, room, description, date, completed }
   useEffect(() => {
     // ensure basic defaults
     if (!values.startTime && values.time) onChange({ ...values, startTime: values.time });
@@ -38,6 +39,25 @@ export default function EventForm({ values = {}, onChange = () => {}, courseOpti
       <div className="cal-card p-4">
         <label htmlFor="ev-subject" className="text-sm font-semibold text-gray-800">Subject</label>
         <input id="ev-subject" value={values.title || ''} onChange={e => update({ title: e.target.value })} placeholder="Subject or module name" className="w-full mt-2 px-3 py-2 border border-gray-100 rounded-md focus:ring-2 focus:ring-indigo-200 text-sm" aria-label="Subject" />
+        
+        {/* Completion Checkbox */}
+        <div className="pt-3">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input 
+              type="checkbox" 
+              checked={values.completed === true} 
+              onChange={e => update({ completed: e.target.checked, completedAt: e.target.checked ? new Date().toISOString() : null })}
+              className="sr-only peer" 
+            />
+            <span className="w-5 h-5 flex items-center justify-center rounded border-2 border-slate-300 dark:border-slate-600 peer-checked:bg-emerald-600 dark:peer-checked:bg-emerald-500 peer-checked:border-transparent transition-all group-hover:border-emerald-400">
+              <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={2.5} />
+            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Mark as completed
+            </span>
+          </label>
+        </div>
+        
         <div className="pt-3">
           <label htmlFor="ev-course" className="text-xs text-gray-500">Course</label>
           <select id="ev-course" value={values.selectedCourse || ''} onChange={e => update({ selectedCourse: e.target.value })} className="mt-2 w-full px-3 py-2 border border-gray-100 rounded-md text-sm">

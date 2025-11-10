@@ -56,7 +56,8 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
       durationMinutes: selectedEvent?.durationMinutes || selectedEvent?.duration || (selectedEvent && selectedEvent.raw && selectedEvent.raw.durationMinutes) || 60,
       repeatOption: selectedEvent?.repeatOption ?? (selectedEvent && selectedEvent.raw && selectedEvent.raw.repeatOption) ?? null,
       type: selectedEvent?.type || 'class',
-      color: selectedEvent?.color || '#60A5FA'
+      color: selectedEvent?.color || '#60A5FA',
+      completed: selectedEvent?.completed === true || (selectedEvent && selectedEvent.raw && selectedEvent.raw.completed === true) || false
     });
     setConfirmingDelete(false);
     setTimeout(() => titleRef.current?.focus?.(), 0);
@@ -98,7 +99,9 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
       color: formData.color,
       courseId: formData.selectedCourse || undefined,
       room: formData.room || undefined,
-      location: formData.room || undefined
+      location: formData.room || undefined,
+      completed: formData.completed === true,
+      completedAt: formData.completed === true ? (formData.completedAt || new Date().toISOString()) : null
     };
   };
 
@@ -126,7 +129,9 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
       color: formData.color,
       courseId: formData.selectedCourse || undefined,
       room: formData.room || undefined,
-      location: formData.room || undefined
+      location: formData.room || undefined,
+      completed: formData.completed === true,
+      completedAt: formData.completed === true ? (formData.completedAt || new Date().toISOString()) : null
     };
     try { console.log('EventModal saving payload (sanitized):', payload); } catch (e) {}
     // If this event is part of a repeating series, ask user whether to apply

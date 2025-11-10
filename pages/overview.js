@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target } from 'lucide-react';
+import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target, Archive } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
@@ -20,6 +20,48 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/calendar" prefetch={true}>
+            <button 
+              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              title="Calendar"
+            >
+              <Calendar className="w-4.5 h-4.5" />
+              <span className="text-sm font-medium hidden sm:inline">Calendar</span>
+            </button>
+          </Link>
+          
+          <Link href="/timetable" prefetch={true}>
+            <button 
+              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              title="Timetable"
+            >
+              <Clock className="w-4.5 h-4.5" />
+              <span className="text-sm font-medium hidden sm:inline">Timetable</span>
+            </button>
+          </Link>
+          
+          <Link href="/grades" prefetch={true}>
+            <button 
+              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              title="Grades"
+            >
+              <GraduationCap className="w-4.5 h-4.5" />
+              <span className="text-sm font-medium hidden sm:inline">Grades</span>
+            </button>
+          </Link>
+          
+          <Link href="/archived" prefetch={true}>
+            <button 
+              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              title="Archived Events"
+            >
+              <Archive className="w-4.5 h-4.5" />
+              <span className="text-sm font-medium hidden sm:inline">Archived</span>
+            </button>
+          </Link>
+          
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+          
           <Link href="/settings" prefetch={true}>
             <button 
               className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
@@ -768,13 +810,27 @@ export default function UniversityOverview() {
       try { console.time && console.time('overview:memo:completedList'); } catch (e) {}
       const seen = new Set();
       const list = [];
+      
+      // Get today's midnight for filtering
+      const todayMidnight = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      
       for (const e of events || []) {
         if (!e) continue;
         const id = String(e.id);
         if ((e.completed === true || completedDeadlines.has(id)) && !seen.has(id)) {
           seen.add(id);
           const withTs = { ...(e || {}), completedAt: (completedAtMap && completedAtMap[id]) || e.completedAt || e.completed_at || null };
-          list.push(withTs);
+          
+          // Filter: only show if completed TODAY (on or after today's midnight)
+          if (withTs.completedAt) {
+            const completedDate = new Date(withTs.completedAt);
+            if (!isNaN(completedDate.getTime()) && completedDate >= todayMidnight) {
+              list.push(withTs);
+            }
+          } else {
+            // If no completedAt timestamp, include it (assume recently completed)
+            list.push(withTs);
+          }
         }
       }
       for (const id of Array.from(completedDeadlines)) {
@@ -783,10 +839,29 @@ export default function UniversityOverview() {
         if (found) {
           const idStr = String(id);
           const withTs = { ...(found || {}), completedAt: (completedAtMap && completedAtMap[idStr]) || found.completedAt || found.completed_at || null };
-          list.push(withTs);
-          seen.add(String(id));
+          
+          // Filter: only show if completed TODAY
+          if (withTs.completedAt) {
+            const completedDate = new Date(withTs.completedAt);
+            if (!isNaN(completedDate.getTime()) && completedDate >= todayMidnight) {
+              list.push(withTs);
+              seen.add(String(id));
+            }
+          } else {
+            // No timestamp, include it
+            list.push(withTs);
+            seen.add(String(id));
+          }
         } else {
-          list.push({ id, title: 'Completed item', date: null, completedAt: (completedAtMap && completedAtMap[String(id)]) || null });
+          const completedAt = (completedAtMap && completedAtMap[String(id)]) || null;
+          if (completedAt) {
+            const completedDate = new Date(completedAt);
+            if (!isNaN(completedDate.getTime()) && completedDate >= todayMidnight) {
+              list.push({ id, title: 'Completed item', date: null, completedAt });
+            }
+          } else {
+            list.push({ id, title: 'Completed item', date: null, completedAt: null });
+          }
         }
       }
       const sorted = list.sort((a, b) => {
@@ -800,7 +875,7 @@ export default function UniversityOverview() {
       try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {}
       return sorted;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {} return []; }
-  }, [events, completedDeadlines, completedAtMap]);
+  }, [events, completedDeadlines, completedAtMap, currentDate]);
 
   // Show loading screen while checking authentication
   if (!authChecked) {

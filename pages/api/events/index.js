@@ -281,13 +281,18 @@ export default async function handler(req, res) {
             // (some engines treat date-only strings as UTC which can shift the day).
             let dt = null;
             try {
-              const sVal = String(dateVal);
-              if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
-                const parts = sVal.split('-').map(Number);
-                // parts: [year, month, day]
-                dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+              // Check if dateVal is already a Date object
+              if (Object.prototype.toString.call(dateVal) === '[object Date]') {
+                dt = dateVal;
               } else {
-                dt = new Date(sVal);
+                const sVal = String(dateVal);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+                  const parts = sVal.split('-').map(Number);
+                  // parts: [year, month, day]
+                  dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                } else {
+                  dt = new Date(sVal);
+                }
               }
             } catch (e) {
               dt = new Date(String(dateVal));

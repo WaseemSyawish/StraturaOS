@@ -224,8 +224,8 @@ export default function UniversityOverview() {
       for (const ev of events || []) {
         if (!ev) continue;
         const t = (ev.type || '').toString().toLowerCase();
-        // Include class-like events: class, lecture, tutorial, lab, event, seminar, workshop
-        const classTypes = ['class', 'lecture', 'tutorial', 'lab', 'event', 'seminar', 'workshop'];
+        // Today's classes: instructional/session types only
+        const classTypes = ['class', 'lecture', 'lab', 'tutorial', 'seminar', 'workshop', 'practical'];
         if (!classTypes.includes(t)) continue;
         if (ev.startDate && !isSameDay(ev.startDate, currentDate)) continue;
         if (!ev.startDate && ev.date && !isSameDay(ev.date, currentDate)) continue;
@@ -233,18 +233,6 @@ export default function UniversityOverview() {
         let startTime = '';
         let endTime = '';
         let startTs = null;
-        
-        // Debug log to see what data we're working with
-        if (ev.title && ev.title.includes('Embedded')) {
-          console.log('[Overview] Processing event:', {
-            title: ev.title,
-            startDate: ev.startDate,
-            endDate: ev.endDate,
-            time: ev.time,
-            durationMinutes: ev.durationMinutes
-          });
-        }
-        
         try {
           // Extract start time
           if (ev.startDate) {
@@ -333,8 +321,8 @@ export default function UniversityOverview() {
         const evId = String(ev.id);
         // Use local completed state instead of ev.completed for real-time updates
         const isCompleted = completedDeadlines.has(evId) || ev.completed === true;
-        // Include deadline-like events: deadline, assignment, project, quiz, exam, test
-        const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test'];
+        // Upcoming deadlines: assessment/submission types only
+        const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
         if (!deadlineTypes.includes(t) || isCompleted) continue;
         const d = ev.startDate ? new Date(ev.startDate) : (ev.date ? new Date(ev.date) : null);
         const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));

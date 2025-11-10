@@ -297,15 +297,22 @@ export default async function handler(req, res) {
                 const m = dt.getMonth();
                 const day = dt.getDate();
               // time may be stored separately on the row as `time` or `startTime`
+              // time might be a range like "08:30-10:00" or just "08:30"
               // Default to local noon when no explicit time is provided to avoid
               // off-by-one-day shifts when converting to ISO instants across timezones.
               let hh = 12, mm = 0;
               try {
-                const t = out.time || out.startTime || null;
-                if (t && typeof t === 'string' && t.indexOf(':') !== -1) {
-                  const parts = String(t).split(':').map(Number);
-                  hh = Number.isFinite(parts[0]) ? parts[0] : 0;
-                  mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+                let t = out.time || out.startTime || null;
+                if (t && typeof t === 'string') {
+                  // If time is a range like "08:30-10:00", extract start time
+                  if (t.indexOf('-') !== -1) {
+                    t = t.split('-')[0].trim();
+                  }
+                  if (t.indexOf(':') !== -1) {
+                    const parts = String(t).split(':').map(Number);
+                    hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+                    mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+                  }
                 }
               } catch (e) {}
               // Build an ISO instant representing the local y/m/d hh:mm. Use the
@@ -341,10 +348,65 @@ export default async function handler(req, res) {
           }
 
           // end_date may be present as a Date or ISO string; normalize to ISO when possible
+          // Also check meta.schedulePattern.endTime and time range
           if (out.end_date) {
             try {
               const ed = (Object.prototype.toString.call(out.end_date) === '[object Date]') ? out.end_date : new Date(String(out.end_date));
               if (!isNaN(ed.getTime())) out.endDate = ed.toISOString();
+            } catch (e) {}
+          } else if (out.meta && out.meta.schedulePattern && out.meta.schedulePattern.endTime) {
+            // Use endTime from schedulePattern
+            try {
+              const endTime = out.meta.schedulePattern.endTime;
+              if (endTime && typeof endTime === 'string' && endTime.indexOf(':') !== -1) {
+                const [ehh, emm] = String(endTime).split(':').map(Number);
+                if (Number.isFinite(ehh) && Number.isFinite(emm) && out.date) {
+                  const dateVal = out.date || out.start_date || null;
+                  if (dateVal) {
+                    let dt = null;
+                    const sVal = String(dateVal);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+                      const parts = sVal.split('-').map(Number);
+                      dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                    } else {
+                      dt = new Date(sVal);
+                    }
+                    if (dt && !isNaN(dt.getTime())) {
+                      const y = dt.getFullYear();
+                      const m = dt.getMonth();
+                      const day = dt.getDate();
+                      out.endDate = new Date(y, m, day, ehh, emm, 0).toISOString();
+                    }
+                  }
+                }
+              }
+            } catch (e) {}
+          } else if (out.time && typeof out.time === 'string' && out.time.indexOf('-') !== -1) {
+            // Extract end time from range like "08:30-10:00"
+            try {
+              const endTime = out.time.split('-')[1].trim();
+              if (endTime && endTime.indexOf(':') !== -1) {
+                const [ehh, emm] = String(endTime).split(':').map(Number);
+                if (Number.isFinite(ehh) && Number.isFinite(emm) && out.date) {
+                  const dateVal = out.date || out.start_date || null;
+                  if (dateVal) {
+                    let dt = null;
+                    const sVal = String(dateVal);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
+                      const parts = sVal.split('-').map(Number);
+                      dt = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+                    } else {
+                      dt = new Date(sVal);
+                    }
+                    if (dt && !isNaN(dt.getTime())) {
+                      const y = dt.getFullYear();
+                      const m = dt.getMonth();
+                      const day = dt.getDate();
+                      out.endDate = new Date(y, m, day, ehh, emm, 0).toISOString();
+                    }
+                  }
+                }
+              }
             } catch (e) {}
           } else if (out.meta && out.meta.endDate) {
             try {

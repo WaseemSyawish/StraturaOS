@@ -75,8 +75,18 @@ const GradesPage = () => {
   const [showDebug] = useState(typeof window !== 'undefined' ? new URL(window.location.href).searchParams.has('debug') : false);
 
   const filteredCourses = courses.filter(c => {
-    // semester filter
-    if (selectedSemester !== 'all' && c.semester !== selectedSemester) return false;
+    // semester filter - handle both UUID (new system) and string (old system)
+    if (selectedSemester !== 'all') {
+      // Check if course.semester matches selectedSemester directly (UUID or string)
+      if (c.semester !== selectedSemester) {
+        // Also check if selectedSemester is a semester name and course.semester might be old format
+        // This handles edge cases during transition
+        const matchingSemester = semesters.find(s => s.value === selectedSemester);
+        if (!matchingSemester || c.semester !== matchingSemester.label) {
+          return false;
+        }
+      }
+    }
     // course filter
     if (filterCourseId !== 'all' && String(c.id) !== String(filterCourseId)) return false;
     return true;

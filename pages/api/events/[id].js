@@ -314,11 +314,18 @@ export default async function handler(req, res) {
 
         // Helper: pick only fields that exist on the Prisma Event/ArchivedEvent models
         const pickPrismaFields = (src) => {
-          const allowed = ['title', 'type', 'course_id', 'date', 'time', 'end_date', 'description', 'completed', 'archived', 'location', 'meta', 'color'];
+          const allowed = ['title', 'type', 'course_id', 'date', 'time', 'end_date', 'description', 'completed', 'archived', 'location', 'meta'];
           const out = {};
           for (const k of allowed) {
             if (Object.prototype.hasOwnProperty.call(src, k)) out[k] = src[k];
           }
+          
+          // If color is provided, store it in meta instead of as a top-level field
+          if (Object.prototype.hasOwnProperty.call(src, 'color')) {
+            const existingMeta = out.meta && typeof out.meta === 'object' ? out.meta : {};
+            out.meta = { ...existingMeta, color: src.color };
+          }
+          
           return out;
         };
 

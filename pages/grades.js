@@ -523,6 +523,10 @@ const GradesPage = () => {
           const semesterTokens = Array.from(new Set(allCourses.map(c => c.semester).filter(Boolean)));
 
           const humanize = (s) => {
+            // If it looks like a UUID (8-4-4-4-12 format), don't humanize it - it's an ID that shouldn't be shown
+            if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(s)) {
+              return s; // Return UUID as-is (though this shouldn't be shown to users)
+            }
             const m = String(s).match(/^(\d{4})-(\d)$/);
             if (m) return `${m[1]}/${Number(m[1]) + 1} - Semester ${m[2]}`;
             return String(s).replace(/[-_]/g, ' ');

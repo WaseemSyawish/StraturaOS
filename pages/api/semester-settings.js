@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         orderBy: { start_date: 'desc' }
       });
 
-      return res.status(200).json({ success: true, settings });
+      return res.status(200).json({ success: true, semesters: settings, settings });
     }
 
     // POST: Create new semester setting

@@ -48,15 +48,28 @@ const ArchivedEventsPage = () => {
       try {
         setLoading(true);
         
-        // Fetch events with archived included (use cache with 1 min TTL)
-        const eventsData = await fetchWithCache('/api/events?includeArchived=true', { credentials: 'same-origin' }, 60000);
+        // Fetch events with archived included - bypass cache by adding timestamp
+        const timestamp = Date.now();
+        const eventsData = await fetchWithCache(`/api/events?includeArchived=true&_t=${timestamp}`, { credentials: 'same-origin' }, 60000);
         console.log('[Archived] Raw API response:', eventsData);
+        console.log('[Archived] Response type:', typeof eventsData, 'Is array:', Array.isArray(eventsData));
         
         // Filter to only archived events
-        const allEvents = eventsData.data || eventsData || [];
-        console.log('[Archived] All events:', allEvents.length);
+        let allEvents = [];
+        if (eventsData && eventsData.events && Array.isArray(eventsData.events)) {
+          allEvents = eventsData.events;
+        } else if (eventsData && eventsData.data && Array.isArray(eventsData.data)) {
+          allEvents = eventsData.data;
+        } else if (Array.isArray(eventsData)) {
+          allEvents = eventsData;
+        }
+        
+        console.log('[Archived] All events extracted:', allEvents.length);
         const archived = allEvents.filter(ev => ev.archived === true);
-        console.log('[Archived] Archived events filtered:', archived.length, archived);
+        console.log('[Archived] Archived events filtered:', archived.length);
+        if (archived.length > 0) {
+          console.log('[Archived] First archived event:', archived[0]);
+        }
         setEvents(archived);
 
         // Fetch courses (use cache with 2 min TTL)

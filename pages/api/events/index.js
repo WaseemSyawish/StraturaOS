@@ -149,8 +149,12 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      console.time('[api/events] GET total time');
+      console.time('[api/events] GET database query');
+      
       // Check if client wants to include archived events
       const includeArchived = req.query.includeArchived === 'true';
+      console.log('[api/events] includeArchived requested:', includeArchived);
 
       // Some local databases may not have the `meta` column (older schema).
       // Attempt the normal query, but if Prisma complains about a missing column,
@@ -193,6 +197,7 @@ export default async function handler(req, res) {
             console.log('[api/events] Found archived events:', archivedEvents.length);
             // Mark these as archived for the client
             archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
+            console.log('[api/events] After mapping archived flag, count:', archivedEvents.length);
           } catch (archiveErr) {
             console.error('[api/events] Could not fetch archived events:', archiveErr);
             // Continue without archived events if table doesn't exist
@@ -278,6 +283,10 @@ export default async function handler(req, res) {
       
       // Merge active and archived events
       events = [...events, ...archivedEvents];
+      console.log('[api/events] Total events after merge:', events.length, '(active:', events.length - archivedEvents.length, ', archived:', archivedEvents.length, ')');
+      console.timeEnd('[api/events] GET database query');
+      console.time('[api/events] GET normalization');
+      
       // If the DB/schema doesn't support `meta` we may have embedded a JSON
       // blob into the description as a fallback (prefix `__META__:`). Detect
       // and extract that here so API consumers receive the original metadata
@@ -524,6 +533,14 @@ export default async function handler(req, res) {
 
         return out;
       });
+      
+      console.timeEnd('[api/events] GET normalization');
+      
+      // Log final response details
+      const archivedCount = normalized.filter(e => e.archived === true).length;
+      console.log('[api/events] Returning normalized events:', normalized.length, '(archived:', archivedCount, ')');
+      console.timeEnd('[api/events] GET total time');
+      
       return res.status(200).json({ events: normalized });
     } catch (err) {
       console.error('GET /api/events error', err);

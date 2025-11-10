@@ -195,6 +195,19 @@ export default function TimetablePage() {
           if (!res.ok) throw new Error('failed to load events')
           const payload = await res.json()
           const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : [])
+          
+          // Debug: log a sample event to see what times we're getting
+          const sampleEvent = list.find(e => e && e.title && e.title.includes('Embedded'));
+          if (sampleEvent) {
+            console.log('[Timetable] Sample event from API:', {
+              title: sampleEvent.title,
+              startDate: sampleEvent.startDate,
+              endDate: sampleEvent.endDate,
+              time: sampleEvent.time,
+              date: sampleEvent.date
+            });
+          }
+          
           if (!mounted) return
           setEvents(mapToSchedulerEvents(list))
 

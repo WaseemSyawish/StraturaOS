@@ -232,26 +232,38 @@ export default function UniversityOverview() {
         let endTime = '';
         let startTs = null;
         try {
-          if (ev.startDate) startTime = formatTime(ev.startDate);
-          else if (ev.time) startTime = formatTime(ev.time);
-          if (ev.endDate) endTime = formatTime(ev.endDate);
-          else if (ev.durationMinutes && ev.startDate) {
-            const s = new Date(ev.startDate);
-            if (!isNaN(s.getTime())) {
-              const e = new Date(s.getTime() + (Number(ev.durationMinutes) || 0) * 60000);
-              endTime = formatTime(e.toISOString());
-            }
-          }
+          // Extract start time
           if (ev.startDate) {
             const d = new Date(ev.startDate);
-            if (!isNaN(d.getTime())) startTs = d.getTime();
+            if (!isNaN(d.getTime())) {
+              startTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              startTs = d.getTime();
+            }
           } else if (ev.time) {
+            // If time is in HH:MM format
+            if (/^\d{2}:\d{2}$/.test(ev.time)) {
+              startTime = ev.time;
+            } else {
+              startTime = formatTime(ev.time);
+            }
+            // Parse timestamp for sorting
             const m = String(ev.time).match(/(\d{1,2}):(\d{2})/);
             if (m) {
               const d = new Date(currentDate);
               d.setHours(Number(m[1]), Number(m[2]), 0, 0);
               startTs = d.getTime();
             }
+          }
+          
+          // Extract end time
+          if (ev.endDate) {
+            const d = new Date(ev.endDate);
+            if (!isNaN(d.getTime())) {
+              endTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+          } else if (ev.durationMinutes && startTs) {
+            const e = new Date(startTs + (Number(ev.durationMinutes) || 0) * 60000);
+            endTime = e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
           }
         } catch (e) {}
 

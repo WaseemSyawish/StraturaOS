@@ -49,6 +49,13 @@ const ModulesManager = () => {
     '#F97316', '#6366F1', '#14B8A6', '#F472B6'
   ];
 
+  // Helper function to get semester name from ID
+  const getSemesterName = (semesterId) => {
+    if (!semesterId) return null;
+    const semester = semesters.find(s => s.id === semesterId);
+    return semester ? semester.name : semesterId; // Fallback to ID if not found
+  };
+
   // Fetch semesters from database
   const fetchSemesters = async () => {
     try {

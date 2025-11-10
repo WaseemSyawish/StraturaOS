@@ -213,11 +213,15 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
                       const ok = window.confirm('Unarchive this event? This will restore it to active events.');
                       if (!ok) return;
                       // Request server to unarchive this event (server will move row back to events table)
-                      await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) });
+                      const res = await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) });
+                      if (res.ok) {
+                        // Call onSave callback to refresh parent component
+                        if (onSave) await onSave();
+                        onClose && onClose();
+                      }
                     } catch (e) {
                       console.warn('Unarchive request failed', e);
                     }
-                    try { if (typeof window !== 'undefined') window.location.reload(); } catch (e) {}
                   }} className="px-3 py-2 text-green-600 hover:bg-green-50 rounded-md flex items-center gap-2 mr-4">
                     Unarchive
                   </button>
@@ -228,11 +232,15 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
                       const ok = window.confirm('Archive this event? This will move it to archived events.');
                       if (!ok) return;
                       // Request server to archive this event (server will move row to archived_events)
-                      await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) });
+                      const res = await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: true }) });
+                      if (res.ok) {
+                        // Call onSave callback to refresh parent component
+                        if (onSave) await onSave();
+                        onClose && onClose();
+                      }
                     } catch (e) {
                       console.warn('Archive request failed', e);
                     }
-                    try { if (typeof window !== 'undefined') window.location.reload(); } catch (e) {}
                   }} className="px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2 mr-4">
                     Archive
                   </button>

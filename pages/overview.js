@@ -20,43 +20,13 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/calendar" prefetch={true}>
-            <button 
-              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              title="Calendar"
-            >
-              <Calendar className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium hidden sm:inline">Calendar</span>
-            </button>
-          </Link>
-          
-          <Link href="/timetable" prefetch={true}>
-            <button 
-              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              title="Timetable"
-            >
-              <Clock className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium hidden sm:inline">Timetable</span>
-            </button>
-          </Link>
-          
-          <Link href="/grades" prefetch={true}>
-            <button 
-              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              title="Grades"
-            >
-              <GraduationCap className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium hidden sm:inline">Grades</span>
-            </button>
-          </Link>
-          
           <Link href="/archived" prefetch={true}>
             <button 
               className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
               title="Archived Events"
             >
               <Archive className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium hidden sm:inline">Archived</span>
+              <span className="text-sm font-medium">Archived</span>
             </button>
           </Link>
           
@@ -741,8 +711,7 @@ export default function UniversityOverview() {
       const json = await res.json().catch(() => null);
       showToast(`"${eventToArchive?.title || 'Event'}" archived successfully`, 'success');
       
-      // reload events to ensure any server-side changes are reflected
-      try { await loadAll(); } catch (e) { /* ignore */ }
+      // No need to reload - optimistic update already removed it from list
       return json && (json.event || json) ? (json.event || json) : null;
     } catch (e) {
       setEvents(prev);
@@ -800,8 +769,7 @@ export default function UniversityOverview() {
     } else {
       // persist any server-updated timestamps into events list
       setEvents(prev => prev.map(e => (e && String(e.id) === String(id) ? { ...e, completed: !!nextValue, completedAt: server.completedAt || server.completed_at || (nextValue ? new Date().toISOString() : null) } : e)));
-      // Reload all data to ensure consistency
-      try { await loadAll(); } catch (e) { console.error('Failed to reload after toggle:', e); }
+      // No need to reload - optimistic update already applied
     }
   };
 

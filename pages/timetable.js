@@ -66,17 +66,22 @@ function mapToSchedulerEvents(list) {
     } catch (err) { }
 
     // continue mapping
-    const dateStr = e.date || e.startDate || e.start_date || ''
-    const timeStr = e.time || e.startTime || e.start_time || '09:00'
-    let start = new Date()
+    // Prefer using startDate from API (already timezone-adjusted) over reconstructing from date+time strings
+    let start = new Date();
     try {
-      if (dateStr && typeof dateStr === 'string') {
-        const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
-        const [hh, mm] = String(timeStr || '09:00').split(':').map(Number)
-        start = new Date(y, (m || 1) - 1, d, hh || 9, mm || 0, 0)
+      if (e.startDate) {
+        // API returns timezone-adjusted ISO strings - use them directly
+        start = new Date(e.startDate);
+      } else if (e.date && typeof e.date === 'string') {
+        // Fallback: reconstruct from date and time strings
+        const dateStr = e.date;
+        const timeStr = e.time || e.startTime || e.start_time || '09:00';
+        const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+        const [hh, mm] = String(timeStr || '09:00').split(':').map(Number);
+        start = new Date(y, (m || 1) - 1, d, hh || 9, mm || 0, 0);
       }
     } catch (err) {
-      start = new Date()
+      start = new Date();
     }
 
     let desc = e.description || e.notes || '';
@@ -108,29 +113,40 @@ function mapToSchedulerEvents(list) {
 
     const durationMinutesRaw = parsedDuration ?? e.durationMinutes ?? e.duration;
     const durationMinutes = (typeof durationMinutesRaw !== 'undefined' && durationMinutesRaw !== null) ? Number(durationMinutesRaw) : null;
-    const rawEnd = e.endDate || e.end_date || (e.raw && (e.raw.endDate || e.raw.end_date));
+    
     let endDate;
-    if (durationMinutes !== null && !Number.isNaN(Number(durationMinutes))) {
-      endDate = new Date(start.getTime() + Number(durationMinutes) * 60000);
-    } else if (rawEnd) {
+    // Prefer API's endDate (already timezone-adjusted)
+    if (e.endDate && typeof e.endDate === 'string') {
       try {
-        const s = String(rawEnd);
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-          const [yy, mm, dd] = s.split('-').map(Number);
-          const parsedDateOnly = new Date(yy, (mm || 1) - 1, dd, 0, 0, 0);
-          if (parsedDateOnly.getFullYear() === start.getFullYear() && parsedDateOnly.getMonth() === start.getMonth() && parsedDateOnly.getDate() === start.getDate()) {
-            endDate = new Date(start.getTime() + 60 * 60000);
-          } else {
-            endDate = parsedDateOnly;
-          }
-        } else {
-          endDate = new Date(String(rawEnd));
-        }
+        endDate = new Date(e.endDate);
       } catch (err) {
         endDate = new Date(start.getTime() + 60 * 60000);
       }
+    } else if (durationMinutes !== null && !Number.isNaN(Number(durationMinutes))) {
+      endDate = new Date(start.getTime() + Number(durationMinutes) * 60000);
     } else {
-      endDate = new Date(start.getTime() + 60 * 60000);
+      // Fallback
+      const rawEnd = e.end_date || (e.raw && (e.raw.endDate || e.raw.end_date));
+      if (rawEnd) {
+        try {
+          const s = String(rawEnd);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            const [yy, mm, dd] = s.split('-').map(Number);
+            const parsedDateOnly = new Date(yy, (mm || 1) - 1, dd, 0, 0, 0);
+            if (parsedDateOnly.getFullYear() === start.getFullYear() && parsedDateOnly.getMonth() === start.getMonth() && parsedDateOnly.getDate() === start.getDate()) {
+              endDate = new Date(start.getTime() + 60 * 60000);
+            } else {
+              endDate = parsedDateOnly;
+            }
+          } else {
+            endDate = new Date(String(rawEnd));
+          }
+        } catch (err) {
+          endDate = new Date(start.getTime() + 60 * 60000);
+        }
+      } else {
+        endDate = new Date(start.getTime() + 60 * 60000);
+      }
     }
 
     try {
@@ -195,19 +211,6 @@ export default function TimetablePage() {
           if (!res.ok) throw new Error('failed to load events')
           const payload = await res.json()
           const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : [])
-          
-          // Debug: log a sample event to see what times we're getting
-          const sampleEvent = list.find(e => e && e.title && e.title.includes('Embedded'));
-          if (sampleEvent) {
-            console.log('[Timetable] Sample event from API:', {
-              title: sampleEvent.title,
-              startDate: sampleEvent.startDate,
-              endDate: sampleEvent.endDate,
-              time: sampleEvent.time,
-              date: sampleEvent.date
-            });
-          }
-          
           if (!mounted) return
           setEvents(mapToSchedulerEvents(list))
 

@@ -51,9 +51,15 @@ const ArchivedEventsPage = () => {
         const eventsRes = await fetch('/api/events?includeArchived=true');
         if (eventsRes.ok) {
           const eventsData = await eventsRes.json();
+          console.log('[Archived] Raw API response:', eventsData);
           // Filter to only archived events
-          const archived = (eventsData.data || eventsData || []).filter(ev => ev.archived === true);
+          const allEvents = eventsData.data || eventsData || [];
+          console.log('[Archived] All events:', allEvents.length);
+          const archived = allEvents.filter(ev => ev.archived === true);
+          console.log('[Archived] Archived events filtered:', archived.length, archived);
           setEvents(archived);
+        } else {
+          console.error('[Archived] Failed to fetch events:', eventsRes.status);
         }
 
         // Fetch courses

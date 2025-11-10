@@ -369,7 +369,7 @@ export default function UniversityOverview() {
       try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {}
       return out;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {} return []; }
-  }, [upcomingDeadlines, hiddenCompleted, showCompleted, completedAtMap]);
+  }, [upcomingDeadlines, hiddenCompleted, showCompleted, completedAtMap, completedDeadlines]);
 
   // --- Data loading and actions ---
   const safeFetchJson = async (url, opts) => {
@@ -1254,7 +1254,7 @@ export default function UniversityOverview() {
                   const color = colors[courses.indexOf(course) % colors.length];
                   
                   return (
-                    <Link href="/courses" key={course.id} prefetch={true}>
+                    <Link href="/modules" key={course.id} prefetch={true}>
                       <div className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}>
                         <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
                         <div className="flex-1 min-w-0">

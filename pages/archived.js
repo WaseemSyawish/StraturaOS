@@ -54,18 +54,24 @@ const ArchivedEventsPage = () => {
         console.log('[Archived] Raw API response:', eventsData);
         console.log('[Archived] Response type:', typeof eventsData, 'Is array:', Array.isArray(eventsData));
         
-        // Filter to only archived events
+        // Filter to only archived events - be very defensive about data structure
         let allEvents = [];
-        if (eventsData && eventsData.events && Array.isArray(eventsData.events)) {
-          allEvents = eventsData.events;
-        } else if (eventsData && eventsData.data && Array.isArray(eventsData.data)) {
-          allEvents = eventsData.data;
+        if (!eventsData) {
+          console.error('[Archived] No data received from API');
+          allEvents = [];
         } else if (Array.isArray(eventsData)) {
           allEvents = eventsData;
+        } else if (eventsData.events && Array.isArray(eventsData.events)) {
+          allEvents = eventsData.events;
+        } else if (eventsData.data && Array.isArray(eventsData.data)) {
+          allEvents = eventsData.data;
+        } else {
+          console.error('[Archived] Unexpected data structure:', eventsData);
+          allEvents = [];
         }
         
         console.log('[Archived] All events extracted:', allEvents.length);
-        const archived = allEvents.filter(ev => ev.archived === true);
+        const archived = allEvents.filter(ev => ev && ev.archived === true);
         console.log('[Archived] Archived events filtered:', archived.length);
         if (archived.length > 0) {
           console.log('[Archived] First archived event:', archived[0]);
@@ -74,11 +80,16 @@ const ArchivedEventsPage = () => {
 
         // Fetch courses (use cache with 2 min TTL)
         const coursesData = await fetchWithCache('/api/courses', { credentials: 'same-origin' }, 120000);
-        setCourses(coursesData.data || coursesData || []);
+        const coursesList = (coursesData && coursesData.data && Array.isArray(coursesData.data)) 
+          ? coursesData.data 
+          : (Array.isArray(coursesData) ? coursesData : []);
+        setCourses(coursesList);
 
         setLoading(false);
       } catch (err) {
-        console.error('Failed to load data:', err);
+        console.error('[Archived] Failed to load data:', err);
+        setEvents([]);
+        setCourses([]);
         setLoading(false);
       }
     }

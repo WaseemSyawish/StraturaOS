@@ -40,6 +40,16 @@ html.dark .modal-core .bg-white,
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar while maintaining scrollability */
+.calendar-scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.calendar-scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 :root {
   --accent-indigo: #3730a3; /* deep indigo */
   --accent-indigo-600: #4f46e5;

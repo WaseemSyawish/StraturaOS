@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import EditScopeModal from '@/components/Timetable/EditScopeModal';
 import { useRouter } from 'next/router';
 import { Sparkles } from 'lucide-react';
+import { fetchWithCache, invalidateCache } from '../lib/cache';
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
@@ -207,9 +208,8 @@ export default function TimetablePage() {
 
       ; (async () => {
         try {
-          const res = await fetch('/api/events')
-          if (!res.ok) throw new Error('failed to load events')
-          const payload = await res.json()
+          // Use cached data with 2 minute TTL for better performance
+          const payload = await fetchWithCache('/api/events', { credentials: 'same-origin' }, 120000);
           const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : [])
           if (!mounted) return
           setEvents(mapToSchedulerEvents(list))

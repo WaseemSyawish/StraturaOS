@@ -297,7 +297,7 @@ export default async function handler(req, res) {
             } catch (e) {
               dt = new Date(String(dateVal));
             }
-              if (!isNaN(dt.getTime())) {
+              if (dt && !isNaN(dt.getTime())) {
                 const y = dt.getFullYear();
                 const m = dt.getMonth();
                 const day = dt.getDate();

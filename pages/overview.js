@@ -1274,6 +1274,19 @@ export default function UniversityOverview() {
         </div>
       </div>
       
+      {/* Floating Action Button - Create Event */}
+      <button
+        onClick={openCreateEventModal}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-2xl hover:shadow-purple-500/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 z-40 group"
+        title="Create Event"
+        aria-label="Create new event"
+      >
+        <Plus className="w-6 h-6" strokeWidth={2.5} />
+        <span className="absolute right-full mr-3 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg pointer-events-none">
+          Create Event
+        </span>
+      </button>
+      
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300">

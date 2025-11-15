@@ -132,7 +132,7 @@ const Layout = ({ children }) => {
     );
   }
   
-  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout'];
+  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout', '/docs', '/reset-password'];
   const isPublic = publicPaths.includes(router.pathname);
 
   // Sidebar rendered in-flow so it naturally takes up space and the main content

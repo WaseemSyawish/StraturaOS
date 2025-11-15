@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import { BookOpen, Code, Database, Rocket, Settings, AlertCircle, Home, ChevronRight, Search, Download } from 'lucide-react';
+import { BookOpen, GraduationCap, Calendar, CheckSquare, BookMarked, ClipboardList, Home, ChevronRight, Search, BarChart3, Clock, MapPin, Award, Users } from 'lucide-react';
 
 export default function Docs() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -9,13 +9,13 @@ export default function Docs() {
 
   const sections = [
     { id: 'overview', name: 'Overview', icon: BookOpen },
-    { id: 'getting-started', name: 'Getting Started', icon: Rocket },
-    { id: 'features', name: 'Core Features', icon: Settings },
-    { id: 'architecture', name: 'Architecture', icon: Code },
-    { id: 'database', name: 'Database Schema', icon: Database },
-    { id: 'api', name: 'API Reference', icon: Code },
-    { id: 'deployment', name: 'Deployment', icon: Rocket },
-    { id: 'troubleshooting', name: 'Troubleshooting', icon: AlertCircle },
+    { id: 'getting-started', name: 'Getting Started', icon: GraduationCap },
+    { id: 'courses', name: 'Managing Courses', icon: BookMarked },
+    { id: 'grades', name: 'Tracking Grades', icon: BarChart3 },
+    { id: 'timetable', name: 'Creating Schedules', icon: Clock },
+    { id: 'calendar', name: 'Using Calendar', icon: Calendar },
+    { id: 'attendance', name: 'Attendance Tracking', icon: CheckSquare },
+    { id: 'tips', name: 'Tips & Best Practices', icon: Award },
   ];
 
   return (
@@ -69,6 +69,7 @@ export default function Docs() {
                     return (
                       <button
                         key={section.id}
+                        data-section={section.id}
                         onClick={() => setActiveSection(section.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b border-slate-100 dark:border-slate-700/50 last:border-b-0 ${
                           activeSection === section.id
@@ -88,29 +89,15 @@ export default function Docs() {
 
                 {/* Quick Links */}
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-                  <h3 className="font-semibold mb-2 text-sm">Quick Actions</h3>
+                  <h3 className="font-semibold mb-2 text-sm">Need Help?</h3>
                   <div className="space-y-2">
-                    <a 
-                      href="https://github.com/WaseemSyawish/university-planner" 
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link 
+                      href="/dashboard"
                       className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors"
                     >
-                      <Code className="w-4 h-4" />
-                      View on GitHub
-                    </a>
-                    <button 
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = '/DOCUMENTATION.md';
-                        link.download = 'University-Planner-Docs.md';
-                        link.click();
-                      }}
-                      className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors w-full"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download Docs
-                    </button>
+                      <Home className="w-4 h-4" />
+                      Go to Dashboard
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -121,12 +108,12 @@ export default function Docs() {
               <div className="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-8">
                 {activeSection === 'overview' && <OverviewSection />}
                 {activeSection === 'getting-started' && <GettingStartedSection />}
-                {activeSection === 'features' && <FeaturesSection />}
-                {activeSection === 'architecture' && <ArchitectureSection />}
-                {activeSection === 'database' && <DatabaseSection />}
-                {activeSection === 'api' && <APISection />}
-                {activeSection === 'deployment' && <DeploymentSection />}
-                {activeSection === 'troubleshooting' && <TroubleshootingSection />}
+                {activeSection === 'courses' && <CoursesSection />}
+                {activeSection === 'grades' && <GradesSection />}
+                {activeSection === 'timetable' && <TimetableSection />}
+                {activeSection === 'calendar' && <CalendarSection />}
+                {activeSection === 'attendance' && <AttendanceSection />}
+                {activeSection === 'tips' && <TipsSection />}
               </div>
             </main>
           </div>
@@ -139,36 +126,63 @@ export default function Docs() {
 function OverviewSection() {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Overview</h2>
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Welcome to University Planner</h2>
       <p className="text-slate-600 dark:text-slate-300 text-lg mb-6">
-        <strong>University Planner</strong> is a comprehensive academic management system designed specifically for university students. 
-        It provides an all-in-one platform to manage courses, track grades, schedule events, monitor attendance, and organize academic life efficiently.
+        <strong>University Planner</strong> helps you stay organized throughout your academic journey. 
+        Manage your courses, track grades, schedule events, and monitor attendance all in one place.
       </p>
 
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Key Capabilities</h3>
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">What Can You Do?</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FeatureCard icon="📚" title="Course Management" description="Organize modules with credits, instructors, and semesters" />
-        <FeatureCard icon="📊" title="Grade Tracking" description="Monitor academic performance with detailed grading categories" />
-        <FeatureCard icon="📅" title="Smart Scheduling" description="Automated timetable generation with recurring events" />
-        <FeatureCard icon="✅" title="Attendance Monitoring" description="Track class attendance with point systems" />
-        <FeatureCard icon="📆" title="Calendar Integration" description="Unified view of assignments, exams, and events" />
-        <FeatureCard icon="🌙" title="Dark Mode" description="Full theme support with automatic system detection" />
-        <FeatureCard icon="🔐" title="Secure Authentication" description="User accounts with NextAuth.js" />
-        <FeatureCard icon="🌍" title="Holiday Integration" description="Automatic holiday detection for Iraq and Kurdistan regions" />
+        <FeatureCard 
+          icon={<BookMarked className="w-6 h-6 text-purple-600 dark:text-purple-400" />} 
+          title="Organize Courses" 
+          description="Keep track of all your modules, credits, and instructors" 
+        />
+        <FeatureCard 
+          icon={<BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />} 
+          title="Monitor Grades" 
+          description="Track your academic performance and calculate GPA automatically" 
+        />
+        <FeatureCard 
+          icon={<Clock className="w-6 h-6 text-green-600 dark:text-green-400" />} 
+          title="Smart Scheduling" 
+          description="Create weekly timetables with automatic recurring events" 
+        />
+        <FeatureCard 
+          icon={<CheckSquare className="w-6 h-6 text-orange-600 dark:text-orange-400" />} 
+          title="Track Attendance" 
+          description="Monitor class attendance with an easy point system" 
+        />
+        <FeatureCard 
+          icon={<Calendar className="w-6 h-6 text-pink-600 dark:text-pink-400" />} 
+          title="Unified Calendar" 
+          description="View all assignments, exams, and events in one place" 
+        />
+        <FeatureCard 
+          icon={<Award className="w-6 h-6 text-amber-600 dark:text-amber-400" />} 
+          title="Holiday Integration" 
+          description="Automatic detection of holidays for Iraq and Kurdistan" 
+        />
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mt-8">
-        <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">Getting Started</h4>
-        <p className="text-blue-800 dark:text-blue-200 mb-4">
-          Ready to set up University Planner? Check out our comprehensive getting started guide.
-        </p>
-        <Link 
-          href="/docs#getting-started"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
-        >
-          Get Started
-          <ChevronRight className="w-4 h-4" />
-        </Link>
+        <div className="flex items-start gap-3">
+          <GraduationCap className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
+          <div>
+            <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">New to University Planner?</h4>
+            <p className="text-blue-800 dark:text-blue-200 mb-4">
+              Start by creating your account, then set up your first semester and add your courses. The guide will walk you through everything!
+            </p>
+            <button 
+              onClick={() => document.querySelector('[data-section="getting-started"]')?.click()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+            >
+              Get Started
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -179,71 +193,638 @@ function GettingStartedSection() {
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Getting Started</h2>
       
-      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4 mb-6">
-        <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-300 mb-2">Prerequisites</h4>
-        <ul className="text-amber-800 dark:text-amber-200 text-sm space-y-1 mb-0">
-          <li>Node.js 18.x or higher</li>
-          <li>PostgreSQL database</li>
-          <li>npm or yarn package manager</li>
-        </ul>
-      </div>
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Follow these simple steps to get started with University Planner and organize your academic life.
+      </p>
 
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Installation Steps</h3>
-      
       <div className="space-y-6">
-        <Step number="1" title="Clone the repository">
-          <CodeBlock language="bash">
-            {`git clone https://github.com/WaseemSyawish/university-planner.git
-cd university-planner`}
-          </CodeBlock>
+        <Step 
+          number="1" 
+          title="Create Your Account"
+          icon={<Users className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300 mb-3">
+            Click the <strong>Sign Up</strong> button on the homepage and create your account with your email and password.
+          </p>
+          <div className="bg-blue-50 dark:bg-blue-500/10 border-l-4 border-blue-500 p-3 text-sm text-blue-800 dark:text-blue-200">
+            <strong>Tip:</strong> Use a strong password to keep your academic data secure.
+          </div>
         </Step>
 
-        <Step number="2" title="Install dependencies">
-          <CodeBlock language="bash">npm install</CodeBlock>
-        </Step>
-
-        <Step number="3" title="Configure environment variables">
-          <p className="text-slate-600 dark:text-slate-300 mb-3">Create a <code className="text-sm bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">.env</code> file in the root directory:</p>
-          <CodeBlock language="env">
-{`# Database
-DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
-DIRECT_URL="postgresql://user:password@host:port/database?sslmode=require"
-
-# Authentication
-NEXTAUTH_SECRET="your-secret-key-here"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Email (for password reset)
-RESEND_API_KEY="your-resend-api-key"
-FROM_EMAIL="noreply@yourdomain.com"`}
-          </CodeBlock>
-        </Step>
-
-        <Step number="4" title="Set up the database">
-          <CodeBlock language="bash">
-{`# Generate Prisma client
-npx prisma generate
-
-# Run migrations
-npx prisma migrate deploy`}
-          </CodeBlock>
-        </Step>
-
-        <Step number="5" title="Start the development server">
-          <CodeBlock language="bash">npm run dev</CodeBlock>
-        </Step>
-
-        <Step number="6" title="Access the application">
-          <p className="text-slate-600 dark:text-slate-300">
-            Open <a href="http://localhost:3000" className="text-purple-600 dark:text-purple-400 hover:underline">http://localhost:3000</a> in your browser.
+        <Step 
+          number="2" 
+          title="Set Up Your First Semester"
+          icon={<Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300 mb-3">
+            Go to <Link href="/modules" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Modules</Link> and click <strong>"Configure Semesters"</strong> to add your current semester with start and end dates.
           </p>
         </Step>
+
+        <Step 
+          number="3" 
+          title="Add Your Courses"
+          icon={<BookMarked className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300 mb-3">
+            Click <strong>"Add Course"</strong> to create entries for each module you're taking. Include:
+          </p>
+          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+            <li>Course name and code</li>
+            <li>Credits</li>
+            <li>Instructor name</li>
+            <li>Pick a color for easy identification</li>
+          </ul>
+        </Step>
+
+        <Step 
+          number="4" 
+          title="Create Your Timetable"
+          icon={<Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300 mb-3">
+            Visit <Link href="/timetable-setup" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Smart Schedule Creator</Link> and use the wizard to generate your weekly class schedule. 
+            The system will automatically create recurring events for each class.
+          </p>
+        </Step>
+
+        <Step 
+          number="5" 
+          title="Set Up Grade Tracking"
+          icon={<BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300 mb-3">
+            Head to <Link href="/grades" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Grades</Link> and add grading categories 
+            (like Assignments, Midterm, Final) for each course to start tracking your performance.
+          </p>
+        </Step>
+
+        <Step 
+          number="6" 
+          title="Start Using the Platform"
+          icon={<Award className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+        >
+          <p className="text-slate-600 dark:text-slate-300">
+            You're all set! Check your <Link href="/dashboard" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Dashboard</Link> for 
+            an overview, use the <Link href="/calendar" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Calendar</Link> to track deadlines, 
+            and log <Link href="/attendance" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Attendance</Link> for your classes.
+          </p>
+        </Step>
+      </div>
+
+      <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-6 mt-8">
+        <div className="flex items-start gap-3">
+          <CheckSquare className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+          <div>
+            <h4 className="text-lg font-semibold text-green-900 dark:text-green-300 mb-2">Quick Start Checklist</h4>
+            <ul className="text-green-800 dark:text-green-200 space-y-2 text-sm">
+              <li className="flex items-center gap-2">
+                <span>✓</span> Create account and sign in
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✓</span> Configure your semester dates
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✓</span> Add all your courses
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✓</span> Generate weekly timetable
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✓</span> Set up grading categories
+              </li>
+              <li className="flex items-center gap-2">
+                <span>✓</span> Explore the dashboard
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function FeaturesSection() {
+function CoursesSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Managing Courses</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Learn how to organize your academic courses and semesters effectively.
+      </p>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Adding a Course</h3>
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 mb-6">
+        <ol className="space-y-3 text-slate-600 dark:text-slate-300">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+            <span>Navigate to the <Link href="/modules" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Modules</Link> page</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+            <span>Click the <strong>"Add Course"</strong> button</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+            <span>Fill in course details (name, code, credits, instructor)</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
+            <span>Pick a color to identify the course visually</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-sm font-semibold">5</span>
+            <span>Assign to a semester (optional)</span>
+          </li>
+        </ol>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Managing Semesters</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        Semesters help you organize courses by academic term. Click <strong>"Configure Semesters"</strong> to:
+      </p>
+      <ul className="space-y-2 text-slate-600 dark:text-slate-300 list-disc list-inside mb-6">
+        <li>Add new semesters with start and end dates</li>
+        <li>Mark a semester as active (shows first in lists)</li>
+        <li>Edit or archive old semesters</li>
+      </ul>
+
+      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Award className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-1">Pro Tip</h4>
+            <p className="text-amber-800 dark:text-amber-200 text-sm">
+              Use color coding consistently - for example, use blue for all computer science courses, green for math, etc.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GradesSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Tracking Grades</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Monitor your academic performance with detailed grade tracking and automatic GPA calculation.
+      </p>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Setting Up Grading Categories</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        For each course, you can create grading categories (Assignments, Quizzes, Midterm, Final, etc.):
+      </p>
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 mb-6">
+        <ol className="space-y-3 text-slate-600 dark:text-slate-300">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+            <span>Go to <Link href="/grades" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Grades</Link></span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+            <span>Select a course</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+            <span>Click <strong>"Add Category"</strong></span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
+            <span>Enter category name and weight (percentage of final grade)</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-semibold">5</span>
+            <span>Add individual items (assignments, quizzes) with scores</span>
+          </li>
+        </ol>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Understanding Your GPA</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        The system automatically calculates your:
+      </p>
+      <ul className="space-y-2 text-slate-600 dark:text-slate-300 list-disc list-inside">
+        <li><strong>Course Grade:</strong> Weighted average of all categories</li>
+        <li><strong>Semester GPA:</strong> Average of all courses in active semester</li>
+        <li><strong>Overall GPA:</strong> Cumulative GPA across all semesters</li>
+      </ul>
+
+      <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-6 mt-6">
+        <div className="flex items-start gap-3">
+          <BarChart3 className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-1" />
+          <div>
+            <h4 className="font-semibold text-green-900 dark:text-green-300 mb-2">Grading Scale</h4>
+            <div className="grid grid-cols-2 gap-2 text-sm text-green-800 dark:text-green-200">
+              <div>A: 90-100%</div>
+              <div>B: 80-89%</div>
+              <div>C: 70-79%</div>
+              <div>D: 60-69%</div>
+              <div>F: Below 60%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimetableSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Creating Schedules</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Use the Smart Schedule Creator to generate your weekly class timetable automatically.
+      </p>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Using the Smart Schedule Creator</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        The wizard makes it easy to create recurring weekly events:
+      </p>
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 mb-6">
+        <ol className="space-y-3 text-slate-600 dark:text-slate-300">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+            <span>Visit <Link href="/timetable-setup" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Smart Schedule Creator</Link></span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+            <span>Select a course from your list</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+            <span>Choose the day(s) of the week the class meets</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
+            <span>Set start and end times</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">5</span>
+            <span>Add location (classroom, building)</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-sm font-semibold">6</span>
+            <span>Click <strong>"Generate Schedule"</strong> - done!</span>
+          </li>
+        </ol>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Viewing Your Timetable</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        Check your weekly schedule at <Link href="/timetable" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Timetable</Link>. You can:
+      </p>
+      <ul className="space-y-2 text-slate-600 dark:text-slate-300 list-disc list-inside">
+        <li>View by day or week</li>
+        <li>See location for each class</li>
+        <li>Edit individual events if needed</li>
+        <li>Delete entire event series</li>
+      </ul>
+
+      <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4 mt-6">
+        <div className="flex items-start gap-3">
+          <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-1">Smart Features</h4>
+            <p className="text-purple-800 dark:text-purple-200 text-sm">
+              The system automatically creates events for the entire semester and respects holidays. No manual copying needed!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CalendarSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Using the Calendar</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Your unified view of all assignments, exams, course schedules, and holidays.
+      </p>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Adding Events</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        Create custom events for assignments, exams, or personal reminders:
+      </p>
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 mb-6">
+        <ol className="space-y-3 text-slate-600 dark:text-slate-300">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+            <span>Click on any date in the <Link href="/calendar" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Calendar</Link></span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+            <span>Choose event type (Assignment, Exam, Meeting, etc.)</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+            <span>Enter title and details</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
+            <span>Link to a course (optional)</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 rounded-full flex items-center justify-center text-sm font-semibold">5</span>
+            <span>Set time and location</span>
+          </li>
+        </ol>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Event Types</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
+          <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">📝 Assignment</h4>
+          <p className="text-sm text-blue-800 dark:text-blue-200">Homework, projects, papers</p>
+        </div>
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
+          <h4 className="font-semibold text-red-900 dark:text-red-300 mb-2">📊 Exam</h4>
+          <p className="text-sm text-red-800 dark:text-red-200">Midterms, finals, quizzes</p>
+        </div>
+        <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-4">
+          <h4 className="font-semibold text-green-900 dark:text-green-300 mb-2">👥 Meeting</h4>
+          <p className="text-sm text-green-800 dark:text-green-200">Office hours, group meetings</p>
+        </div>
+        <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4">
+          <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">⭐ Other</h4>
+          <p className="text-sm text-purple-800 dark:text-purple-200">Personal reminders, deadlines</p>
+        </div>
+      </div>
+
+      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-1">Holiday Integration</h4>
+            <p className="text-amber-800 dark:text-amber-200 text-sm">
+              National and regional holidays for Iraq and Kurdistan are automatically displayed in your calendar.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Attendance Tracking</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Keep track of your class attendance with an easy point-based system.
+      </p>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Logging Attendance</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        After each class:
+      </p>
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 mb-6">
+        <ol className="space-y-3 text-slate-600 dark:text-slate-300">
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+            <span>Go to <Link href="/attendance" className="text-purple-600 dark:text-purple-400 hover:underline font-medium">Attendance</Link></span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+            <span>Select the course</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+            <span>Mark your status: Present, Absent, or Late</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
+            <span>Add notes if needed (optional)</span>
+          </li>
+        </ol>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Point System</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-4 text-center">
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">+1</div>
+          <div className="text-sm font-semibold text-green-900 dark:text-green-300">Present</div>
+        </div>
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4 text-center">
+          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">+0.5</div>
+          <div className="text-sm font-semibold text-amber-900 dark:text-amber-300">Late</div>
+        </div>
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4 text-center">
+          <div className="text-3xl font-bold text-red-600 dark:text-red-400 mb-1">0</div>
+          <div className="text-sm font-semibold text-red-900 dark:text-red-300">Absent</div>
+        </div>
+      </div>
+
+      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Viewing Statistics</h3>
+      <p className="text-slate-600 dark:text-slate-300 mb-4">
+        The attendance page shows:
+      </p>
+      <ul className="space-y-2 text-slate-600 dark:text-slate-300 list-disc list-inside">
+        <li>Total points earned per course</li>
+        <li>Attendance percentage</li>
+        <li>Number of absences</li>
+        <li>Visual progress indicators</li>
+      </ul>
+
+      <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 mt-6">
+        <div className="flex items-start gap-3">
+          <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-1">Stay on Track</h4>
+            <p className="text-blue-800 dark:text-blue-200 text-sm">
+              Most universities require at least 75% attendance. Use this feature to ensure you meet requirements!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TipsSection() {
+  return (
+    <div className="prose prose-slate dark:prose-invert max-w-none">
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Tips & Best Practices</h2>
+      
+      <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
+        Get the most out of University Planner with these helpful tips.
+      </p>
+
+      <div className="space-y-6">
+        <TipCard
+          icon={<BookMarked className="w-6 h-6" />}
+          title="Start of Semester"
+          color="purple"
+          tips={[
+            'Set up your semester dates first',
+            'Add all courses immediately',
+            'Generate your timetable early',
+            'Set up grading categories while fresh',
+          ]}
+        />
+
+        <TipCard
+          icon={<Calendar className="w-6 h-6" />}
+          title="Stay Organized"
+          color="blue"
+          tips={[
+            'Add assignments to calendar as soon as announced',
+            'Check dashboard daily for upcoming deadlines',
+            'Use consistent color coding for courses',
+            'Review your timetable weekly',
+          ]}
+        />
+
+        <TipCard
+          icon={<BarChart3 className="w-6 h-6" />}
+          title="Grade Management"
+          color="green"
+          tips={[
+            'Update grades immediately after receiving them',
+            'Set realistic grade goals for each course',
+            'Check GPA regularly to stay on track',
+            'Use grade weights from your syllabus',
+          ]}
+        />
+
+        <TipCard
+          icon={<CheckSquare className="w-6 h-6" />}
+          title="Attendance Tips"
+          color="orange"
+          tips={[
+            'Log attendance right after class',
+            'Aim for 100% attendance when possible',
+            'Monitor courses with low attendance early',
+            'Add notes for excused absences',
+          ]}
+        />
+
+        <TipCard
+          icon={<Award className="w-6 h-6" />}
+          title="Success Strategies"
+          color="amber"
+          tips={[
+            'Use dark mode for late-night study sessions',
+            'Export important deadlines to external calendar',
+            'Archive old semesters to keep data clean',
+            'Back up important grade data regularly',
+          ]}
+        />
+      </div>
+
+      <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-500/10 dark:to-blue-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-6 mt-8">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <GraduationCap className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-300 mb-2">Need More Help?</h3>
+            <p className="text-purple-800 dark:text-purple-200 mb-4">
+              If you're experiencing issues or have questions, explore the other sections in this documentation or check your dashboard for quick tips.
+            </p>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors text-sm"
+            >
+              <Home className="w-4 h-4" />
+              Go to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper Components
+function FeatureCard({ icon, title, description }) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+      <div className="mb-3">{icon}</div>
+      <h4 className="font-semibold text-slate-800 dark:text-white mb-1">{title}</h4>
+      <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
+    </div>
+  );
+}
+
+function Step({ number, title, icon, children }) {
+  return (
+    <div className="flex gap-4">
+      <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+        {number}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-2">
+          {icon && <div className="text-purple-600 dark:text-purple-400">{icon}</div>}
+          <h4 className="font-semibold text-slate-800 dark:text-white">{title}</h4>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TipCard({ icon, title, color, tips }) {
+  const colorClasses = {
+    purple: 'bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400',
+    blue: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400',
+    green: 'bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/30 text-green-600 dark:text-green-400',
+    orange: 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-400',
+    amber: 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400',
+  };
+
+  const textColorClasses = {
+    purple: 'text-purple-900 dark:text-purple-300',
+    blue: 'text-blue-900 dark:text-blue-300',
+    green: 'text-green-900 dark:text-green-300',
+    orange: 'text-orange-900 dark:text-orange-300',
+    amber: 'text-amber-900 dark:text-amber-300',
+  };
+
+  const listColorClasses = {
+    purple: 'text-purple-800 dark:text-purple-200',
+    blue: 'text-blue-800 dark:text-blue-200',
+    green: 'text-green-800 dark:text-green-200',
+    orange: 'text-orange-800 dark:text-orange-200',
+    amber: 'text-amber-800 dark:text-amber-200',
+  };
+
+  return (
+    <div className={`border rounded-lg p-5 ${colorClasses[color]}`}>
+      <div className="flex items-center gap-3 mb-3">
+        <div className={colorClasses[color].split(' ').slice(-1)[0]}>
+          {icon}
+        </div>
+        <h3 className={`text-lg font-semibold ${textColorClasses[color]}`}>{title}</h3>
+      </div>
+      <ul className={`space-y-2 text-sm ${listColorClasses[color]}`}>
+        {tips.map((tip, index) => (
+          <li key={index} className="flex items-start gap-2">
+            <span className="mt-1">✓</span>
+            <span>{tip}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CodeBlock({ children, language = 'text' }) {
+  return (
+    <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto">
+      <pre className="text-sm text-slate-100 font-mono">
+        <code>{children}</code>
+      </pre>
+    </div>
+  );
+}
   const features = [
     {
       title: 'Course Management',
@@ -308,373 +889,6 @@ function FeaturesSection() {
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function ArchitectureSection() {
-  return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-6">System Architecture</h2>
-      
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Technology Stack</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <TechCard title="Frontend" items={['Next.js 14.2.18', 'React 18.3.1', 'Tailwind CSS', 'Lucide Icons', 'mina-scheduler']} />
-        <TechCard title="Backend" items={['Next.js API Routes', 'PostgreSQL', 'Prisma ORM', 'NextAuth.js', 'bcryptjs']} />
-        <TechCard title="Infrastructure" items={['Vercel', 'Railway/Neon', 'Resend Email', 'Git/GitHub']} />
-      </div>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Application Structure</h3>
-      <CodeBlock language="text">
-{`university-planner/
-├── pages/              # Next.js pages and API routes
-│   ├── api/            # Backend API endpoints
-│   ├── dashboard.js    # Main dashboard
-│   ├── calendar.js     # Calendar view
-│   ├── timetable.js    # Weekly timetable
-│   ├── modules.js      # Course manager
-│   ├── grades.js       # Grade tracking
-│   └── attendance.js   # Attendance tracker
-├── src/
-│   ├── components/     # React components
-│   ├── providers/      # Context providers
-│   └── utils/          # Utility functions
-├── prisma/
-│   └── schema.prisma   # Database schema
-└── public/             # Static assets`}
-      </CodeBlock>
-    </div>
-  );
-}
-
-function DatabaseSection() {
-  return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-6">Database Schema</h2>
-      
-      <p className="text-slate-600 dark:text-slate-300 mb-6">
-        University Planner uses PostgreSQL with Prisma ORM for type-safe database access.
-      </p>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Core Tables</h3>
-      
-      <div className="space-y-6">
-        <TableInfo 
-          name="users" 
-          description="User authentication and profile data"
-          columns={['id (UUID)', 'email (VARCHAR)', 'password_hash (VARCHAR)', 'name (VARCHAR)', 'settings (JSON)', 'created_at', 'updated_at']}
-        />
-        <TableInfo 
-          name="courses" 
-          description="Academic course information"
-          columns={['id (UUID)', 'name (VARCHAR)', 'code (VARCHAR)', 'credits (INT)', 'color (VARCHAR)', 'semester (VARCHAR)', 'instructor (VARCHAR)', 'user_id (UUID FK)', 'created_at', 'updated_at']}
-        />
-        <TableInfo 
-          name="assessments" 
-          description="Grading categories and items"
-          columns={['id (UUID)', 'name (VARCHAR)', 'type (VARCHAR)', 'weight (FLOAT)', 'items (JSON)', 'course_id (UUID FK)', 'user_id (UUID)', 'created_at', 'updated_at']}
-        />
-        <TableInfo 
-          name="events" 
-          description="Calendar events and assignments"
-          columns={['id (UUID)', 'title (VARCHAR)', 'type (VARCHAR)', 'date (TIMESTAMP)', 'time (VARCHAR)', 'location (VARCHAR)', 'course_id (UUID FK)', 'completed (BOOLEAN)', 'user_id (UUID FK)', 'created_at', 'updated_at']}
-        />
-        <TableInfo 
-          name="semester_settings" 
-          description="Academic semester configurations"
-          columns={['id (UUID)', 'name (VARCHAR)', 'start_date (TIMESTAMP)', 'end_date (TIMESTAMP)', 'is_active (BOOLEAN)', 'user_id (UUID FK)', 'created_at', 'updated_at']}
-        />
-        <TableInfo 
-          name="attendance_sessions" 
-          description="Class attendance records"
-          columns={['id (UUID)', 'date (TIMESTAMP)', 'status (ENUM)', 'points (INT)', 'notes (TEXT)', 'user_id (UUID FK)', 'course_id (UUID FK)', 'created_at', 'updated_at']}
-        />
-      </div>
-    </div>
-  );
-}
-
-function APISection() {
-  return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-6">API Reference</h2>
-      
-      <p className="text-slate-600 dark:text-slate-300 mb-6">
-        All API endpoints follow RESTful conventions and require authentication.
-      </p>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Authentication</h3>
-      <div className="space-y-4">
-        <APIEndpoint method="POST" path="/api/auth/signup" description="Create new user account" />
-        <APIEndpoint method="POST" path="/api/auth/signin" description="Authenticate user" />
-        <APIEndpoint method="GET" path="/api/auth/me" description="Get current user" />
-      </div>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Courses</h3>
-      <div className="space-y-4">
-        <APIEndpoint method="GET" path="/api/courses" description="Get all courses" />
-        <APIEndpoint method="POST" path="/api/courses" description="Create new course" />
-        <APIEndpoint method="PUT" path="/api/courses/:id" description="Update course" />
-        <APIEndpoint method="DELETE" path="/api/courses/:id" description="Delete course" />
-      </div>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Events</h3>
-      <div className="space-y-4">
-        <APIEndpoint method="GET" path="/api/events" description="Get all events (with date filters)" />
-        <APIEndpoint method="POST" path="/api/events" description="Create new event" />
-        <APIEndpoint method="PUT" path="/api/events/:id" description="Update event" />
-        <APIEndpoint method="DELETE" path="/api/events/:id" description="Delete event (supports bulk delete)" />
-      </div>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Grades</h3>
-      <div className="space-y-4">
-        <APIEndpoint method="GET" path="/api/grades" description="Get grades for all courses" />
-        <APIEndpoint method="PUT" path="/api/grades" description="Update grades/assessments" />
-      </div>
-
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Attendance</h3>
-      <div className="space-y-4">
-        <APIEndpoint method="GET" path="/api/attendance" description="Get attendance records" />
-        <APIEndpoint method="POST" path="/api/attendance" description="Log attendance session" />
-      </div>
-    </div>
-  );
-}
-
-function DeploymentSection() {
-  return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-6">Deployment Guide</h2>
-      
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-4">Vercel Deployment (Recommended)</h3>
-      
-      <div className="space-y-6">
-        <Step number="1" title="Prepare repository">
-          <CodeBlock language="bash">
-{`git add .
-git commit -m "Ready for deployment"
-git push origin main`}
-          </CodeBlock>
-        </Step>
-
-        <Step number="2" title="Connect to Vercel">
-          <ul className="text-slate-600 dark:text-slate-300 space-y-2">
-            <li>Go to <a href="https://vercel.com" className="text-purple-600 dark:text-purple-400 hover:underline">vercel.com</a></li>
-            <li>Import your GitHub repository</li>
-            <li>Select the university-planner project</li>
-          </ul>
-        </Step>
-
-        <Step number="3" title="Configure environment variables">
-          <p className="text-slate-600 dark:text-slate-300 mb-3">Add these variables in Vercel dashboard:</p>
-          <ul className="text-sm text-slate-600 dark:text-slate-300 space-y-1 list-disc list-inside">
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">DATABASE_URL</code></li>
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">DIRECT_URL</code></li>
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">NEXTAUTH_SECRET</code></li>
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">NEXTAUTH_URL</code> (production URL)</li>
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">RESEND_API_KEY</code></li>
-            <li><code className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">FROM_EMAIL</code></li>
-          </ul>
-        </Step>
-
-        <Step number="4" title="Deploy">
-          <p className="text-slate-600 dark:text-slate-300">
-            Vercel will automatically deploy on push to main branch.
-          </p>
-        </Step>
-
-        <Step number="5" title="Run database migrations">
-          <CodeBlock language="bash">npx prisma migrate deploy</CodeBlock>
-        </Step>
-      </div>
-
-      <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-6 mt-8">
-        <h4 className="text-lg font-semibold text-green-900 dark:text-green-300 mb-2">Post-Deployment Checklist</h4>
-        <ul className="text-green-800 dark:text-green-200 space-y-2">
-          <li>✓ Verify database connection</li>
-          <li>✓ Test user authentication</li>
-          <li>✓ Check API endpoints</li>
-          <li>✓ Validate theme switching</li>
-          <li>✓ Test core features</li>
-          <li>✓ Monitor error logs</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function TroubleshootingSection() {
-  const issues = [
-    {
-      title: 'Database Connection Failed',
-      problem: 'Cannot connect to PostgreSQL database',
-      solutions: [
-        'Verify DATABASE_URL is correct',
-        'Check database is running and accessible',
-        'Verify SSL mode (?sslmode=require)',
-        'Test connection with npx prisma db push'
-      ]
-    },
-    {
-      title: 'Authentication Not Working',
-      problem: 'Cannot sign in or session expires immediately',
-      solutions: [
-        'Verify NEXTAUTH_SECRET is set',
-        'Check NEXTAUTH_URL matches your domain',
-        'Clear browser cookies',
-        'Verify password hashing works'
-      ]
-    },
-    {
-      title: 'Grades Not Saving',
-      problem: 'Grading categories disappear on refresh',
-      solutions: [
-        'Verify assessments table exists',
-        'Run migrations: npx prisma migrate deploy',
-        'Check API logs for errors',
-        'Verify course_id is valid UUID'
-      ]
-    },
-    {
-      title: 'Events Not Appearing',
-      problem: 'Created events don\'t show in calendar',
-      solutions: [
-        'Check date format (ISO 8601)',
-        'Verify user_id matches authenticated user',
-        'Clear browser cache',
-        'Check API response for errors'
-      ]
-    }
-  ];
-
-  return (
-    <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-6">Troubleshooting</h2>
-      
-      <div className="space-y-6">
-        {issues.map((issue, index) => (
-          <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">{issue.title}</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4 text-sm">
-              <strong>Problem:</strong> {issue.problem}
-            </p>
-            <div>
-              <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Solutions:</h4>
-              <ul className="space-y-2">
-                {issue.solutions.map((solution, i) => (
-                  <li key={i} className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                    <span className="text-green-600 dark:text-green-400 mt-1">✓</span>
-                    <span>{solution}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 mt-8">
-        <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">Debug Mode</h4>
-        <p className="text-blue-800 dark:text-blue-200 mb-3">
-          Enable debug logging by adding to your .env file:
-        </p>
-        <CodeBlock language="env">
-{`DEBUG=true
-NODE_ENV=development`}
-        </CodeBlock>
-      </div>
-    </div>
-  );
-}
-
-// Helper Components
-function FeatureCard({ icon, title, description }) {
-  return (
-    <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-      <div className="text-2xl mb-2">{icon}</div>
-      <h4 className="font-semibold text-slate-800 dark:text-white mb-1">{title}</h4>
-      <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
-    </div>
-  );
-}
-
-function Step({ number, title, children }) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-        {number}
-      </div>
-      <div className="flex-1">
-        <h4 className="font-semibold text-slate-800 dark:text-white mb-2">{title}</h4>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function CodeBlock({ children, language = 'text' }) {
-  return (
-    <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 overflow-x-auto">
-      <pre className="text-sm text-slate-100 font-mono">
-        <code>{children}</code>
-      </pre>
-    </div>
-  );
-}
-
-function TechCard({ title, items }) {
-  return (
-    <div className="bg-slate-50 dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-      <h4 className="font-semibold text-slate-800 dark:text-white mb-3">{title}</h4>
-      <ul className="space-y-2">
-        {items.map((item, i) => (
-          <li key={i} className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
-            <span className="text-purple-600 dark:text-purple-400">•</span>
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function TableInfo({ name, description, columns }) {
-  return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-      <h4 className="font-mono font-semibold text-purple-600 dark:text-purple-400 mb-2">{name}</h4>
-      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">{description}</p>
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded p-3">
-        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Columns:</p>
-        <div className="flex flex-wrap gap-2">
-          {columns.map((col, i) => (
-            <span key={i} className="text-xs bg-white dark:bg-slate-700 px-2 py-1 rounded border border-slate-200 dark:border-slate-600 font-mono text-slate-700 dark:text-slate-300">
-              {col}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function APIEndpoint({ method, path, description }) {
-  const methodColors = {
-    GET: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    POST: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    PUT: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    DELETE: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  };
-
-  return (
-    <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-      <span className={`px-2 py-1 rounded text-xs font-mono font-semibold ${methodColors[method]}`}>
-        {method}
-      </span>
-      <div className="flex-1">
-        <code className="text-sm font-mono text-slate-800 dark:text-slate-200">{path}</code>
-        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{description}</p>
       </div>
     </div>
   );

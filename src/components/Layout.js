@@ -132,8 +132,10 @@ const Layout = ({ children }) => {
     );
   }
   
-  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout', '/docs', '/reset-password'];
+  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout'];
+  const noSidebarPaths = ['/docs', '/reset-password'];
   const isPublic = publicPaths.includes(router.pathname);
+  const hideSidebar = isPublic || noSidebarPaths.includes(router.pathname);
 
   // Sidebar rendered in-flow so it naturally takes up space and the main content
   // sits beside it; this avoids the large empty left gutter and preserves
@@ -142,7 +144,7 @@ const Layout = ({ children }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="flex">
         {/* Sidebar - keep it in the flow so it contributes to layout width */}
-        {!isPublic && (
+        {!hideSidebar && (
           <div className="flex-shrink-0">
             <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
           </div>

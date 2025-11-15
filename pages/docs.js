@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import { BookOpen, GraduationCap, Calendar, CheckSquare, BookMarked, ClipboardList, Home, ChevronRight, Search, BarChart3, Clock, MapPin, Award, Users } from 'lucide-react';
+import { BookOpen, GraduationCap, Calendar, CheckSquare, BookMarked, ClipboardList, Home, ChevronRight, Search, BarChart3, Clock, MapPin, Award, Users, Download } from 'lucide-react';
 
 export default function Docs() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -35,13 +35,33 @@ export default function Docs() {
               </div>
               <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Documentation</h1>
             </div>
-            <Link 
-              href="/"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium text-sm"
-            >
-              <Home className="w-4 h-4" />
-              Back to App
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const content = document.documentElement.outerHTML;
+                  const blob = new Blob([content], { type: 'text/html' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'university-planner-docs.html';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 transition-colors text-white font-medium text-sm shadow-sm hover:shadow"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+              <Link 
+                href="/"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium text-sm"
+              >
+                <Home className="w-4 h-4" />
+                Back to App
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -540,19 +560,31 @@ function CalendarSection() {
       <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Event Types</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">📝 Assignment</h4>
+          <div className="flex items-center gap-2 mb-2">
+            <BookMarked className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <h4 className="font-semibold text-blue-900 dark:text-blue-300">Assignment</h4>
+          </div>
           <p className="text-sm text-blue-800 dark:text-blue-200">Homework, projects, papers</p>
         </div>
         <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
-          <h4 className="font-semibold text-red-900 dark:text-red-300 mb-2">📊 Exam</h4>
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <h4 className="font-semibold text-red-900 dark:text-red-300">Exam</h4>
+          </div>
           <p className="text-sm text-red-800 dark:text-red-200">Midterms, finals, quizzes</p>
         </div>
         <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-4">
-          <h4 className="font-semibold text-green-900 dark:text-green-300 mb-2">👥 Meeting</h4>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <h4 className="font-semibold text-green-900 dark:text-green-300">Meeting</h4>
+          </div>
           <p className="text-sm text-green-800 dark:text-green-200">Office hours, group meetings</p>
         </div>
         <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-lg p-4">
-          <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-2">⭐ Other</h4>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <h4 className="font-semibold text-purple-900 dark:text-purple-300">Other</h4>
+          </div>
           <p className="text-sm text-purple-800 dark:text-purple-200">Personal reminders, deadlines</p>
         </div>
       </div>
@@ -597,7 +629,7 @@ function AttendanceSection() {
           </li>
           <li className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
-            <span>Mark your status: Present, Absent, or Late</span>
+            <span>Mark your status: Present, Absent, Late, or Excused</span>
           </li>
           <li className="flex items-start gap-3">
             <span className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-semibold">4</span>
@@ -607,14 +639,18 @@ function AttendanceSection() {
       </div>
 
       <h3 className="text-xl font-semibold text-slate-800 dark:text-white mt-8 mb-4">Point System</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">+1</div>
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">+2</div>
           <div className="text-sm font-semibold text-green-900 dark:text-green-300">Present</div>
         </div>
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">+0.5</div>
+          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mb-1">+1</div>
           <div className="text-sm font-semibold text-amber-900 dark:text-amber-300">Late</div>
+        </div>
+        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4 text-center">
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">+1</div>
+          <div className="text-sm font-semibold text-blue-900 dark:text-blue-300">Excused</div>
         </div>
         <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-4 text-center">
           <div className="text-3xl font-bold text-red-600 dark:text-red-400 mb-1">0</div>

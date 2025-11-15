@@ -399,7 +399,7 @@ export default function TimetableSetup() {
                         />
                         <div className="ml-4 flex-1">
                           <div className="font-bold text-gray-900">{course.name}</div>
-                          <div className="text-sm text-gray-600">{course.code} • {course.semester}</div>
+                          <div className="text-sm text-gray-600">{course.code}{course.semester ? ` • ${course.semester}` : ''}</div>
                         </div>
                         {selectedCourses.includes(course.id) && (
                           <CheckCircle className="w-6 h-6 text-indigo-600" />

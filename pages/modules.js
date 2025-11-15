@@ -66,10 +66,28 @@ const ModulesManager = () => {
       }
       const data = await response.json();
       if (data.success && data.settings) {
-        setSemesters(data.settings);
-        // Auto-detect current semester (today falls within date range)
+        // Sort semesters: active first, then by start date (soonest first)
         const today = new Date();
-        const active = data.settings.find(s => {
+        const sortedSemesters = data.settings.sort((a, b) => {
+          const aStart = new Date(a.start_date);
+          const aEnd = new Date(a.end_date);
+          const bStart = new Date(b.start_date);
+          const bEnd = new Date(b.end_date);
+          
+          const aIsActive = today >= aStart && today <= aEnd;
+          const bIsActive = today >= bStart && today <= bEnd;
+          
+          // Active semesters come first
+          if (aIsActive && !bIsActive) return -1;
+          if (!aIsActive && bIsActive) return 1;
+          
+          // Both active or both inactive: sort by start date (soonest first)
+          return aStart - bStart;
+        });
+        
+        setSemesters(sortedSemesters);
+        // Auto-detect current semester (today falls within date range)
+        const active = sortedSemesters.find(s => {
           const start = new Date(s.start_date);
           const end = new Date(s.end_date);
           return today >= start && today <= end;

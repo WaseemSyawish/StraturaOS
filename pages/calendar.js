@@ -310,7 +310,7 @@ export default function CalendarPage() {
                   <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <div className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-purple-600 to-purple-700 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-3xl font-black text-slate-800 dark:text-slate-100" style={{ letterSpacing: '-0.02em' }}>
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </div>
                   <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">

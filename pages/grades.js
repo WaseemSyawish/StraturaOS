@@ -176,9 +176,14 @@ const GradesPage = () => {
         const res = await fetch('/api/grades', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!res.ok) throw new Error('Failed to persist category');
         const js = await res.json().catch(() => null);
-        if (js && js.data) {
-          // server returned canonical course object
-          setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: Array.isArray(js.data.assessments) ? js.data.assessments : (js.data.categories || []) }) : course));
+        if (js && js.success && js.data) {
+          // server returned canonical course object with assessments array
+          const updatedCategories = Array.isArray(js.data.assessments) ? js.data.assessments : (Array.isArray(js.data.categories) ? js.data.categories : []);
+          setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: updatedCategories }) : course));
+          // Also update selectedCourse if it's open
+          if (selectedCourse && selectedCourse.id === js.data.id) {
+            setSelectedCourse({ ...selectedCourse, categories: updatedCategories });
+          }
           return;
         }
         // fallback: refresh full grades list
@@ -187,7 +192,13 @@ const GradesPage = () => {
           const listJs = await listRes.json().catch(() => null);
           const arr = listJs && Array.isArray(listJs.data) ? listJs.data : [];
           const found = arr.find(c => String(c.id) === String(selectedCourse.id));
-          if (found) setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: Array.isArray(found.assessments) ? found.assessments : (found.categories || []) }) : course));
+          if (found) {
+            const foundCategories = Array.isArray(found.assessments) ? found.assessments : (Array.isArray(found.categories) ? found.categories : []);
+            setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: foundCategories }) : course));
+            if (selectedCourse && selectedCourse.id === found.id) {
+              setSelectedCourse({ ...selectedCourse, categories: foundCategories });
+            }
+          }
         }
       } catch (e) {
         console.warn('persist category failed', e);

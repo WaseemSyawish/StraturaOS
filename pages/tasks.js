@@ -1,7 +1,7 @@
 // Tasks page - Student-friendly task management with inbox for undated tasks
 import Head from 'next/head';
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo, ArrowUpDown, Zap, Target, AlertCircle, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo, ArrowUpDown, Zap, Target, AlertCircle, TrendingUp, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
 import { useModal } from '@/providers/modal-context';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
@@ -15,9 +15,9 @@ const FILTER_VIEWS = [
 ];
 
 const SORT_OPTIONS = [
-  { id: 'priority', label: 'Priority (Eisenhower)', icon: Target },
   { id: 'date', label: 'Due Date', icon: CalendarIcon },
-  { id: 'alphabetical', label: 'Alphabetical', icon: ArrowUpDown },
+  { id: 'priority', label: 'Priority', icon: Target },
+  { id: 'course', label: 'Course', icon: BookOpen },
 ];
 
 const EISENHOWER_QUADRANTS = [
@@ -32,14 +32,8 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('inbox');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('priority');
-  const [expandedQuadrants, setExpandedQuadrants] = useState({
-    'urgent-important': true,
-    'not-urgent-important': true,
-    'urgent-not-important': false,
-    'not-urgent-not-important': false,
-  });
-  const [tasksPerQuadrant, setTasksPerQuadrant] = useState(5);
+  const [sortBy, setSortBy] = useState('date');
+  const [expandedGroups, setExpandedGroups] = useState({});
   const { setOpen, setClose } = useModal();
 
   const loadTasks = useCallback(async () => {
@@ -143,12 +137,16 @@ export default function TasksPage() {
     
     switch (sortBy) {
       case 'priority':
-        // Eisenhower Matrix sorting: urgent-important > not-urgent-important > urgent-not-important > not-urgent-not-important
         const priorityOrder = { 'urgent-important': 1, 'not-urgent-important': 2, 'urgent-not-important': 3, 'not-urgent-not-important': 4 };
         sorted.sort((a, b) => {
           const aPriority = a.priority || 'not-urgent-not-important';
           const bPriority = b.priority || 'not-urgent-not-important';
-          return (priorityOrder[aPriority] || 99) - (priorityOrder[bPriority] || 99);
+          const priorityDiff = (priorityOrder[aPriority] || 99) - (priorityOrder[bPriority] || 99);
+          if (priorityDiff !== 0) return priorityDiff;
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date) - new Date(b.date);
         });
         break;
       case 'date':
@@ -159,12 +157,47 @@ export default function TasksPage() {
           return new Date(a.date) - new Date(b.date);
         });
         break;
-      case 'alphabetical':
-        sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      case 'course':
+        sorted.sort((a, b) => {
+          const aCourse = a.courses?.name || a.type || 'No Course';
+          const bCourse = b.courses?.name || b.type || 'No Course';
+          const courseDiff = aCourse.localeCompare(bCourse);
+          if (courseDiff !== 0) return courseDiff;
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date) - new Date(b.date);
+        });
         break;
     }
     
     return sorted;
+  };
+
+  // Group by course for better organization
+  const groupTasksByCourse = (tasksToGroup) => {
+    const grouped = {};
+    const classes = {};
+    const assignments = {};
+    const other = {};
+    
+    tasksToGroup.forEach(task => {
+      const courseName = task.courses?.name || 'No Course';
+      const type = task.type || 'other';
+      
+      if (type === 'class' || type === 'lecture') {
+        if (!classes[courseName]) classes[courseName] = [];
+        classes[courseName].push(task);
+      } else if (type === 'assignment' || type === 'exam') {
+        if (!assignments[courseName]) assignments[courseName] = [];
+        assignments[courseName].push(task);
+      } else {
+        if (!other[courseName]) other[courseName] = [];
+        other[courseName].push(task);
+      }
+    });
+    
+    return { classes, assignments, other };
   };
 
   const groupTasksByQuadrant = (tasksToGroup) => {
@@ -236,8 +269,9 @@ export default function TasksPage() {
 
   const filteredTasks = getFilteredTasks();
   const sortedTasks = sortTasks(filteredTasks);
-  const timeframeGroups = activeView === 'upcoming' && sortBy === 'date' ? groupTasksByTimeframe(sortedTasks) : null;
-  const groupedTasks = activeView === 'upcoming' && sortBy === 'priority' ? groupTasksByQuadrant(sortedTasks) : null;
+  const courseGroups = sortBy === 'course' ? groupTasksByCourse(sortedTasks) : null;
+  const timeframeGroups = sortBy === 'date' && activeView !== 'completed' ? groupTasksByTimeframe(sortedTasks) : null;
+  const priorityGroups = sortBy === 'priority' ? groupTasksByQuadrant(sortedTasks) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-950 dark:to-slate-900">
@@ -320,8 +354,8 @@ export default function TasksPage() {
                 />
               </div>
               
-              {/* Sort Dropdown - Only show in upcoming view */}
-              {activeView === 'upcoming' && (
+              {/* Sort Dropdown - Show in all views except completed */}
+              {activeView !== 'completed' && (
                 <div className="relative">
                   <select
                     value={sortBy}

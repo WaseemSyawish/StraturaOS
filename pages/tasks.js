@@ -1,7 +1,7 @@
 // Tasks page - Student-friendly task management with inbox for undated tasks
 import Head from 'next/head';
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo } from 'lucide-react';
+import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo, ArrowUpDown, Zap, Target, AlertCircle, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { useModal } from '@/providers/modal-context';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
@@ -14,11 +14,32 @@ const FILTER_VIEWS = [
   { id: 'completed', label: 'Completed', icon: CheckSquare },
 ];
 
+const SORT_OPTIONS = [
+  { id: 'priority', label: 'Priority (Eisenhower)', icon: Target },
+  { id: 'date', label: 'Due Date', icon: CalendarIcon },
+  { id: 'alphabetical', label: 'Alphabetical', icon: ArrowUpDown },
+];
+
+const EISENHOWER_QUADRANTS = [
+  { id: 'urgent-important', label: 'Do First', color: 'red', icon: AlertCircle, description: 'Urgent & Important' },
+  { id: 'not-urgent-important', label: 'Schedule', color: 'blue', icon: Target, description: 'Not Urgent but Important' },
+  { id: 'urgent-not-important', label: 'Delegate', color: 'amber', icon: Zap, description: 'Urgent but Not Important' },
+  { id: 'not-urgent-not-important', label: 'Eliminate', color: 'gray', icon: TrendingUp, description: 'Not Urgent & Not Important' },
+];
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('inbox');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('priority');
+  const [expandedQuadrants, setExpandedQuadrants] = useState({
+    'urgent-important': true,
+    'not-urgent-important': true,
+    'urgent-not-important': false,
+    'not-urgent-not-important': false,
+  });
+  const [tasksPerQuadrant, setTasksPerQuadrant] = useState(5);
   const { setOpen, setClose } = useModal();
 
   const loadTasks = useCallback(async () => {
@@ -117,7 +138,58 @@ export default function TasksPage() {
     return filtered;
   };
 
+  const sortTasks = (tasksToSort) => {
+    const sorted = [...tasksToSort];
+    
+    switch (sortBy) {
+      case 'priority':
+        // Eisenhower Matrix sorting: urgent-important > not-urgent-important > urgent-not-important > not-urgent-not-important
+        const priorityOrder = { 'urgent-important': 1, 'not-urgent-important': 2, 'urgent-not-important': 3, 'not-urgent-not-important': 4 };
+        sorted.sort((a, b) => {
+          const aPriority = a.priority || 'not-urgent-not-important';
+          const bPriority = b.priority || 'not-urgent-not-important';
+          return (priorityOrder[aPriority] || 99) - (priorityOrder[bPriority] || 99);
+        });
+        break;
+      case 'date':
+        sorted.sort((a, b) => {
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date) - new Date(b.date);
+        });
+        break;
+      case 'alphabetical':
+        sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        break;
+    }
+    
+    return sorted;
+  };
+
+  const groupTasksByQuadrant = (tasksToGroup) => {
+    const groups = {
+      'urgent-important': [],
+      'not-urgent-important': [],
+      'urgent-not-important': [],
+      'not-urgent-not-important': [],
+    };
+    
+    tasksToGroup.forEach(task => {
+      const quadrant = task.priority || 'not-urgent-not-important';
+      if (groups[quadrant]) {
+        groups[quadrant].push(task);
+      } else {
+        groups['not-urgent-not-important'].push(task);
+      }
+    });
+    
+    return groups;
+  };
+
   const filteredTasks = getFilteredTasks();
+  const sortedTasks = sortTasks(filteredTasks);
+  const groupedTasks = activeView === 'upcoming' && sortBy === 'priority' ? groupTasksByQuadrant(sortedTasks) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-950 dark:to-slate-900">
@@ -187,9 +259,9 @@ export default function TasksPage() {
 
           {/* Main Content - Task List */}
           <div className="lg:col-span-3">
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className="relative">
+            {/* Search Bar + Sort Controls */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
@@ -199,6 +271,24 @@ export default function TasksPage() {
                   className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                 />
               </div>
+              
+              {/* Sort Dropdown - Only show in upcoming view */}
+              {activeView === 'upcoming' && (
+                <div className="relative">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none px-4 py-3 pr-10 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-medium cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                  >
+                    {SORT_OPTIONS.map(option => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ArrowUpDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              )}
             </div>
 
             {/* Task List */}
@@ -225,9 +315,101 @@ export default function TasksPage() {
                     }
                   </p>
                 </div>
+              ) : groupedTasks ? (
+                // Eisenhower Matrix view for upcoming with priority sorting
+                <div className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {EISENHOWER_QUADRANTS.map(quadrant => {
+                    const QuadrantIcon = quadrant.icon;
+                    const tasks = groupedTasks[quadrant.id];
+                    
+                    if (tasks.length === 0) return null;
+                    
+                    // Color mapping for inline styles
+                    const colorMap = {
+                      red: { bg: 'bg-red-100 dark:bg-red-900/30', icon: 'text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400', border: 'border-red-400 dark:border-red-600' },
+                      blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-400 dark:border-blue-600' },
+                      amber: { bg: 'bg-amber-100 dark:bg-amber-900/30', icon: 'text-amber-600 dark:text-amber-400', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-400 dark:border-amber-600' },
+                      gray: { bg: 'bg-gray-100 dark:bg-gray-900/30', icon: 'text-gray-600 dark:text-gray-400', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-400 dark:border-gray-600' },
+                    };
+                    
+                    const colors = colorMap[quadrant.color];
+                    const isExpanded = expandedQuadrants[quadrant.id];
+                    const visibleTasks = isExpanded ? tasks : tasks.slice(0, tasksPerQuadrant);
+                    const hasMore = tasks.length > tasksPerQuadrant;
+                    
+                    return (
+                      <div key={quadrant.id} className="p-6">
+                        {/* Quadrant Header - Clickable to collapse/expand */}
+                        <button
+                          onClick={() => setExpandedQuadrants(prev => ({ ...prev, [quadrant.id]: !prev[quadrant.id] }))}
+                          className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
+                              <QuadrantIcon className={`w-5 h-5 ${colors.icon}`} strokeWidth={2.5} />
+                            </div>
+                            <div className="text-left">
+                              <h3 className="font-bold text-gray-900 dark:text-white text-lg">
+                                {quadrant.label}
+                              </h3>
+                              <p className={`text-sm ${colors.text}`}>
+                                {quadrant.description} • {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                              </p>
+                            </div>
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400" />
+                          )}
+                        </button>
+                        
+                        {/* Tasks in this quadrant */}
+                        {isExpanded && (
+                          <div className="space-y-2">
+                            {visibleTasks.map(task => (
+                              <TaskRow
+                                key={task.id}
+                                task={task}
+                                onToggleComplete={handleToggleComplete}
+                                onEdit={() => {
+                                  setOpen(
+                                    <CustomModal title={`Edit: ${task.title}`} onClose={setClose}>
+                                      <AddEventModal
+                                        mode="edit"
+                                        initialData={task}
+                                        onSuccess={() => {
+                                          setClose();
+                                          loadTasks();
+                                        }}
+                                      />
+                                    </CustomModal>
+                                  );
+                                }}
+                                onDelete={handleDeleteTask}
+                                quadrantColor={quadrant.color}
+                                borderClass={colors.border}
+                              />
+                            ))}
+                            
+                            {/* Show More/Less button */}
+                            {hasMore && (
+                              <button
+                                onClick={() => setTasksPerQuadrant(prev => prev === 5 ? 999 : 5)}
+                                className="w-full mt-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              >
+                                {tasksPerQuadrant === 5 ? `Show all ${tasks.length} tasks` : 'Show less'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="divide-y divide-gray-100 dark:divide-slate-800">
-                  {filteredTasks.map(task => (
+                  {sortedTasks.map(task => (
                     <TaskRow
                       key={task.id}
                       task={task}
@@ -259,15 +441,32 @@ export default function TasksPage() {
   );
 }
 
-function TaskRow({ task, onToggleComplete, onDelete, onEdit }) {
+function TaskRow({ task, onToggleComplete, onDelete, onEdit, quadrantColor, borderClass }) {
   const hasDate = task.date && toYMDLocal(new Date(task.date));
   const isOverdue = hasDate && toYMDLocal(new Date(task.date)) < toYMDLocal(new Date()) && !task.completed;
+  
+  // Get priority info for non-grouped views
+  const getPriorityInfo = () => {
+    if (!task.priority) return null;
+    const quadrant = EISENHOWER_QUADRANTS.find(q => q.id === task.priority);
+    return quadrant;
+  };
+  
+  const priorityInfo = getPriorityInfo();
+  
+  // Color mapping for priority badges
+  const colorMap = {
+    red: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+    amber: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+    gray: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400',
+  };
 
   return (
     <div
       className={`group flex items-start gap-4 p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors ${
         task.completed ? 'opacity-60' : ''
-      }`}
+      } ${borderClass ? `border-l-4 ${borderClass}` : ''}`}
     >
       {/* Checkbox */}
       <button
@@ -287,9 +486,19 @@ function TaskRow({ task, onToggleComplete, onDelete, onEdit }) {
 
       {/* Task Content */}
       <div className="flex-1 min-w-0">
-        <h3 className={`font-medium text-gray-900 dark:text-white ${task.completed ? 'line-through' : ''}`}>
-          {task.title || 'Untitled Task'}
-        </h3>
+        <div className="flex items-start gap-2">
+          <h3 className={`font-medium text-gray-900 dark:text-white flex-1 ${task.completed ? 'line-through' : ''}`}>
+            {task.title || 'Untitled Task'}
+          </h3>
+          
+          {/* Priority Badge (shown when not in grouped view) */}
+          {priorityInfo && (
+            <span className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${colorMap[priorityInfo.color]}`}>
+              {React.createElement(priorityInfo.icon, { className: "w-3 h-3" })}
+              {priorityInfo.label}
+            </span>
+          )}
+        </div>
         
         {task.description && (
           <p className="text-sm text-gray-600 dark:text-slate-400 mt-1 line-clamp-2">

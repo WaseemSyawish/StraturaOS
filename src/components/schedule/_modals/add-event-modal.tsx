@@ -196,7 +196,7 @@ export default function AddEventModal({
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [customReminderDate, setCustomReminderDate] = useState('');
   const [customReminderTime, setCustomReminderTime] = useState('');
-  const [priority, setPriority] = useState<string>('not-urgent-not-important');
+  const [priority, setPriority] = useState<string>('urgent-important');
 
   // Safe default variant: ensure it matches the Variant union
   const defaultVariant: Variant = (eventData && typeof eventData.variant === 'string' && (VARIANTS as readonly string[]).includes(eventData.variant)) ? (eventData.variant as Variant) : 'primary';
@@ -230,6 +230,15 @@ export default function AddEventModal({
       const type = srcAny?.type || srcAny?.meta?.type || srcAny?.raw?.type || (isTaskMode ? "assignment" : "class");
       const description = srcAny?.description || srcAny?.meta?.description || srcAny?.raw?.description || '';
       const location = srcAny?.location || srcAny?.meta?.location || srcAny?.room || srcAny?.meta?.room || srcAny?.raw?.location || srcAny?.raw?.room || '';
+      
+      // Load priority or set default based on type
+      const loadedPriority = srcAny?.priority || srcAny?.meta?.priority || srcAny?.raw?.priority;
+      if (loadedPriority) {
+        setPriority(loadedPriority);
+      } else {
+        // Default priority based on type: classes are urgent-important, assignments keep user choice
+        setPriority(type === 'class' ? 'urgent-important' : priority);
+      }
       
       // Parse dates properly
       const startDate = parseToDate(srcAny.startDate || srcAny.date);

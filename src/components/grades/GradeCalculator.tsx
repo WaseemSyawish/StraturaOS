@@ -2,7 +2,7 @@
 // "What grade do I need?" calculator for final exams/assignments
 
 import React, { useState, useEffect } from 'react';
-import { Calculator, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { Calculator, Target, TrendingUp, AlertCircle, Lightbulb } from 'lucide-react';
 
 interface GradeItem {
   name: string;
@@ -122,7 +122,7 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -287,8 +287,9 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
           {/* Help Text */}
           {!selectedCategory && (
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                💡 Select a category and enter the upcoming assignment details to calculate what score you need.
+              <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-blue-500" />
+                Select a category and enter the upcoming assignment details to calculate what score you need.
               </p>
             </div>
           )}

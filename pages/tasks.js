@@ -187,8 +187,56 @@ export default function TasksPage() {
     return groups;
   };
 
+  // Smart grouping for date-based view
+  const groupTasksByTimeframe = (tasksToGroup) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const thisWeek = new Date(today);
+    thisWeek.setDate(thisWeek.getDate() + 7);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 14);
+    const thisMonth = new Date(today);
+    thisMonth.setMonth(thisMonth.getMonth() + 1);
+    
+    const groups = {
+      tomorrow: [],
+      thisWeek: [],
+      nextWeek: [],
+      thisMonth: [],
+      later: []
+    };
+    
+    tasksToGroup.forEach(task => {
+      if (!task.date) {
+        groups.later.push(task);
+        return;
+      }
+      
+      const taskDate = new Date(task.date);
+      const todayStr = toYMDLocal(today);
+      const tomorrowStr = toYMDLocal(tomorrow);
+      const taskStr = toYMDLocal(taskDate);
+      
+      if (taskStr === tomorrowStr) {
+        groups.tomorrow.push(task);
+      } else if (taskDate <= thisWeek) {
+        groups.thisWeek.push(task);
+      } else if (taskDate <= nextWeek) {
+        groups.nextWeek.push(task);
+      } else if (taskDate <= thisMonth) {
+        groups.thisMonth.push(task);
+      } else {
+        groups.later.push(task);
+      }
+    });
+    
+    return groups;
+  };
+
   const filteredTasks = getFilteredTasks();
   const sortedTasks = sortTasks(filteredTasks);
+  const timeframeGroups = activeView === 'upcoming' && sortBy === 'date' ? groupTasksByTimeframe(sortedTasks) : null;
   const groupedTasks = activeView === 'upcoming' && sortBy === 'priority' ? groupTasksByQuadrant(sortedTasks) : null;
 
   return (

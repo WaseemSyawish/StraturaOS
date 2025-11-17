@@ -16,7 +16,7 @@ const nextAuthUrl = process.env.NEXTAUTH_URL
 console.log('[nextauth] NEXTAUTH_URL:', nextAuthUrl);
 console.log('[nextauth] NODE_ENV:', process.env.NODE_ENV);
 
-export default NextAuth({
+export const authOptions = {
   url: nextAuthUrl,
   providers: [
     CredentialsProvider({
@@ -114,4 +114,6 @@ export default NextAuth({
       }
     }
   }
-});
+};
+
+export default NextAuth(authOptions);

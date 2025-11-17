@@ -316,8 +316,8 @@ export default function TasksPage() {
                   </p>
                 </div>
               ) : groupedTasks ? (
-                // Eisenhower Matrix view for upcoming with priority sorting
-                <div className="divide-y divide-gray-100 dark:divide-slate-800">
+                // Eisenhower Matrix view - Modern card-based design
+                <div className="space-y-4">
                   {EISENHOWER_QUADRANTS.map(quadrant => {
                     const QuadrantIcon = quadrant.icon;
                     const tasks = groupedTasks[quadrant.id];
@@ -326,10 +326,34 @@ export default function TasksPage() {
                     
                     // Color mapping for inline styles
                     const colorMap = {
-                      red: { bg: 'bg-red-100 dark:bg-red-900/30', icon: 'text-red-600 dark:text-red-400', text: 'text-red-600 dark:text-red-400', border: 'border-red-400 dark:border-red-600' },
-                      blue: { bg: 'bg-blue-100 dark:bg-blue-900/30', icon: 'text-blue-600 dark:text-blue-400', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-400 dark:border-blue-600' },
-                      amber: { bg: 'bg-amber-100 dark:bg-amber-900/30', icon: 'text-amber-600 dark:text-amber-400', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-400 dark:border-amber-600' },
-                      gray: { bg: 'bg-gray-100 dark:bg-gray-900/30', icon: 'text-gray-600 dark:text-gray-400', text: 'text-gray-600 dark:text-gray-400', border: 'border-gray-400 dark:border-gray-600' },
+                      red: { 
+                        bg: 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30', 
+                        icon: 'text-red-600 dark:text-red-400', 
+                        accent: 'bg-red-500',
+                        border: 'border-red-200 dark:border-red-900/50',
+                        hover: 'hover:shadow-red-200/50 dark:hover:shadow-red-900/30'
+                      },
+                      blue: { 
+                        bg: 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30', 
+                        icon: 'text-blue-600 dark:text-blue-400', 
+                        accent: 'bg-blue-500',
+                        border: 'border-blue-200 dark:border-blue-900/50',
+                        hover: 'hover:shadow-blue-200/50 dark:hover:shadow-blue-900/30'
+                      },
+                      amber: { 
+                        bg: 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30', 
+                        icon: 'text-amber-600 dark:text-amber-400', 
+                        accent: 'bg-amber-500',
+                        border: 'border-amber-200 dark:border-amber-900/50',
+                        hover: 'hover:shadow-amber-200/50 dark:hover:shadow-amber-900/30'
+                      },
+                      gray: { 
+                        bg: 'bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/30 dark:to-slate-950/30', 
+                        icon: 'text-gray-600 dark:text-gray-400', 
+                        accent: 'bg-gray-400',
+                        border: 'border-gray-200 dark:border-gray-900/50',
+                        hover: 'hover:shadow-gray-200/50 dark:hover:shadow-gray-900/30'
+                      },
                     };
                     
                     const colors = colorMap[quadrant.color];
@@ -338,65 +362,140 @@ export default function TasksPage() {
                     const hasMore = tasks.length > tasksPerQuadrant;
                     
                     return (
-                      <div key={quadrant.id} className="p-6">
-                        {/* Quadrant Header - Clickable to collapse/expand */}
+                      <div 
+                        key={quadrant.id} 
+                        className={`rounded-2xl border ${colors.border} ${colors.bg} overflow-hidden shadow-lg transition-all ${colors.hover}`}
+                      >
+                        {/* Card Header - Clickable to collapse/expand */}
                         <button
                           onClick={() => setExpandedQuadrants(prev => ({ ...prev, [quadrant.id]: !prev[quadrant.id] }))}
-                          className="w-full flex items-center justify-between mb-4 hover:opacity-80 transition-opacity"
+                          className="w-full p-6 flex items-center justify-between hover:opacity-90 transition-opacity"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
-                              <QuadrantIcon className={`w-5 h-5 ${colors.icon}`} strokeWidth={2.5} />
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl ${colors.accent} flex items-center justify-center shadow-md`}>
+                              <QuadrantIcon className="w-6 h-6 text-white" strokeWidth={2.5} />
                             </div>
                             <div className="text-left">
-                              <h3 className="font-bold text-gray-900 dark:text-white text-lg">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 {quadrant.label}
+                                <span className="text-sm font-normal px-2.5 py-0.5 rounded-full bg-white/70 dark:bg-black/20 text-gray-700 dark:text-gray-300">
+                                  {tasks.length}
+                                </span>
                               </h3>
-                              <p className={`text-sm ${colors.text}`}>
-                                {quadrant.description} • {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                              <p className={`text-sm ${colors.icon} font-medium mt-0.5`}>
+                                {quadrant.description}
                               </p>
                             </div>
                           </div>
-                          {isExpanded ? (
-                            <ChevronUp className="w-5 h-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-gray-400" />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronUp className={`w-6 h-6 ${colors.icon}`} strokeWidth={2.5} />
+                            ) : (
+                              <ChevronDown className={`w-6 h-6 ${colors.icon}`} strokeWidth={2.5} />
+                            )}
+                          </div>
                         </button>
                         
-                        {/* Tasks in this quadrant */}
+                        {/* Card Content - Tasks Grid */}
                         {isExpanded && (
-                          <div className="space-y-2">
+                          <div className="px-6 pb-6 space-y-3">
                             {visibleTasks.map(task => (
-                              <TaskRow
+                              <div
                                 key={task.id}
-                                task={task}
-                                onToggleComplete={handleToggleComplete}
-                                onEdit={() => {
-                                  setOpen(
-                                    <CustomModal title={`Edit: ${task.title}`} onClose={setClose}>
-                                      <AddEventModal
-                                        mode="edit"
-                                        initialData={task}
-                                        onSuccess={() => {
-                                          setClose();
-                                          loadTasks();
-                                        }}
-                                      />
-                                    </CustomModal>
-                                  );
-                                }}
-                                onDelete={handleDeleteTask}
-                                quadrantColor={quadrant.color}
-                                borderClass={colors.border}
-                              />
+                                className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-slate-800 hover:shadow-md transition-all group"
+                              >
+                                <div className="flex items-start gap-3">
+                                  {/* Checkbox */}
+                                  <button
+                                    onClick={() => handleToggleComplete(task.id, task.completed)}
+                                    className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border-2 transition-all ${
+                                      task.completed
+                                        ? `${colors.accent} border-transparent`
+                                        : 'border-gray-300 dark:border-slate-600 hover:border-blue-500'
+                                    }`}
+                                  >
+                                    {task.completed && (
+                                      <svg className="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    )}
+                                  </button>
+
+                                  {/* Task Content */}
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className={`font-semibold text-gray-900 dark:text-white ${task.completed ? 'line-through opacity-60' : ''}`}>
+                                      {task.title || 'Untitled Task'}
+                                    </h4>
+                                    
+                                    {task.description && (
+                                      <p className="text-sm text-gray-600 dark:text-slate-400 mt-1 line-clamp-2">
+                                        {task.description}
+                                      </p>
+                                    )}
+
+                                    {/* Task Metadata */}
+                                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                                      {task.date && toYMDLocal(new Date(task.date)) && (
+                                        <span className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md ${
+                                          toYMDLocal(new Date(task.date)) < toYMDLocal(new Date()) && !task.completed
+                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                                            : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300'
+                                        }`}>
+                                          <CalendarIcon className="w-3.5 h-3.5" />
+                                          {new Date(task.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                      )}
+                                      {task.time && (
+                                        <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300">
+                                          <Clock className="w-3.5 h-3.5" />
+                                          {task.time}
+                                        </span>
+                                      )}
+                                      {task.courses && task.courses.name && (
+                                        <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md">
+                                          {task.courses.name}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => {
+                                        setOpen(
+                                          <CustomModal title={`Edit: ${task.title}`} onClose={setClose}>
+                                            <AddEventModal
+                                              mode="edit"
+                                              initialData={task}
+                                              onSuccess={() => {
+                                                setClose();
+                                                loadTasks();
+                                              }}
+                                            />
+                                          </CustomModal>
+                                        );
+                                      }}
+                                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                    >
+                                      <Edit3 className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTask(task.id)}
+                                      className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-500" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
                             
                             {/* Show More/Less button */}
                             {hasMore && (
                               <button
                                 onClick={() => setTasksPerQuadrant(prev => prev === 5 ? 999 : 5)}
-                                className="w-full mt-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                className={`w-full mt-2 py-3 text-sm font-semibold ${colors.icon} hover:bg-white/50 dark:hover:bg-black/20 rounded-xl transition-all`}
                               >
                                 {tasksPerQuadrant === 5 ? `Show all ${tasks.length} tasks` : 'Show less'}
                               </button>

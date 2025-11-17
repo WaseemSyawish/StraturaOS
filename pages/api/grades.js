@@ -48,8 +48,11 @@ try {
   // use require to load the CommonJS export from lib/prisma
   // lib/prisma exports module.exports = prisma
   // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-  prismaClient = require('../../lib/prisma');
+  const prismaModule = require('../../lib/prisma');
+  prismaClient = prismaModule.default || prismaModule;
+  console.log('[api/grades] Prisma client loaded:', !!prismaClient);
 } catch (e) {
+  console.error('[api/grades] Failed to load Prisma client:', e.message);
   prismaClient = null;
 }
 
@@ -206,10 +209,11 @@ export default async function handler(req, res) {
             switch (action) {
               case 'add_assessment':
                 if (!assessment || !assessment.name) return res.status(400).json({ success: false, error: 'Missing assessment name' });
-                  console.log('[api/grades] add_assessment for course', courseId, 'user', userId);
+                  console.log('[api/grades] Prisma add_assessment for course', courseId, 'user', userId);
                   await prismaClient.assessment.create({ data: { name: assessment.name, type: assessment.type || 'assignment', weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || [], course_id: courseId, user_id: userId } });
                   // return canonical course
                   const afterAdd = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
+                  console.log('[api/grades] Prisma returned course with', afterAdd?.assessments?.length || 0, 'assessments');
                   return res.status(200).json({ success: true, data: afterAdd });
 
               case 'update_assessment':
@@ -246,6 +250,7 @@ export default async function handler(req, res) {
 
         switch (legacyAction) {
           case 'add_assessment':
+            console.log('[api/grades] File-based add_assessment for course', courseId);
             if (!legacyAssessment || !legacyAssessment.name || legacyAssessment.weight === undefined) {
               return res.status(400).json({ success: false, error: 'Missing assessment name or weight' });
             }
@@ -255,6 +260,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Total assessment weights cannot exceed 100%.' });
             }
             userCourses[courseIndex].assessments.push({ name: legacyAssessment.name, type: legacyAssessment.type || 'assignment', weight: newWeight, items: [] });
+            console.log('[api/grades] File-based: Added assessment, now has', userCourses[courseIndex].assessments.length, 'assessments');
             break;
 
           case 'update_assessment':

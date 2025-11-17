@@ -274,84 +274,89 @@ export default function TasksPage() {
   const priorityGroups = sortBy === 'priority' ? groupTasksByQuadrant(sortedTasks) : null;
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
       <Head>
         <title>Tasks — University Planner</title>
       </Head>
 
       {/* Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tasks</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your work and stay organized</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">Tasks</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{ new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }</p>
             </div>
 
             <button
               onClick={handleQuickAdd}
-              className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               Add Task
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredTasks.length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Total Tasks</p>
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Summary Stats - Beautiful gradient cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5 mb-8">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl p-6 border border-blue-100/50 dark:border-blue-900/30 hover:shadow-xl hover:shadow-blue-100/50 dark:hover:shadow-blue-900/20 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-300">
+                <CheckSquare className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white mb-1">{filteredTasks.length}</p>
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Tasks</p>
+            </div>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-3xl" />
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{tasks.filter(t => t.completed).length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 rounded-2xl p-6 border border-emerald-100/50 dark:border-emerald-900/30 hover:shadow-xl hover:shadow-emerald-100/50 dark:hover:shadow-emerald-900/20 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform duration-300">
+                <Check className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white mb-1">{tasks.filter(t => t.completed).length}</p>
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Completed</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}% done</p>
+            </div>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-green-500/10 rounded-full blur-3xl" />
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {tasks.filter(t => !t.completed && t.date && new Date(t.date) < new Date()).length}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Overdue</p>
+          <div className="group relative overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-2xl p-6 border border-amber-100/50 dark:border-amber-900/30 hover:shadow-xl hover:shadow-amber-100/50 dark:hover:shadow-amber-900/20 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white mb-1">
+                {tasks.filter(t => !t.completed && t.date && new Date(t.date) < new Date()).length}
+              </p>
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Overdue</p>
+            </div>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-full blur-3xl" />
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
-                <CalendarIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {tasks.filter(t => !t.completed && t.date && toYMDLocal(new Date(t.date)) === toYMDLocal(new Date())).length}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Due Today</p>
+          <div className="group relative overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-2xl p-6 border border-purple-100/50 dark:border-purple-900/30 hover:shadow-xl hover:shadow-purple-100/50 dark:hover:shadow-purple-900/20 transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-300">
+                <CalendarIcon className="w-6 h-6 text-white" />
               </div>
             </div>
+            <div>
+              <p className="text-4xl font-bold text-gray-900 dark:text-white mb-1">
+                {tasks.filter(t => !t.completed && t.date && toYMDLocal(new Date(t.date)) === toYMDLocal(new Date())).length}
+              </p>
+              <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Due Today</p>
+            </div>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
           </div>
         </div>
 

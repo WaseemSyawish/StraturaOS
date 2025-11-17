@@ -132,7 +132,7 @@ export default async function handler(req, res) {
 
       // Prepare events data
       const eventsData = occurrences.map(date => ({
-        title: `${course.name}${sessionType ? ' ' + sessionType : ''}`,
+        title: course.name,
         type: 'class',
         course_id: courseId,
         date: date,

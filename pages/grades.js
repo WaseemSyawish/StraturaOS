@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../src/components/CustomSelect';
-import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download, AlertCircle } from 'lucide-react';
+import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download, AlertCircle, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Head from 'next/head';
+import GradeCalculator from '../src/components/grades/GradeCalculator';
 
 const GradesPage = () => {
   const [selectedSemester, setSelectedSemester] = useState('all');
@@ -11,6 +12,8 @@ const GradesPage = () => {
   const [filterCourseId, setFilterCourseId] = useState('all');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorCourse, setCalculatorCourse] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
   const [loading, setLoading] = useState(true);
@@ -590,7 +593,7 @@ const GradesPage = () => {
   return (
     <div className="min-h-screen relative z-10 text-slate-900 dark:text-slate-100 dark:bg-slate-900">
       <Head>
-        <title>Grades — University Planner</title>
+        <title>Grade Calculator & Predictor — University Planner</title>
       </Head>
       <style dangerouslySetInnerHTML={{__html: `
         /* Modal form text coloring: keep white in dark mode, black in light mode */
@@ -628,9 +631,9 @@ const GradesPage = () => {
         <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
-              <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
+              <Calculator className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Academic Grades</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Grade Calculator & Predictor</h1>
           </div>
 
           <button 
@@ -673,41 +676,129 @@ const GradesPage = () => {
           </div>
         ) : (
           <div>
-            {/* Stats Cards: only show when there are courses available */}
+            {/* Calculator-Style Stats Dashboard */}
             {courses && courses.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800 dark:border-slate-700 dark:shadow-none hover:shadow-xl dark:hover:shadow-slate-900/50 transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Current GPA</p>
-                      <h3 className="text-4xl font-bold text-purple-600 mt-2 dark:text-purple-300">{stats.gpa}</h3>
+              <div className="mb-8">
+                {/* Main Calculator Display */}
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl p-8 mb-6 border border-slate-700 dark:from-slate-900 dark:to-black">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                      <Calculator className="w-6 h-6 text-purple-400" />
                     </div>
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-300">Your Academic Calculator</h2>
+                      <p className="text-sm text-slate-400">Real-time grade analysis & prediction</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Total Credits</p>
-                      <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.credits}</h3>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <BookOpen className="w-6 h-6 text-blue-600" />
+                  
+                  {/* Digital Display */}
+                  <div className="bg-slate-950/50 rounded-xl p-6 mb-6 border border-slate-800">
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="text-center">
+                        <div className="text-sm font-mono text-slate-400 mb-2">CURRENT GPA</div>
+                        <div className="text-5xl font-bold font-mono text-emerald-400 tracking-tight">
+                          {stats.gpa}
+                        </div>
+                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
+                          <TrendingUp className="w-3 h-3" />
+                          <span>Live calculation</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center border-l border-r border-slate-800">
+                        <div className="text-sm font-mono text-slate-400 mb-2">TOTAL CREDITS</div>
+                        <div className="text-5xl font-bold font-mono text-blue-400 tracking-tight">
+                          {stats.credits}
+                        </div>
+                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
+                          <BookOpen className="w-3 h-3" />
+                          <span>Accumulated</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-sm font-mono text-slate-400 mb-2">AVG GRADE</div>
+                        <div className="text-5xl font-bold font-mono text-amber-400 tracking-tight">
+                          {stats.avgGrade}
+                        </div>
+                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
+                          <Award className="w-3 h-3" />
+                          <span>Performance</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  
+                  {/* Quick Actions - Calculator Style Buttons */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <button 
+                      onClick={() => {
+                        if (filteredCourses.length > 0) {
+                          setCalculatorCourse(filteredCourses[0]);
+                          setShowCalculator(true);
+                        }
+                      }}
+                      className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-600 active:scale-95"
+                    >
+                      <Target className="w-5 h-5" />
+                      Grade Predictor
+                    </button>
+                    <button 
+                      onClick={() => window.location.href = '/modules'}
+                      className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-purple-500 active:scale-95"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Course
+                    </button>
+                    <button 
+                      onClick={() => { /* Export grades functionality */ }}
+                      className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-600 active:scale-95"
+                    >
+                      <Download className="w-5 h-5" />
+                      Export Data
+                    </button>
+                  </div>
                 </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-[#071423] dark:border-transparent">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium dark:text-slate-300">Average Grade</p>
-                      <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mt-2">{stats.avgGrade}</h3>
+                
+                {/* Quick Stats Row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Active Courses</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredCourses.length}</p>
+                      </div>
                     </div>
-                    <div className="p-3 bg-amber-100 rounded-lg">
-                      <GraduationCap className="w-6 h-6 text-amber-600" />
+                  </div>
+                  
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Categories Tracked</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {filteredCourses.reduce((sum, c) => sum + c.categories.length, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Total Assessments</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {filteredCourses.reduce((sum, c) => sum + c.categories.reduce((s, cat) => s + cat.items.length, 0), 0)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -822,89 +913,160 @@ const GradesPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-6">
                 {filteredCourses.map(course => {
                   const { grade, percentage } = calculateCourseGrade(course.categories);
                   const totalWeight = course.categories.reduce((sum, cat) => sum + cat.weight, 0);
 
                   return (
-                    <div key={course.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-slate-800/50 dark:border-slate-700/50 dark:shadow-none">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <p className="text-sm font-medium text-purple-600/70 dark:text-purple-400/70">{course.code}</p>
-                          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{course.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{course.credits} Credits • {course.categories.length} Categories</p>
-                        </div>
-                        <div className={`px-4 py-2 rounded-lg text-base font-semibold ${getGradeBgColor(grade)}`}>
-                          {grade} ({percentage}%)
+                    <div key={course.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-shadow">
+                      {/* Course Header - Calculator Display Style */}
+                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 p-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-mono bg-white/20 text-white px-2 py-1 rounded">
+                                {course.code}
+                              </span>
+                              <span className="text-xs font-mono bg-white/20 text-white px-2 py-1 rounded">
+                                {course.credits} CR
+                              </span>
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-1">{course.name}</h3>
+                            <p className="text-purple-100 text-sm">{course.categories.length} categories • {course.categories.reduce((s, c) => s + c.items.length, 0)} assessments</p>
+                          </div>
+                          
+                          {/* Grade Display - Digital Calculator Style */}
+                          <div className="bg-slate-900 rounded-xl p-4 min-w-[140px] text-center border-2 border-slate-700 shadow-xl">
+                            <div className="text-xs font-mono text-slate-400 mb-1">GRADE</div>
+                            <div className="text-4xl font-bold font-mono text-emerald-400 mb-1">
+                              {grade}
+                            </div>
+                            <div className="text-lg font-mono text-slate-300">
+                              {percentage}%
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Total Weight Allocated</span>
-                          <span className={`font-medium ${totalWeight === 100 ? 'text-green-600' : 'text-orange-600'}`}>
-                            {totalWeight}% / 100%
-                          </span>
+                      <div className="p-6">
+                        {/* Weight Progress - Calculator Style */}
+                        <div className="mb-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Scale className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Weight Allocation</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-lg font-mono font-bold ${totalWeight === 100 ? 'text-green-600 dark:text-green-400' : totalWeight > 100 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                {totalWeight}%
+                              </span>
+                              <span className="text-slate-400 font-mono">/</span>
+                              <span className="text-slate-600 dark:text-slate-400 font-mono">100%</span>
+                            </div>
+                          </div>
+                          <div className="relative w-full bg-slate-200 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
+                            <div 
+                              className={`h-3 rounded-full transition-all duration-500 ${
+                                totalWeight === 100 
+                                  ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                                  : totalWeight > 100 
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600'
+                                  : 'bg-gradient-to-r from-amber-500 to-amber-600'
+                              }`}
+                              style={{ width: `${Math.min(totalWeight, 100)}%` }}
+                            ></div>
+                            {totalWeight !== 100 && (
+                              <div className="absolute top-0 right-0 h-3 w-0.5 bg-slate-400"></div>
+                            )}
+                          </div>
+                          {totalWeight !== 100 && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              {totalWeight < 100 
+                                ? `${(100 - totalWeight).toFixed(1)}% available for new categories`
+                                : `Exceeds 100% by ${(totalWeight - 100).toFixed(1)}%`
+                              }
+                            </p>
+                          )}
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-500 ${totalWeight === 100 ? 'bg-green-600' : 'bg-orange-500'}`}
-                            style={{ width: `${Math.min(totalWeight, 100)}%` }}
-                          ></div>
+
+                        {/* Action Buttons - Calculator Style */}
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            Grading Categories
+                          </h4>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => {
+                                setCalculatorCourse(course);
+                                setShowCalculator(true);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
+                            >
+                              <Calculator className="w-4 h-4" />
+                              Calculate
+                            </button>
+                            <button 
+                              onClick={() => openCategoryModal(course)}
+                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="border-t border-gray-200 my-4"></div>
-
-                      <div className="flex justify-between items-center mb-3">
-                        <h4 className="font-semibold text-slate-900 dark:text-slate-100">Grading Categories</h4>
-                        <button 
-                          onClick={() => openCategoryModal(course)}
-                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 dark:bg-purple-500/80 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm font-medium shadow-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Category
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {course.categories.map(category => {
+                        {/* Categories List */}
+                        <div className="space-y-3">{course.categories.map(category => {
                           const categoryAvg = calculateCategoryAverage(category.items);
                           const isExpanded = expandedCategories[`${course.id}-${category.id}`];
 
                           return (
-                            <div key={category.id} className="border border-gray-200 rounded-lg overflow-hidden dark:border-slate-700/50 dark:bg-slate-800/30">
-                              <div className="bg-gray-50/50 p-4 dark:bg-slate-800/50">
+                            <div key={category.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800/40 hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
+                              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3 flex-1">
-                                    {getCategoryIcon(category.type || 'assignment')}
+                                    <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-600">
+                                      {getCategoryIcon(category.type || 'assignment')}
+                                    </div>
                                     <div className="flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <h5 className="font-semibold text-slate-900 dark:text-slate-200">{category.name}</h5>
-                                        <span className="text-sm text-gray-600 dark:text-slate-400">({category.weight}%)</span>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h5 className="font-bold text-slate-900 dark:text-slate-100">{category.name}</h5>
+                                        <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded text-xs font-mono font-semibold">
+                                          {category.weight}%
+                                        </span>
                                       </div>
-                                      <p className="text-sm text-gray-600 dark:text-slate-500">
-                                        {category.items.length} item{category.items.length !== 1 ? 's' : ''} • Average: {categoryAvg.toFixed(1)}%
-                                      </p>
+                                      <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                                        <span className="flex items-center gap-1">
+                                          <FileText className="w-3 h-3" />
+                                          {category.items.length} {category.items.length === 1 ? 'item' : 'items'}
+                                        </span>
+                                        <span className="text-slate-400">•</span>
+                                        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                                          Avg: {categoryAvg.toFixed(1)}%
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => openItemModal(course, category)}
-                                      className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium dark:bg-purple-500/15 dark:text-purple-400 dark:hover:bg-purple-500/25 dark:border dark:border-purple-500/20"
+                                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-sm font-semibold shadow-sm active:scale-95 flex items-center gap-1"
                                     >
-                                      + Add Item
+                                      <Plus className="w-3 h-3" />
+                                      Add
                                     </button>
                                     <button
                                       onClick={() => toggleCategory(course.id, category.id)}
-                                      className="p-2 hover:bg-gray-200 rounded transition-colors dark:hover:bg-white/5 dark:text-slate-400"
+                                      className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
                                     >
                                       {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                     </button>
                                     <button
                                       onClick={() => handleDeleteCategory(course.id, category.id)}
-                                      className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors dark:text-red-400/70 dark:hover:bg-red-500/10"
+                                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
@@ -913,22 +1075,30 @@ const GradesPage = () => {
                               </div>
 
                               {isExpanded && (
-                                <div className="p-4 space-y-2">
+                                <div className="p-4 space-y-2 bg-slate-50/50 dark:bg-slate-900/30">
                                   {category.items.map(item => {
                                     const itemPercentage = (item.score / item.maxScore * 100).toFixed(1);
+                                    const numPercentage = parseFloat(itemPercentage);
+                                    const gradeColor = numPercentage >= 90 ? 'text-green-600 dark:text-green-400' : 
+                                                      numPercentage >= 80 ? 'text-blue-600 dark:text-blue-400' : 
+                                                      numPercentage >= 70 ? 'text-amber-600 dark:text-amber-400' : 
+                                                      'text-red-600 dark:text-red-400';
+                                    
                                     return (
-                                      <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg dark:bg-slate-800/40 dark:border-slate-700/50">
+                                      <div key={item.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
                                         <div className="flex-1">
-                                          <p className="font-medium text-slate-900 dark:text-slate-100">{item.name}</p>
-                                          <p className="text-sm text-gray-600 dark:text-slate-300">{item.score} / {item.maxScore} points</p>
+                                          <p className="font-semibold text-slate-900 dark:text-slate-100">{item.name}</p>
+                                          <p className="text-sm text-slate-600 dark:text-slate-400 font-mono">
+                                            {item.score} / {item.maxScore} pts
+                                          </p>
                                         </div>
                                         <div className="flex items-center gap-3">
-                                          <div className="text-right">
-                                            <p className="font-bold text-lg text-slate-900 dark:text-slate-100">{itemPercentage}%</p>
+                                          <div className="text-right bg-slate-900 dark:bg-slate-950 px-3 py-2 rounded-lg border-2 border-slate-700 dark:border-slate-800">
+                                            <p className={`font-bold text-xl font-mono ${gradeColor}`}>{itemPercentage}%</p>
                                           </div>
                                           <button
                                             onClick={() => handleDeleteItem(course.id, category.id, item.id)}
-                                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors dark:hover:bg-red-900/20"
+                                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                           >
                                             <Trash2 className="w-4 h-4" />
                                           </button>
@@ -937,8 +1107,10 @@ const GradesPage = () => {
                                     );
                                   })}
                                   {category.items.length === 0 && (
-                                    <div className="text-center py-6 text-gray-500 dark:text-slate-300">
-                                      <p className="text-sm">No items yet. Click "Add Item" to get started!</p>
+                                    <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700">
+                                      <Calculator className="w-10 h-10 mx-auto mb-2 text-slate-400 dark:text-slate-600" />
+                                      <p className="text-sm font-medium">No assessments yet</p>
+                                      <p className="text-xs mt-1">Click "Add" to create your first item</p>
                                     </div>
                                   )}
                                 </div>
@@ -953,6 +1125,9 @@ const GradesPage = () => {
                             <p>No categories yet. Add a grading category to get started!</p>
                           </div>
                         )}
+                      </div>
+
+                      {/* Close space-y-3 div */}
                       </div>
                     </div>
                   );
@@ -1242,6 +1417,17 @@ const GradesPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Grade Calculator Modal */}
+      {showCalculator && calculatorCourse && (
+        <GradeCalculator
+          categories={calculatorCourse.categories}
+          onClose={() => {
+            setShowCalculator(false);
+            setCalculatorCourse(null);
+          }}
+        />
       )}
     </div>
   );

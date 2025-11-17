@@ -5114,10 +5114,7 @@ html.dark .event-delete-btn {
 }
 
 /* Dark mode: brighter, glowing purple */
-:global(html.dark)
-  .calendar-root
-  [role="gridcell"]
-  .text-white.bg-gradient-to-br {
+.dark .calendar-root [role="gridcell"] .text-white.bg-gradient-to-br {
   background: linear-gradient(to bottom right, #a855f7, #9333ea) !important;
   color: white !important;
   box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35) !important;
@@ -5131,7 +5128,7 @@ html.dark .event-delete-btn {
 }
 
 /* Dark mode header icon */
-:global(html.dark) .calendar-root header .w-11.h-11.rounded-xl {
+.dark .calendar-root header .w-11.h-11.rounded-xl {
   background: linear-gradient(to bottom right, #a855f7, #9333ea) !important;
   box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4) !important;
 }
@@ -5144,7 +5141,7 @@ html.dark .event-delete-btn {
 }
 
 /* 3. FIX DATE NUMBER CONTRAST IN DARK MODE */
-:global(html.dark) .calendar-root [role="gridcell"] .text-slate-800 {
+.dark .calendar-root [role="gridcell"] .text-slate-800 {
   color: rgba(255, 255, 255, 0.95) !important;
 }
 

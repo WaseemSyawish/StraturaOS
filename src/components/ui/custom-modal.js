@@ -23,7 +23,7 @@ export default function CustomModal({ title, children }) {
     // Prevent pointer events on the overlay from reaching the panel and
     // ensure the panel itself receives pointer events. Stop propagation on
     // mouse down so child interactive elements remain responsive.
-    className="relative w-full max-w-[520px] cozy rounded-md shadow-2xl ring-1 ring-white/6 overflow-visible max-h-[90vh] bg-white dark:bg-slate-900 dark:ring-white/6 mx-4 z-[100000]"
+    className="relative w-full max-w-lg cozy rounded-md shadow-2xl ring-1 ring-white/6 overflow-visible max-h-[95vh] bg-white dark:bg-slate-900 dark:ring-white/6 mx-4 z-[100000]"
     onMouseDown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
@@ -41,7 +41,7 @@ export default function CustomModal({ title, children }) {
 
         {/* no separator here - content should sit directly under title like Mina */}
 
-        <div className="text-slate-700 dark:text-slate-300">{children}</div>
+        <div className="text-slate-700 dark:text-slate-300 px-5">{children}</div>
 
         {/* modal footer intentionally omitted — modal content should render its own actions */}
       </div>

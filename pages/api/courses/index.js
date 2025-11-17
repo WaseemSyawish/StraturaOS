@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const { name, professor, instructor, color, credits, semester, code, description } = req.body || {};
+      const { name, professor, instructor, color, credits, semester, code, description, office_hours, zoom_link, course_website } = req.body || {};
       const userId = await resolveUser(req);
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
@@ -74,6 +74,9 @@ export default async function handler(req, res) {
         credits: Number.isFinite(Number(credits)) ? Number(credits) : 3,
         semester: semester || null,
         description: description || null,
+        office_hours: office_hours || null,
+        zoom_link: zoom_link || null,
+        course_website: course_website || null,
         user_id: userId
       }});
       // attach colorHex for convenience
@@ -109,7 +112,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT') {
     try {
-      const { id, name, professor, color, credits, semester, instructor, description } = req.body;
+      const { id, name, professor, color, credits, semester, instructor, description, office_hours, zoom_link, course_website } = req.body;
       if (!id) return res.status(400).json({ success: false, error: 'Missing course id' });
       const userId = await resolveUser(req);
       if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
@@ -126,7 +129,10 @@ export default async function handler(req, res) {
         color: color ?? existing.color,
         credits: credits ?? existing.credits,
         semester: semester ?? existing.semester,
-        description: description ?? existing.description
+        description: description ?? existing.description,
+        office_hours: office_hours !== undefined ? office_hours : existing.office_hours,
+        zoom_link: zoom_link !== undefined ? zoom_link : existing.zoom_link,
+        course_website: course_website !== undefined ? course_website : existing.course_website
       }});
       // attach normalized colorHex
       const tailwindToHex = {

@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { EventFormData, eventSchema, Variant, Event, variants as VARIANTS } from "@/types/index";
 import { useScheduler } from "@/providers/schedular-provider";
 import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../../../lib/dateHelpers';
+import { format } from 'date-fns';
 import { v4 as uuidv4 } from "uuid";
 import EditScopeModal from "@/components/Timetable/EditScopeModal";
 
@@ -27,7 +28,13 @@ const COLORS = [
   { key: "amber", name: "Amber", variant: "warning" as Variant, class: "bg-amber-500", hover: "hover:bg-amber-600" },
   { key: "indigo", name: "Indigo", variant: "primary" as Variant, class: "bg-indigo-500", hover: "hover:bg-indigo-600" },
   { key: "teal", name: "Teal", variant: "success" as Variant, class: "bg-teal-500", hover: "hover:bg-teal-600" },
-  { key: "rose", name: "Rose", variant: "danger" as Variant, class: "bg-rose-500", hover: "hover:bg-rose-600" },
+];
+
+const PRIORITIES = [
+  { value: 'urgent-important', label: 'Urgent & Important', color: 'bg-red-500', icon: '🔥', desc: 'Do First' },
+  { value: 'not-urgent-important', label: 'Important, Not Urgent', color: 'bg-blue-500', icon: '📅', desc: 'Schedule' },
+  { value: 'urgent-not-important', label: 'Urgent, Not Important', color: 'bg-amber-500', icon: '⚡', desc: 'Delegate' },
+  { value: 'not-urgent-not-important', label: 'Neither', color: 'bg-gray-400', icon: '📋', desc: 'Minimize' },
 ];
 
 const EVENT_TYPES = [
@@ -110,8 +117,14 @@ const DAYS = [
 
 export default function AddEventModal({
   CustomAddEventModal,
+  mode,
+  initialData,
+  onSuccess,
 }: {
   CustomAddEventModal?: React.FC<{ register: any; errors: any }>;
+  mode?: 'task' | 'event' | 'edit';
+  initialData?: any;
+  onSuccess?: () => void;
 }) {
   const { setClose, data } = useModal();
   const [origin, setOrigin] = useState<string | undefined>(undefined);
@@ -120,11 +133,14 @@ export default function AddEventModal({
   // - fetch callback returns { default: event } -> data = { default: { default: event } }
   // - some callers may open modal with the event object directly -> data = { /* event */ }
   // Normalize these shapes and pick the underlying event object when present.
-  const fetched = data?.default ?? data ?? null as any;
+  const fetched = data?.default ?? data ?? initialData ?? null as any;
   const unwrapped = fetched && (fetched.default ?? fetched) as any;
   const eventData = unwrapped && typeof unwrapped === 'object' && Object.keys(unwrapped).length ? (unwrapped as Event) : null;
   const [serverEvent, setServerEvent] = useState<Event | null>(null);
   const eventSource = serverEvent || eventData;
+  
+  // Determine if this is task mode (date/time optional)
+  const isTaskMode = mode === 'task' || (eventSource?.type && ['assignment', 'deadline', 'project', 'quiz', 'exam', 'personal', 'other'].includes(eventSource.type));
   // useScheduler is only provided inside SchedulerProvider (used by timetable).
   // When this modal is opened from pages that don't mount SchedulerProvider
   // (e.g. Calendar page), calling useScheduler() will throw. Guard it so the
@@ -155,7 +171,7 @@ export default function AddEventModal({
     (eventData as any)?.color || "blue"
   );
   const [selectedType, setSelectedType] = useState<string>(
-    (eventData as any)?.type || "assignment"
+    (eventData as any)?.type || (mode === 'task' ? "assignment" : "class")
   );
   const [colorOpen, setColorOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -174,6 +190,13 @@ export default function AddEventModal({
   const [recurrenceMode, setRecurrenceMode] = useState<'none' | 'count' | 'until'>('none');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [showDeleteScope, setShowDeleteScope] = useState(false);
+  const [showDateTime, setShowDateTime] = useState(!isTaskMode); // Hidden by default for tasks
+  const [selectedReminders, setSelectedReminders] = useState<string[]>([]);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
+  const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [customReminderDate, setCustomReminderDate] = useState('');
+  const [customReminderTime, setCustomReminderTime] = useState('');
+  const [priority, setPriority] = useState<string>('not-urgent-not-important');
 
   // Safe default variant: ensure it matches the Variant union
   const defaultVariant: Variant = (eventData && typeof eventData.variant === 'string' && (VARIANTS as readonly string[]).includes(eventData.variant)) ? (eventData.variant as Variant) : 'primary';
@@ -204,7 +227,7 @@ export default function AddEventModal({
       const srcAny = src as any;
       // Try to get color and type from multiple possible locations
       const color = srcAny?.color || srcAny?.meta?.color || srcAny?.raw?.color || "blue";
-      const type = srcAny?.type || srcAny?.meta?.type || srcAny?.raw?.type || "lecture";
+      const type = srcAny?.type || srcAny?.meta?.type || srcAny?.raw?.type || (isTaskMode ? "assignment" : "class");
       const description = srcAny?.description || srcAny?.meta?.description || srcAny?.raw?.description || '';
       const location = srcAny?.location || srcAny?.meta?.location || srcAny?.room || srcAny?.meta?.room || srcAny?.raw?.location || srcAny?.raw?.room || '';
       
@@ -687,33 +710,57 @@ export default function AddEventModal({
         ...((formData as any).color && { color: (formData as any).color }),
       };
 
+      // Handle optional date/time for tasks
+      const hasDate = formData.startDate instanceof Date;
       const toDateObj = (d: any) => d instanceof Date ? d : new Date(String(d));
-      const start = toDateObj(newEvent.startDate);
-      const end = toDateObj(newEvent.endDate);
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const localDate = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
-      const time = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
-      const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+      
+      let localDate = null;
+      let time = null;
+      let durationMinutes = 60; // Default duration
+      let startISO = null;
+      let endISO = null;
+
+      if (hasDate) {
+        const start = toDateObj(newEvent.startDate);
+        const end = toDateObj(newEvent.endDate || start);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        localDate = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+        time = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+        durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+        startISO = start.toISOString();
+        endISO = end.toISOString();
+      }
 
       const body: any = {
         title: newEvent.title,
         description: newEvent.description?.trim() || null,
         location: newEvent.location?.trim() || null,
-        date: localDate,
-        time,
-        durationMinutes,
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
-        type: selectedType,
-        color: selectedColor,
+        type: selectedType || (isTaskMode ? "assignment" : "class"),
+        color: selectedColor || "blue",
+        reminders: selectedReminders,
       };
 
+      // Only include date/time fields if they exist
+      if (hasDate) {
+        body.date = localDate;
+        body.time = time;
+        body.durationMinutes = durationMinutes;
+        body.startDate = startISO;
+        body.endDate = endISO;
+      }
+
       try {
-        body.meta = { 
-          endDate: end.toISOString(), 
-          durationMinutes,
-          location: newEvent.location?.trim() || null
-        };
+        if (hasDate) {
+          body.meta = { 
+            endDate: endISO, 
+            durationMinutes,
+            location: newEvent.location?.trim() || null
+          };
+        } else {
+          body.meta = {
+            location: newEvent.location?.trim() || null
+          };
+        }
       } catch (e) {}
 
       if (selectedByDays.length > 0) {
@@ -810,7 +857,10 @@ export default function AddEventModal({
         handlers.handleLocalUpdateEvent?.(finalEvent);
       }
       
-      setTimeout(() => setClose(), 50);
+      setTimeout(() => {
+        setClose();
+        onSuccess?.(); // Call success callback if provided
+      }, 50);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -848,6 +898,7 @@ export default function AddEventModal({
       endDate: end.toISOString(),
       type: selectedType,
       color: selectedColor,
+      reminders: selectedReminders,
     };
     try { 
       body.meta = { 
@@ -909,10 +960,10 @@ export default function AddEventModal({
     }
   }
 
-  // Recurrence page - REDESIGNED with compact layout
+  // Recurrence page - REDESIGNED with modern, friendly UI matching reference screenshots
   if (modalPage === 1) {
     return (
-  <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto">
+      <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto hide-modal-scrollbar">
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes slideIn {
             from {
@@ -931,23 +982,29 @@ export default function AddEventModal({
           .animate-in {
             animation: slideIn 0.2s ease-out;
           }
-          input[type="number"]::-webkit-inner-spin-button,
-          input[type="number"]::-webkit-outer-spin-button {
-            opacity: 1;
+          /* Force hide all scrollbars */
+          ::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+          * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
           }
         `}} />
         
-        <div className="p-5 max-w-2xl mx-auto">
+        <div className="p-5 max-w-lg mx-auto space-y-4">
           {/* Header */}
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-800">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">Recurrence Pattern</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Set up repeating events</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recurrence Pattern</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Set up repeating events</p>
             </div>
             <button
               type="button"
               onClick={() => setModalPage(0)}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -955,235 +1012,254 @@ export default function AddEventModal({
             </button>
           </div>
 
-          <div className="space-y-4">
-            {/* Repeat Interval */}
-            <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
-              <Label className="text-xs font-semibold text-gray-900 dark:text-white mb-2 block">Repeat Every</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="1"
-                  max="52"
-                  value={intervalWeeks}
-                  onChange={(e) => setIntervalWeeks(Math.max(1, Math.min(52, parseInt(e.target.value) || 1)))}
-                  className="w-20 h-10 px-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-center text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                <span className="text-gray-700 dark:text-gray-300 font-medium text-sm">week{intervalWeeks > 1 ? 's' : ''}</span>
-              </div>
+          {/* Repeat Every */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-900 dark:text-white">Repeat Every</Label>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800">
+              <input
+                type="number"
+                min="1"
+                max="52"
+                value={intervalWeeks}
+                onChange={(e) => setIntervalWeeks(Math.max(1, Math.min(52, parseInt(e.target.value) || 1)))}
+                className="w-16 h-10 px-3 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-center text-base font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+              <span className="text-gray-700 dark:text-gray-300 font-medium">week{intervalWeeks > 1 ? 's' : ''}</span>
             </div>
+          </div>
 
-            {/* Days Selection */}
-            <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
-              <Label className="text-xs font-semibold text-gray-900 dark:text-white mb-3 block">Repeat On</Label>
-              <div className="grid grid-cols-7 gap-2">
-                {DAYS.map((day) => (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => toggleDay(day.value)}
-                    className={cn(
-                      "h-11 rounded-lg font-bold text-sm transition-all duration-200",
-                      selectedByDays.includes(day.value)
-                        ? "bg-blue-500 text-white shadow-lg shadow-blue-500/50 scale-105"
-                        : "bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-800"
-                    )}
-                    title={day.full}
-                  >
-                    {day.short}
-                  </button>
-                ))}
-              </div>
-              {selectedByDays.length === 0 && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Select at least one day
-                </p>
-              )}
+          {/* Repeat On */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-900 dark:text-white">Repeat On</Label>
+            <div className="grid grid-cols-7 gap-2">
+              {DAYS.map((day) => (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => toggleDay(day.value)}
+                  className={cn(
+                    "aspect-square rounded-xl font-bold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
+                    selectedByDays.includes(day.value)
+                      ? "bg-blue-500 text-white shadow-lg scale-105"
+                      : "bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800"
+                  )}
+                  title={day.full}
+                >
+                  <span className="text-[10px] opacity-70">{day.short[0]}</span>
+                  <span>{day.short}</span>
+                </button>
+              ))}
             </div>
-
-            {/* End Condition */}
-            <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800">
-              <Label className="text-xs font-semibold text-gray-900 dark:text-white mb-3 block">End Repeat</Label>
-              
-              <div className="space-y-2">
-                {/* Never (Template) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRecurrenceMode('none');
-                    setCreateTemplate(true);
-                    setMaterializeCount(null);
-                    setMaterializeUntil(null);
-                  }}
-                  className={cn(
-                    "w-full rounded-lg text-left transition-all duration-200 overflow-hidden",
-                    recurrenceMode === 'none'
-                      ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 ring-2 ring-purple-500"
-                      : "bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
-                  )}
-                >
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                        recurrenceMode === 'none' ? "bg-purple-500" : "bg-gray-200 dark:bg-gray-800"
-                      )}>
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-gray-900 dark:text-white font-semibold text-sm">Never (Template)</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Create reusable pattern</div>
-                      </div>
-                    </div>
-                    {recurrenceMode === 'none' && (
-                      <svg className="w-4 h-4 text-purple-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                {/* After X occurrences */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRecurrenceMode('count');
-                    setCreateTemplate(false);
-                    setMaterializeUntil(null);
-                    if (!materializeCount) setMaterializeCount(10);
-                  }}
-                  className={cn(
-                    "w-full rounded-lg text-left transition-all duration-200 overflow-hidden",
-                    recurrenceMode === 'count'
-                      ? "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 ring-2 ring-blue-500"
-                      : "bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
-                  )}
-                >
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                        recurrenceMode === 'count' ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-800"
-                      )}>
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-gray-900 dark:text-white font-semibold text-sm">After Occurrences</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Repeat specific times</div>
-                      </div>
-                    </div>
-                    {recurrenceMode === 'count' && (
-                      <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                {recurrenceMode === 'count' && (
-                  <div className="pl-3 animate-in">
-                    <div className="flex items-center gap-2 p-2.5 bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800">
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={materializeCount || 10}
-                        onChange={(e) => setMaterializeCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 10)))}
-                        className="w-20 h-9 px-3 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-center text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                        placeholder="10"
-                      />
-                      <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">occurrences</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Until Date */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRecurrenceMode('until');
-                    setCreateTemplate(false);
-                    setMaterializeCount(null);
-                  }}
-                  className={cn(
-                    "w-full rounded-lg text-left transition-all duration-200 overflow-hidden",
-                    recurrenceMode === 'until'
-                      ? "bg-gradient-to-br from-green-500/20 to-emerald-500/20 ring-2 ring-green-500"
-                      : "bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
-                  )}
-                >
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                        recurrenceMode === 'until' ? "bg-green-500" : "bg-gray-200 dark:bg-gray-800"
-                      )}>
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-gray-900 dark:text-white font-semibold text-sm">On Date</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">Repeat until specific date</div>
-                      </div>
-                    </div>
-                    {recurrenceMode === 'until' && (
-                      <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                {recurrenceMode === 'until' && (
-                  <div className="pl-3 animate-in">
-                    <input
-                      type="date"
-                      value={materializeUntil || ''}
-                      onChange={(e) => setMaterializeUntil(e.target.value)}
-                      className="w-full h-9 px-3 bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-800 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Summary */}
-            {selectedByDays.length > 0 && (
-              <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-lg p-3 border border-blue-200 dark:border-blue-500/30">
-                <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-xs text-gray-900 dark:text-white leading-relaxed">
-                    Repeats <span className="font-semibold">every {intervalWeeks > 1 ? `${intervalWeeks} weeks` : 'week'}</span> on{' '}
-                    <span className="font-semibold text-blue-300">
-                      {selectedByDays.map(d => DAYS[d].full).join(', ')}
-                    </span>
-                    {createTemplate && <span className="text-gray-600 dark:text-gray-400"> • Creates template</span>}
-                    {materializeCount && <span className="text-gray-600 dark:text-gray-400"> • {materializeCount} times</span>}
-                    {materializeUntil && <span className="text-gray-600 dark:text-gray-400"> • Until {new Date(materializeUntil).toLocaleDateString()}</span>}
-                  </p>
-                </div>
-              </div>
+            {selectedByDays.length === 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mt-2">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                Select at least one day
+              </p>
             )}
           </div>
 
-          {/* Action Button */}
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-            <Button
+          {/* End Repeat */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-gray-900 dark:text-white">End Repeat</Label>
+            
+            <div className="space-y-2">
+              {/* Never (Template) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRecurrenceMode('none');
+                  setCreateTemplate(true);
+                  setMaterializeCount(null);
+                  setMaterializeUntil(null);
+                }}
+                className={cn(
+                  "w-full p-3 rounded-xl text-left transition-all duration-200",
+                  recurrenceMode === 'none'
+                    ? "bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-500 shadow-lg"
+                    : "bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                    recurrenceMode === 'none' ? "bg-purple-500" : "bg-gray-200 dark:bg-gray-800"
+                  )}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      No end date
+                      {recurrenceMode === 'none' && (
+                        <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Repeats indefinitely</div>
+                  </div>
+                </div>
+              </button>
+
+              {/* After Occurrences */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRecurrenceMode('count');
+                  setCreateTemplate(false);
+                  setMaterializeUntil(null);
+                  if (!materializeCount) setMaterializeCount(10);
+                }}
+                className={cn(
+                  "w-full p-3 rounded-xl text-left transition-all duration-200",
+                  recurrenceMode === 'count'
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 shadow-lg"
+                    : "bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                    recurrenceMode === 'count' ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-800"
+                  )}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      After N times
+                      {recurrenceMode === 'count' && (
+                        <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ends after X repetitions</div>
+                  </div>
+                </div>
+              </button>
+
+              {recurrenceMode === 'count' && (
+                <div className="pl-3 pt-2 animate-in">
+                  <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-300 dark:border-blue-700">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={materializeCount || 10}
+                      onChange={(e) => setMaterializeCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 10)))}
+                      className="w-20 h-10 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-center text-base font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                      placeholder="10"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">occurrences</span>
+                  </div>
+                </div>
+              )}
+
+              {/* On Date */}
+              <button
+                type="button"
+                onClick={() => {
+                  setRecurrenceMode('until');
+                  setCreateTemplate(false);
+                  setMaterializeCount(null);
+                }}
+                className={cn(
+                  "w-full p-3 rounded-xl text-left transition-all duration-200",
+                  recurrenceMode === 'until'
+                    ? "bg-green-50 dark:bg-green-900/20 border-2 border-green-500 shadow-lg"
+                    : "bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                    recurrenceMode === 'until' ? "bg-green-500" : "bg-gray-200 dark:bg-gray-800"
+                  )}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      Until date
+                      {recurrenceMode === 'until' && (
+                        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ends on a specific date</div>
+                  </div>
+                </div>
+              </button>
+
+              {recurrenceMode === 'until' && (
+                <div className="pl-3 pt-2 animate-in">
+                  <input
+                    type="date"
+                    value={materializeUntil || ''}
+                    onChange={(e) => setMaterializeUntil(e.target.value)}
+                    className="w-full h-10 px-3 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {selectedByDays.length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Your Pattern</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                    Repeats <span className="font-semibold">every {intervalWeeks > 1 ? `${intervalWeeks} weeks` : 'week'}</span> on{' '}
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {selectedByDays.map(d => DAYS[d].full).join(', ')}
+                    </span>
+                    {createTemplate && <span className="block mt-1">🔁 Creates reusable template</span>}
+                    {materializeCount && <span className="block mt-1">📊 {materializeCount} occurrences</span>}
+                    {materializeUntil && <span className="block mt-1">📅 Until {new Date(materializeUntil).toLocaleDateString()}</span>}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedByDays([]);
+                setIntervalWeeks(1);
+                setRecurrenceMode('none');
+                setCreateTemplate(false);
+                setMaterializeCount(null);
+                setMaterializeUntil(null);
+                setModalPage(0);
+              }}
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+            >
+              Clear
+            </button>
+            <button
               type="button"
               onClick={() => setModalPage(0)}
-              className="px-5 py-2 text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-200"
+              className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
               Done
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -1229,6 +1305,11 @@ export default function AddEventModal({
         .hide-modal-scrollbar::-webkit-scrollbar {
           display: none; /* Chrome, Safari, Opera */
         }
+        /* Ensure all form elements respect container width */
+        input, textarea, select, button {
+          box-sizing: border-box;
+          max-width: 100%;
+        }
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
           filter: invert(1);
@@ -1236,34 +1317,45 @@ export default function AddEventModal({
         }
       `}} />
       
-      <div className="p-5 max-w-2xl mx-auto">
-        {/* Removed duplicate header - CustomModal already shows title */}
+      <div className="p-5 max-w-lg mx-auto">
         <div className="space-y-4">
           {CustomAddEventModal ? (
             <CustomAddEventModal register={register} errors={errors} />
           ) : (
             <>
-              {/* Event Name */}
+              {/* Title - Simplified for tasks, full for events */}
               <div className="space-y-1.5">
-                <Label htmlFor="title" className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                  </svg>
-                  Event Name
-                </Label>
-                {/* Aggressive inline reset to remove any global CSS influence */}
-                <input 
-                  id="title" 
-                  {...register("title")} 
-                  placeholder="e.g., Team Meeting, Study Session" 
-                  className={cn(
-                    "w-full h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    errors.title ? "border-red-500" : "border-gray-200 dark:border-gray-700"
-                  )} 
-                />
+                {isTaskMode ? (
+                  <input 
+                    id="title" 
+                    {...register("title")} 
+                    placeholder="What do you need to do?" 
+                    className={cn(
+                      "w-full h-12 px-4 rounded-xl border-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-base font-medium",
+                      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200",
+                      errors.title ? "border-red-500 shake" : "border-gray-300 dark:border-gray-700"
+                    )} 
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <Label htmlFor="title" className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                      Event Name
+                    </Label>
+                    <input 
+                      id="title" 
+                      {...register("title")} 
+                      placeholder="e.g., Team Meeting, Study Session" 
+                      className={cn(
+                        "w-full h-9 px-3 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow",
+                        errors.title ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                      )} 
+                    />
+                  </>
+                )}
                 {errors.title && (
-                  <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
@@ -1272,81 +1364,285 @@ export default function AddEventModal({
                 )}
               </div>
 
-              {/* Description */}
+              {/* Eisenhower Matrix Priority - For tasks only */}
+              {/* Eisenhower Matrix Priority - For both tasks and events */}
               <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
-                  Description
+                  Priority
                 </Label>
-                <textarea 
-                  id="description" 
-                  {...register("description")} 
-                  rows={2}
-                  placeholder="Add notes, agenda, or other details..." 
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm resize-none",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    "border-gray-200 dark:border-gray-700"
-                  )} 
-                />
-              </div>
-
-              {/* Location */}
-              <div className="space-y-1.5">
-                <Label htmlFor="location" className="text-xs font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Location
-                </Label>
-                <input 
-                  id="location" 
-                  {...register("location")}
-                  placeholder="e.g., Room 301, Zoom, Building A" 
-                  className={cn(
-                    "h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                    "border-gray-200 dark:border-gray-700"
-                  )} 
-                />
-              </div>
-
-              {/* Date & Time Selection */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Date & Time
-                </Label>
-                <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-800">
-                  <SelectDate data={selectDateData} setValue={setValue} />
+                <div className="grid grid-cols-2 gap-2">
+                  {PRIORITIES.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setPriority(p.value)}
+                      className={cn(
+                        "p-2.5 rounded-lg border-2 text-left transition-all duration-200",
+                        priority === p.value
+                          ? "border-current ring-2 ring-offset-1 scale-[1.02]"
+                          : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className={cn(
+                          "w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0",
+                          p.color
+                        )}>
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {p.value === 'urgent-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />}
+                            {p.value === 'not-urgent-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />}
+                            {p.value === 'urgent-not-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
+                            {p.value === 'not-urgent-not-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />}
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={cn(
+                            "text-xs font-semibold mb-0.5 truncate",
+                            priority === p.value ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"
+                          )}>
+                            {p.desc}
+                          </div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-1">
+                            {p.label}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Type and Color - Stacked for better space usage */}
-              <div className="space-y-3">
+              {/* Date & Time - Hidden for new tasks, shown when editing tasks, full picker for events */}
+              {isTaskMode ? (
+                eventData?.id ? (
+                  !showDateTime ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDateTime(true)}
+                      className="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Add due date (optional)
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">Due Date</Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDateTime(false);
+                            setValue('startDate', undefined);
+                            setValue('endDate', undefined);
+                          }}
+                          className="text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <input
+                        type="date"
+                        value={getValues('startDate') ? format(new Date(getValues('startDate')), 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const date = new Date(e.target.value);
+                            setValue('startDate', date);
+                            setValue('endDate', date);
+                          }
+                        }}
+                        className={cn(
+                          "w-full h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                          "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                          "border-gray-300 dark:border-gray-700"
+                        )}
+                      />
+                    </div>
+                  )
+                ) : null
+              ) : (
+                <div className="space-y-2.5">
+                  {/* Date & Time - Only show in edit mode */}
+                  {eventData?.id && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-900 dark:text-gray-100">Date</Label>
+                        <input
+                          type="date"
+                          value={getValues('startDate') ? format(new Date(getValues('startDate')), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const currentStart = getValues('startDate') ? new Date(getValues('startDate')) : new Date();
+                              const [year, month, day] = e.target.value.split('-').map(Number);
+                              const newStart = new Date(currentStart);
+                              newStart.setFullYear(year, month - 1, day);
+                              setValue('startDate', newStart);
+                              
+                              const currentEnd = getValues('endDate') ? new Date(getValues('endDate')) : new Date(newStart);
+                              const newEnd = new Date(currentEnd);
+                              newEnd.setFullYear(year, month - 1, day);
+                              setValue('endDate', newEnd);
+                            }
+                          }}
+                          className={cn(
+                            "w-full h-8 px-2 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            "border-gray-300 dark:border-gray-700"
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-gray-900 dark:text-gray-100">Time</Label>
+                        <input
+                          type="time"
+                          value={getValues('startDate') ? format(new Date(getValues('startDate')), 'HH:mm') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const currentStart = getValues('startDate') ? new Date(getValues('startDate')) : new Date();
+                              const newStart = new Date(currentStart);
+                              newStart.setHours(hours, minutes);
+                              setValue('startDate', newStart);
+                              
+                              const newEnd = new Date(newStart);
+                              newEnd.setHours(hours + 1, minutes);
+                              setValue('endDate', newEnd);
+                            }
+                          }}
+                          className={cn(
+                            "w-full h-8 px-2 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            "border-gray-300 dark:border-gray-700"
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reminders - Any.do Style */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      Reminders
+                    </Label>
+                    
+                    {/* Added reminders list */}
+                    {selectedReminders.length > 0 && (
+                      <div className="space-y-1">
+                        {selectedReminders.map((reminder, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md">
+                            <span className="text-xs text-gray-700 dark:text-gray-300">{reminder}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedReminders(selectedReminders.filter((_, i) => i !== idx))}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add reminder button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowReminderPicker(!showReminderPicker)}
+                      className="w-full p-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Reminder
+                    </button>
+
+                    {/* Reminder picker dropdown */}
+                    {showReminderPicker && (
+                      <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg space-y-2">
+                        {/* Quick presets */}
+                        <div className="space-y-1">
+                          <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Later today']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Later today</button>
+                          <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Tomorrow']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Tomorrow</button>
+                          <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Next week']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Next week</button>
+                          <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Someday']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Someday</button>
+                        </div>
+                        
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                          <button type="button" onClick={() => { setCustomReminderDate(''); setCustomReminderTime(''); }} className="w-full text-left px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded flex items-center gap-2">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Pick date & time
+                          </button>
+                        </div>
+
+                        {/* Custom date/time picker */}
+                        {(customReminderDate !== undefined && customReminderTime !== undefined) && (
+                          <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <input
+                              type="date"
+                              value={customReminderDate}
+                              onChange={(e) => setCustomReminderDate(e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded"
+                            />
+                            <input
+                              type="time"
+                              value={customReminderTime}
+                              onChange={(e) => setCustomReminderTime(e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (customReminderDate && customReminderTime) {
+                                  const formatted = new Date(`${customReminderDate}T${customReminderTime}`).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                                  setSelectedReminders([...selectedReminders, formatted]);
+                                  setCustomReminderDate('');
+                                  setCustomReminderTime('');
+                                  setShowReminderPicker(false);
+                                }
+                              }}
+                              className="w-full py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded"
+                            >
+                              Set Reminder
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Type and Color - Hidden for tasks, shown for events */}
+              {!isTaskMode && (
+              <div className="space-y-2.5">
                 {/* Type Dropdown */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    Event Type
+                    {isTaskMode ? 'Task Type' : 'Event Type'}
                   </Label>
                   <div className="relative">
                     <button 
                       type="button" 
                       onClick={() => setTypeOpen(!typeOpen)}
                       className={cn(
-                          "w-full h-10 px-3 rounded-lg border text-left text-sm font-medium",
+                          "w-full h-9 px-3 rounded-lg border text-left text-xs font-medium",
                           "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800",
                           "text-gray-900 dark:text-white",
                           "hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700",
-                          "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                           "flex items-center justify-between gap-2",
                           "transition-all duration-200"
                         )}
@@ -1400,31 +1696,31 @@ export default function AddEventModal({
                   </div>
                 </div>
 
-                {/* Color Selector - Compact Grid */}
+                {/* Color Selector - Minimal */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <Label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                     </svg>
                     Color
                   </Label>
-                  <div className="grid grid-cols-6 gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {COLORS.map((color) => (
                       <button
                         key={color.key}
                         type="button"
                         onClick={() => handleColorChange(color.key)}
                         className={cn(
-                          "h-9 rounded-lg transition-all duration-200",
-                          "hover:scale-110 hover:shadow-lg",
-                          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+                          "h-7 w-7 rounded-md transition-all duration-150 relative group",
+                          "hover:scale-110",
+                          "focus:outline-none",
                           color.class,
-                          selectedColor === color.key && "ring-2 ring-offset-2 ring-blue-500 dark:ring-blue-400 dark:ring-offset-gray-900 scale-105"
+                          selectedColor === color.key ? "ring-2 ring-offset-1 ring-white dark:ring-gray-900 dark:ring-offset-gray-800 scale-105" : ""
                         )}
                         title={color.name}
                       >
                         {selectedColor === color.key && (
-                          <svg className="w-4 h-4 text-white mx-auto drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                          <svg className="w-3.5 h-3.5 text-white mx-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
@@ -1433,9 +1729,74 @@ export default function AddEventModal({
                   </div>
                 </div>
               </div>
+              )}
 
-              {/* Recurrence Section - Conditional rendering based on event type */}
-              {(() => {
+              {/* Optional Fields - Collapsible */}
+              {!isTaskMode && (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionalFields(!showOptionalFields)}
+                    className="w-full py-2.5 px-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-400"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span>{showOptionalFields ? 'Hide' : 'Add'} notes & location</span>
+                    </span>
+                    <svg className={cn("w-4 h-4 transition-transform duration-200", showOptionalFields && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {showOptionalFields && (
+                    <div className="space-y-3 pt-1 animate-in slide-in-from-top-2 duration-200 overflow-hidden">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="description" className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Notes
+                        </Label>
+                        <textarea 
+                          id="description" 
+                          {...register("description")} 
+                          rows={3}
+                          placeholder="Add notes, agenda, or details..." 
+                          className={cn(
+                            "w-full max-w-full px-3 py-2.5 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-xs resize-none",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200",
+                            "border-gray-300 dark:border-gray-700"
+                          )} 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="location" className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Location
+                        </Label>
+                        <input 
+                          id="location" 
+                          {...register("location")}
+                          placeholder="e.g., Room 301, Zoom, Building A" 
+                          className={cn(
+                            "w-full max-w-full h-9 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-xs",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200",
+                            "border-gray-300 dark:border-gray-700"
+                          )} 
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Recurrence Section - Only for events */}
+              {!isTaskMode && (() => {
                 // Check if this is a Smart Timetable event
                 const isSmartEvent = !!(eventSource?.meta?.schedulePattern);
                 
@@ -1447,45 +1808,14 @@ export default function AddEventModal({
                   return null;
                 }
                 
-                // For lecture/lab types (not from Smart Timetable), suggest using Smart Timetable Creator
-                if (isLectureType && !eventData?.id) {
-                  return (
-                    <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-lg p-3 border border-indigo-200/30 dark:border-indigo-500/30">
-                      <div className="flex items-start gap-2">
-                        <svg className="w-10 h-10 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 dark:text-white mb-1">
-                            Creating a recurring course schedule?
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
-                            Use our <span className="font-semibold text-indigo-400">Smart Timetable Creator</span> to generate your entire semester schedule automatically with holiday awareness!
-                          </p>
-                          <a 
-                            href="/timetable-setup" 
-                            target="_blank"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-lg shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all duration-200"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Open Smart Timetable Creator
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
+                // For lecture/lab types (not from Smart Timetable), show tip above recurrence
+                const showSmartTip = isLectureType && !eventData?.id;
                 
                 // For assignment/deadline types or when editing existing lecture events, show recurrence
                 return (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-gray-400 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                      <Label className="text-xs font-semibold text-gray-900 dark:text-white">
                         Recurrence
                       </Label>
                       <button 
@@ -1498,20 +1828,15 @@ export default function AddEventModal({
                             : "text-gray-500 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
                         )}
                       >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
                         {selectedByDays.length > 0 ? (
                           <>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
                             Edit Pattern
                           </>
                         ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Pattern
-                          </>
+                          'Add Pattern'
                         )}
                       </button>
                     </div>
@@ -1559,14 +1884,13 @@ export default function AddEventModal({
               {/* Action Buttons */}
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
+                  <button
                     type="button" 
                     onClick={() => setClose()}
-                    className="px-10 py-3.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
+                    className="px-10 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all duration-200"
                   >
                     Cancel
-                  </Button>
+                  </button>
                   
                   {/* Professional delete button for edit mode */}
                   {eventData?.id && (
@@ -1608,7 +1932,12 @@ export default function AddEventModal({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        {eventData?.id ? 'Update Event' : 'Create Event'}
+                        {eventData?.id 
+                          ? 'Update' 
+                          : isTaskMode 
+                            ? (getValues('startDate') ? 'Schedule Task' : 'Add to Inbox')
+                            : 'Create Event'
+                        }
                       </span>
                     )}
                   </button>

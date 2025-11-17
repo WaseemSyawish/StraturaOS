@@ -149,7 +149,10 @@ export default function Settings() {
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme: currentTheme, setTheme } = useTheme();
+  
+  // Use the actual theme from useTheme hook, not from settings state
+  const activeTheme = currentTheme || settings.theme;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -252,9 +255,6 @@ export default function Settings() {
       setTheme(value);
     }
   }
-
-  // Remove the problematic useEffect that was causing theme switching issues
-  // The theme is now set immediately when the button is clicked
 
   async function handleSave() {
     setError('');
@@ -461,13 +461,13 @@ export default function Settings() {
                             key={option.value}
                             onClick={() => update('theme', option.value)}
                             className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                              settings.theme === option.value
+                              activeTheme === option.value
                                 ? 'border-purple-500 bg-purple-50'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
-                            <Icon className={`w-6 h-6 ${settings.theme === option.value ? 'text-purple-600' : 'text-gray-600'}`} />
-                            <span className={`text-sm font-medium ${settings.theme === option.value ? 'text-purple-700' : 'text-gray-700'}`}>
+                            <Icon className={`w-6 h-6 ${activeTheme === option.value ? 'text-purple-600' : 'text-gray-600'}`} />
+                            <span className={`text-sm font-medium ${activeTheme === option.value ? 'text-purple-700' : 'text-gray-700'}`}>
                               {option.label}
                             </span>
                           </button>
@@ -535,9 +535,8 @@ export default function Settings() {
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5" />
                     Notifications
-                    <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
                   </CardTitle>
-                  <CardDescription>Manage how you receive updates and reminders (feature in development)</CardDescription>
+                  <CardDescription>Manage how you receive event reminders and alerts</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -546,46 +545,56 @@ export default function Settings() {
                         <Bell className="w-5 h-5 text-blue-600 dark:text-blue-300" />
                       </div>
                       <div>
-                        <p className="font-semibold text-blue-900 dark:text-blue-100">Notification System</p>
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">Browser Notifications</p>
                         <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
-                          We're working on a comprehensive notification system to keep you updated on deadlines, class schedules, and important events.
+                          Get notified before your events start. You can set multiple reminders (1 week, 2 days, 1 day, 1 hour, morning) when creating or editing events.
                         </p>
-                        <Badge variant="secondary" className="mt-3 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied' && (
+                          <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-200">
+                            ⚠️ Browser notifications are blocked. Enable them in your browser settings to receive reminders.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
 
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg opacity-60">
+                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="flex items-start gap-3">
                       <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">Enable all notifications</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive reminders and alerts for scheduled events</p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">Enable browser notifications</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive browser notifications for event reminders</p>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-not-allowed">
+                    <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={settings.notifications}
-                        onChange={(e) => update('notifications', e.target.checked)}
-                        disabled
+                        onChange={(e) => {
+                          update('notifications', e.target.checked);
+                          // Request permission if enabling
+                          if (e.target.checked && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+                            Notification.requestPermission();
+                          }
+                        }}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                     </label>
                   </div>
 
                   <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
 
-                  <div className="space-y-4 opacity-60">
-                    <div className="flex items-start justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between opacity-60">
                       <div className="flex items-start gap-3">
                         <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
                         <div>
                           <p className="font-medium text-gray-900 dark:text-gray-100">Email notifications</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get notified via email for important updates</p>
+                          <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800 text-xs">Coming Soon</Badge>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-not-allowed">
@@ -600,12 +609,13 @@ export default function Settings() {
                       </label>
                     </div>
 
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between opacity-60">
                       <div className="flex items-start gap-3">
                         <Smartphone className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">Push notifications</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive push notifications on your device</p>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">Mobile push notifications</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive push notifications on mobile devices</p>
+                          <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800 text-xs">Coming Soon</Badge>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-not-allowed">

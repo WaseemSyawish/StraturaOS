@@ -12,7 +12,10 @@ import {
   Monitor,
   ChevronLeft,
   ChevronRight,
-  CheckSquare
+  CheckSquare,
+  ListTodo,
+  UserCheck,
+  History
 } from 'lucide-react';
 import { User } from 'lucide-react';
 import Avatar from '../components/Avatar';
@@ -56,16 +59,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       active: router.pathname === '/overview'
     },
     {
-      icon: Calendar,
-      label: 'Calendar',
-      href: '/calendar',
-      active: router.pathname === '/calendar'
+      icon: ListTodo,
+      label: 'Tasks',
+      href: '/tasks',
+      active: router.pathname === '/tasks'
     },
     {
       icon: Clock,
-      label: 'Timetable',
-      href: '/timetable',
-      active: router.pathname === '/timetable'
+      label: 'Schedule',
+      href: '/schedule',
+      active: router.pathname === '/schedule'
     },
     {
       icon: GraduationCap,
@@ -80,10 +83,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       active: router.pathname === '/modules'
     },
     {
-      icon: CheckSquare,
+      icon: UserCheck,
       label: 'Attendance',
       href: '/attendance',
       active: router.pathname === '/attendance'
+    },
+    {
+      icon: History,
+      label: 'History',
+      href: '/history',
+      active: router.pathname === '/history'
     },
   ];
 

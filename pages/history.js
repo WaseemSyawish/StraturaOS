@@ -51,13 +51,13 @@ const ArchivedEventsPage = () => {
         // Fetch events with archived included - bypass cache by adding timestamp
         const timestamp = Date.now();
         const eventsData = await fetchWithCache(`/api/events?includeArchived=true&_t=${timestamp}`, { credentials: 'same-origin' }, 60000);
-        console.log('[Archived] Raw API response:', eventsData);
-        console.log('[Archived] Response type:', typeof eventsData, 'Is array:', Array.isArray(eventsData));
+        console.log('[History] Raw API response:', eventsData);
+        console.log('[History] Response type:', typeof eventsData, 'Is array:', Array.isArray(eventsData));
         
-        // Filter to only archived events - be very defensive about data structure
+        // Filter to archived or completed events - be very defensive about data structure
         let allEvents = [];
         if (!eventsData) {
-          console.error('[Archived] No data received from API');
+          console.error('[History] No data received from API');
           allEvents = [];
         } else if (Array.isArray(eventsData)) {
           allEvents = eventsData;
@@ -66,17 +66,18 @@ const ArchivedEventsPage = () => {
         } else if (eventsData.data && Array.isArray(eventsData.data)) {
           allEvents = eventsData.data;
         } else {
-          console.error('[Archived] Unexpected data structure:', eventsData);
+          console.error('[History] Unexpected data structure:', eventsData);
           allEvents = [];
         }
         
-        console.log('[Archived] All events extracted:', allEvents.length);
-        const archived = allEvents.filter(ev => ev && ev.archived === true);
-        console.log('[Archived] Archived events filtered:', archived.length);
-        if (archived.length > 0) {
-          console.log('[Archived] First archived event:', archived[0]);
+        console.log('[History] All events extracted:', allEvents.length);
+        // Show archived events OR completed events (tasks marked as done)
+        const historicalEvents = allEvents.filter(ev => ev && (ev.archived === true || ev.completed === true));
+        console.log('[History] Historical events filtered:', historicalEvents.length);
+        if (historicalEvents.length > 0) {
+          console.log('[History] First historical event:', historicalEvents[0]);
         }
-        setEvents(archived);
+        setEvents(historicalEvents);
 
         // Fetch courses (use cache with 2 min TTL)
         const coursesData = await fetchWithCache('/api/courses', { credentials: 'same-origin' }, 120000);
@@ -268,12 +269,12 @@ const ArchivedEventsPage = () => {
     return (
       <>
         <Head>
-          <title>Archived Events — University Planner</title>
+          <title>History — University Planner</title>
         </Head>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-400">Loading archived events...</p>
+            <p className="text-slate-600 dark:text-slate-400">Loading your history...</p>
           </div>
         </div>
       </>
@@ -283,7 +284,7 @@ const ArchivedEventsPage = () => {
   return (
     <>
       <Head>
-        <title>Archived Events — University Planner</title>
+        <title>History — University Planner</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -296,9 +297,9 @@ const ArchivedEventsPage = () => {
                   <Archive className="w-6 h-6 text-white" strokeWidth={2} />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Archived Events</h1>
+                  <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">History</h1>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {events.length} {events.length === 1 ? 'event' : 'events'} archived
+                    Your completed tasks and past events
                   </p>
                 </div>
               </div>
@@ -309,19 +310,70 @@ const ArchivedEventsPage = () => {
                   <Home className="w-4 h-4" />
                   Overview
                 </a>
-                <a href="/calendar" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Calendar
+                <a href="/tasks" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  Tasks
                 </a>
-                <a href="/timetable" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
+                <a href="/schedule" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  Timetable
+                  Schedule
                 </a>
                 <a href="/grades" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
                   <GraduationCap className="w-4 h-4" />
                   Grades
                 </a>
               </nav>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Items</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">{events.length}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-blue-600 dark:text-blue-400 opacity-50" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Completed</p>
+                    <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{events.filter(e => e.completed).length}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400 opacity-50" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">This Month</p>
+                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
+                      {events.filter(e => {
+                        try {
+                          const date = new Date(e.date || e.startDate);
+                          const now = new Date();
+                          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                        } catch { return false; }
+                      }).length}
+                    </p>
+                  </div>
+                  <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400 opacity-50" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Event Types</p>
+                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">{eventTypes.length}</p>
+                  </div>
+                  <Tag className="w-8 h-8 text-amber-600 dark:text-amber-400 opacity-50" />
+                </div>
+              </div>
             </div>
 
             {/* Filters */}
@@ -385,12 +437,12 @@ const ArchivedEventsPage = () => {
                 <Archive className="w-12 h-12 text-slate-400 dark:text-slate-500" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                {searchTerm || filterType !== 'all' || filterCourse !== 'all' ? 'No matching archived events' : 'No archived events'}
+                {searchTerm || filterType !== 'all' || filterCourse !== 'all' ? 'No matching items' : 'No history yet'}
               </h3>
               <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
                 {searchTerm || filterType !== 'all' || filterCourse !== 'all' 
                   ? 'Try adjusting your filters to see more results.' 
-                  : 'Events you archive will appear here. You can unarchive them at any time.'}
+                  : 'Completed tasks and archived events will appear here.'}
               </p>
             </div>
           ) : (

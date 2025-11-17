@@ -1,4 +1,4 @@
-// Modern timetable page with improved light/dark theme support
+// Modern schedule page with improved light/dark theme support
 import Head from 'next/head'
 import React, { useEffect, useState } from 'react'
 import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../src/lib/dateHelpers';
@@ -7,6 +7,7 @@ import EditScopeModal from '@/components/Timetable/EditScopeModal';
 import { useRouter } from 'next/router';
 import { Sparkles } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
+import { useReminders } from '../lib/useReminders';
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
@@ -186,7 +187,7 @@ const SchedularViewComp = dynamic(
   { ssr: false }
 )
 
-export default function TimetablePage() {
+export default function SchedulePage() {
   const router = useRouter();
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -202,6 +203,26 @@ export default function TimetablePage() {
   const [showDeleteScope, setShowDeleteScope] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null)
+
+  // Enable reminders for events
+  useReminders({
+    events,
+    onReminderFired: async (eventId, reminderType) => {
+      // Mark reminder as fired in database
+      try {
+        await fetch(`/api/events/${eventId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            remindersFired: [...(events.find(e => e.id === eventId)?.remindersFired || []), reminderType]
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to mark reminder as fired:', error);
+      }
+    },
+    enabled: true,
+  });
 
   useEffect(() => {
     let mounted = true
@@ -661,7 +682,7 @@ export default function TimetablePage() {
   }, []);
 
   return (
-    <div className="timetable-root min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="schedule-root min-h-screen bg-gray-50 dark:bg-slate-950">
       <style jsx global>{`
         [data-nextui-dialog-backdrop], [data-nextui-dialog], .nextui-portal, .modal-portal, .modal-container, .modal-panel {
           z-index: 2147483647 !important;
@@ -712,44 +733,44 @@ export default function TimetablePage() {
           box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
         }
 
-        .timetable-root ::-webkit-scrollbar {
+        .schedule-root ::-webkit-scrollbar {
           width: 10px;
           height: 10px;
         }
 
-        .timetable-root ::-webkit-scrollbar-track {
+        .schedule-root ::-webkit-scrollbar-track {
           background: #f1f5f9;
           border-radius: 5px;
         }
 
-        .timetable-root ::-webkit-scrollbar-thumb {
+        .schedule-root ::-webkit-scrollbar-thumb {
           background: #cbd5e1;
           border-radius: 5px;
           border: 2px solid #f1f5f9;
         }
 
-        .timetable-root ::-webkit-scrollbar-thumb:hover {
+        .schedule-root ::-webkit-scrollbar-thumb:hover {
           background: #94a3b8;
         }
 
-        html.dark .timetable-root ::-webkit-scrollbar-track {
+        html.dark .schedule-root ::-webkit-scrollbar-track {
           background: #0f172a;
           border-radius: 5px;
         }
 
-        html.dark .timetable-root ::-webkit-scrollbar-thumb {
+        html.dark .schedule-root ::-webkit-scrollbar-thumb {
           background: #334155;
           border-radius: 5px;
           border: 2px solid #0f172a;
         }
 
-        html.dark .timetable-root ::-webkit-scrollbar-thumb:hover {
+        html.dark .schedule-root ::-webkit-scrollbar-thumb:hover {
           background: #475569;
         }
       `}</style>
 
       <Head>
-        <title>Timetable — University Planner</title>
+        <title>Schedule — University Planner</title>
       </Head>
 
       <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
@@ -760,7 +781,7 @@ export default function TimetablePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Timetable</h1>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Schedule</h1>
           </div>
           <div className="flex items-center gap-2">
             <button

@@ -21,13 +21,13 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/archived" prefetch={true}>
+          <Link href="/history" prefetch={true}>
             <button 
               className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              title="Archived Events"
+              title="History & Completed Events"
             >
               <Archive className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium">Archived</span>
+              <span className="text-sm font-medium">History</span>
             </button>
           </Link>
           

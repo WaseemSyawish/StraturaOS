@@ -50,6 +50,10 @@ model Course {
   semester            String?
   instructor          String?
   description         String?
+  // Academic resource links
+  office_hours        String?             // e.g., "Mon/Wed 2-4pm, Room 305"
+  zoom_link           String?             // Online meeting link
+  course_website      String?             // LMS or course website URL
   user_id             String
   created_at          DateTime?           @default(now())
   updated_at          DateTime?           @default(now())
@@ -58,6 +62,7 @@ model Course {
   events              Event[]
   archived_events     ArchivedEvent[]
   assessments         Assessment[]
+  resources           CourseResource[]
 
   @@map("courses")
 }
@@ -116,13 +121,17 @@ model Event {
   archived    Boolean   @default(false)
   course_id   String?
   template_id String?
-  date        DateTime
+  date        DateTime? // Made optional to support undated tasks in inbox
   time        String?
   end_date    DateTime?
   description String?
   // optional JSON blob for UI metadata (color/variant/durationMinutes etc.)
   meta        Json?
   completed   Boolean   @default(false)
+  // Array of reminder times ('1week', '2days', '1day', '1hour', 'morning')
+  reminders   String[]  @default([])
+  // Array tracking which reminders have been shown to avoid duplicates
+  remindersFired String[] @default([])
   user_id     String
   created_at  DateTime? @default(now())
   updated_at  DateTime? @default(now())
@@ -196,4 +205,22 @@ model Attachment {
   event Event @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("attachments")
+}
+
+model CourseResource {
+  id          String    @id @default(uuid())
+  course_id   String
+  title       String
+  type        String    @default("link")  // 'link', 'file', 'note'
+  url         String?   // For links
+  content     String?   // For notes or file paths
+  category    String?   // 'syllabus', 'slides', 'readings', 'assignments', 'other'
+  order       Int?      @default(0)
+  created_at  DateTime? @default(now())
+  updated_at  DateTime? @default(now())
+
+  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([course_id], map: "idx_course_resources_course")
+  @@map("course_resources")
 }

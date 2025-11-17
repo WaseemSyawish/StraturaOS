@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings, Info } from 'lucide-react';
 import Notification from '../src/components/Notification';
 import SemesterSettings from '../src/components/SemesterSettings';
+import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
 
 const ModulesManager = () => {
@@ -15,6 +16,7 @@ const ModulesManager = () => {
   const [editingCourse, setEditingCourse] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
+  const [selectedCourseDetails, setSelectedCourseDetails] = useState(null);
   
   // Authenticated user id is resolved server-side via next-auth; fetch current user
   const [currentUser, setCurrentUser] = useState(null);
@@ -1078,7 +1080,13 @@ const ModulesManager = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {getCurrentSemesterCourses().map(course => (
-                        <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} />
+                        <CourseCard 
+                          key={course.id} 
+                          course={course} 
+                          onEdit={handleEditCourse} 
+                          onDelete={handleDeleteCourse}
+                          onShowDetails={setSelectedCourseDetails}
+                        />
                       ))}
                     </div>
                   )}
@@ -1125,7 +1133,14 @@ const ModulesManager = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {getUpcomingSemesterCourses().map(course => (
-                        <CourseCard key={course.id} course={course} onEdit={handleEditCourse} onDelete={handleDeleteCourse} isUpcoming={true} />
+                        <CourseCard 
+                          key={course.id} 
+                          course={course} 
+                          onEdit={handleEditCourse} 
+                          onDelete={handleDeleteCourse} 
+                          isUpcoming={true}
+                          onShowDetails={setSelectedCourseDetails}
+                        />
                       ))}
                     </div>
                   )}
@@ -1173,6 +1188,7 @@ const ModulesManager = () => {
                         onEdit={handleEditCourse}
                         onDelete={handleDeleteCourse}
                         isPrevious={true}
+                        onShowDetails={setSelectedCourseDetails}
                       />
                     ))}
                   </div>
@@ -1181,13 +1197,22 @@ const ModulesManager = () => {
             )}
           </>
         )}
+
+        {/* Course Details Panel */}
+        {selectedCourseDetails && (
+          <CourseDetailsPanel
+            course={selectedCourseDetails}
+            onClose={() => setSelectedCourseDetails(null)}
+            onUpdate={fetchCourses}
+          />
+        )}
       </div>
     </div>
   );
 };
 
 // Course Card Component
-const CourseCard = ({ course, onEdit, onDelete, isPrevious = false, isUpcoming = false }) => {
+const CourseCard = ({ course, onEdit, onDelete, onShowDetails, isPrevious = false, isUpcoming = false }) => {
   const getStatusBadge = () => {
     if (isPrevious) {
       return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">Completed</span>;
@@ -1220,7 +1245,15 @@ const CourseCard = ({ course, onEdit, onDelete, isPrevious = false, isUpcoming =
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => onShowDetails(course)}
+            className="text-gray-400 hover:text-purple-600 transition-colors p-1.5 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            aria-label="View details"
+            title="Contact info & resources"
+          >
+            <Info size={16} />
+          </button>
           <button
             onClick={() => onEdit(course)}
             className="text-gray-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-indigo-50"

@@ -27,9 +27,11 @@ import {
 export default function SelectDate({
   data,
   setValue,
+  isOptional,
 }: {
   data?: { startDate: Date; endDate: Date };
   setValue: UseFormSetValue<EventFormData>;
+  isOptional?: boolean;
 }) {
 
   const parseToDate = (v: any) => {

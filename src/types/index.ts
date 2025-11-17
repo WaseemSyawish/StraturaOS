@@ -16,6 +16,7 @@ export interface Event {
   description?: string;
   location?: string;
   room?: string; // legacy field
+  instructor?: string; // Instructor/professor name for classes
   color?: string;
   colorKey?: string;
   color_key?: string;
@@ -29,6 +30,19 @@ export interface Event {
   date?: string | Date;
   time?: string;
   end_date?: string | Date;
+  
+  // Reminder system
+  reminders?: string[]; // Array of reminder times: ['1week', '2days', '1day', '1hour', 'morning']
+  remindersFired?: string[]; // Track which reminders have already been shown
+  customReminders?: Array<{id: string, datetime: string, label?: string}>; // Custom flexible reminders
+  
+  // Eisenhower Matrix priority system
+  urgent?: boolean; // Is this task urgent?
+  important?: boolean; // Is this task important?
+  // Derived quadrants: Q1 (urgent+important), Q2 (important only), Q3 (urgent only), Q4 (neither)
+  
+  // Legacy priority (deprecated in favor of Eisenhower Matrix)
+  priority?: 'low' | 'medium' | 'high';
   
   // Recurring event fields
   template_id?: string | null;
@@ -142,11 +156,13 @@ export const eventSchema = z.object({
   title: z.string().nonempty("Event name is required"),
   description: z.string().optional(),
   location: z.string().optional(),
-  startDate: z.date(),
-  endDate: z.date(),
+  startDate: z.date().optional(), // Optional for tasks in inbox
+  endDate: z.date().optional(),   // Optional for tasks in inbox
   variant: z.enum(["primary", "danger", "success", "warning", "default"]),
   color: z.string().nonempty("Color selection is required"),
   type: z.string().optional(),
+  reminders: z.array(z.string()).optional(), // ['1week', '2days', '1day', '1hour', 'morning']
+  priority: z.enum(["low", "medium", "high"]).optional(), // Priority level
 });
 
 export type EventFormData = z.infer<typeof eventSchema>;

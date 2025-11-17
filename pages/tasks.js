@@ -1,7 +1,7 @@
 // Tasks page - Student-friendly task management with inbox for undated tasks
 import Head from 'next/head';
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo, ArrowUpDown, Zap, Target, AlertCircle, TrendingUp, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
+import { CheckSquare, Plus, Calendar as CalendarIcon, Filter, Search, Clock, Trash2, Edit3, ChevronRight, ListTodo, ArrowUpDown, Zap, Target, AlertCircle, TrendingUp, ChevronDown, ChevronUp, BookOpen, GraduationCap, Check } from 'lucide-react';
 import { useModal } from '@/providers/modal-context';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';

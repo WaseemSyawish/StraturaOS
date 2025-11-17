@@ -173,12 +173,18 @@ const GradesPage = () => {
     (async () => {
       try {
         const body = { courseId: selectedCourse.id, action: 'add_assessment', assessment: categoryPayload };
+        console.log('[grades] Adding category:', categoryPayload, 'for course:', selectedCourse.id);
         const res = await fetch('/api/grades', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        if (!res.ok) throw new Error('Failed to persist category');
+        if (!res.ok) {
+          console.error('[grades] API returned error:', res.status, res.statusText);
+          throw new Error('Failed to persist category');
+        }
         const js = await res.json().catch(() => null);
+        console.log('[grades] API response:', js);
         if (js && js.success && js.data) {
           // server returned canonical course object with assessments array
           const updatedCategories = Array.isArray(js.data.assessments) ? js.data.assessments : (Array.isArray(js.data.categories) ? js.data.categories : []);
+          console.log('[grades] Updating categories to:', updatedCategories);
           setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: updatedCategories }) : course));
           // Also update selectedCourse if it's open
           if (selectedCourse && selectedCourse.id === js.data.id) {

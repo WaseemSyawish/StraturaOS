@@ -59,6 +59,30 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
     const category = categories.find(c => c.id.toString() === selectedCategory);
     if (!category) return;
 
+    // Handle case with no existing items - simple calculation
+    if (category.items.length === 0) {
+      // If no items yet, we need this one item to achieve the target
+      const totalWeight = categories.reduce((sum, cat) => sum + cat.weight, 0);
+      const requiredWeightedScore = (targetGrade * totalWeight) / 100;
+      
+      // Calculate contributions from other categories
+      let otherCategoriesContribution = 0;
+      categories.forEach(cat => {
+        if (cat.id !== category.id && cat.items.length > 0) {
+          const catAvg = calculateCategoryAverage(cat.items);
+          otherCategoriesContribution += (catAvg * cat.weight) / 100;
+        }
+      });
+      
+      // Required contribution from this category
+      const requiredCatContribution = requiredWeightedScore - otherCategoriesContribution;
+      const requiredCatPercentage = (requiredCatContribution * 100) / category.weight;
+      const requiredActualScore = (requiredCatPercentage / 100) * maxScore;
+      
+      setRequiredScore(Math.round(requiredActualScore * 10) / 10);
+      return;
+    }
+
     // Calculate current category average
     const currentCatAvg = calculateCategoryAverage(category.items);
     
@@ -66,16 +90,13 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
     const numExistingItems = category.items.length;
     const totalItems = numExistingItems + 1;
     
-    // Current contribution from this category to overall grade
-    const currentContribution = (currentCatAvg * category.weight) / 100;
-    
     // Calculate contributions from other categories
     let otherCategoriesContribution = 0;
     const totalWeight = categories.reduce((sum, cat) => sum + cat.weight, 0);
     
     categories.forEach(cat => {
       if (cat.id !== category.id) {
-        const catAvg = calculateCategoryAverage(cat.items);
+        const catAvg = cat.items.length > 0 ? calculateCategoryAverage(cat.items) : 0;
         otherCategoriesContribution += (catAvg * cat.weight) / 100;
       }
     });
@@ -119,6 +140,36 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
 
   const isImpossible = requiredScore !== null && (requiredScore > maxScore || requiredScore < 0);
   const isEasy = requiredScore !== null && requiredScore <= maxScore * 0.5;
+  
+  const getImpossibleMessage = () => {
+    if (!selectedCategory || requiredScore === null) return '';
+    
+    const category = categories.find(c => c.id.toString() === selectedCategory);
+    if (!category) return '';
+    
+    if (requiredScore > maxScore) {
+      // Calculate what average you'd need on all remaining items
+      const totalWeight = categories.reduce((sum, cat) => sum + cat.weight, 0);
+      const requiredWeightedScore = (targetGrade * totalWeight) / 100;
+      
+      let otherCategoriesContribution = 0;
+      categories.forEach(cat => {
+        if (cat.id !== category.id) {
+          const catAvg = cat.items.length > 0 ? calculateCategoryAverage(cat.items) : 0;
+          otherCategoriesContribution += (catAvg * cat.weight) / 100;
+        }
+      });
+      
+      const requiredCatContribution = requiredWeightedScore - otherCategoriesContribution;
+      const requiredCatPercentage = (requiredCatContribution * 100) / category.weight;
+      
+      return `To reach ${targetGrade}%, you'd need an average of ${Math.round(requiredCatPercentage)}% across all remaining ${category.name} items. Consider adjusting your target or improving scores in other categories.`;
+    } else if (requiredScore < 0) {
+      return `You've already exceeded your target! Your current performance ensures you'll achieve ${targetGrade}% even with a 0 on this item.`;
+    }
+    
+    return '';
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -247,11 +298,7 @@ export default function GradeCalculator({ categories, onClose }: GradeCalculator
                   {isImpossible ? (
                     <div className="space-y-2">
                       <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Unfortunately, reaching {targetGrade}% ({getLetterGrade(targetGrade)}) is not mathematically possible,
-                        even with a perfect score on this assignment.
-                      </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                        Consider adjusting your target grade or focusing on other categories.
+                        {getImpossibleMessage()}
                       </p>
                     </div>
                   ) : (

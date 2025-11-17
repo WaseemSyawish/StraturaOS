@@ -11,31 +11,31 @@ import { fetchWithCache, invalidateCache } from '../lib/cache';
 const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
   const router = useRouter();
   return (
-    <header className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-6 py-4">
+    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-100/50 dark:border-slate-800/50 sticky top-0 z-40 shadow-sm">
+      <div className="max-w-6xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Overview</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Welcome back, {userName}</p>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">Overview</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Welcome back, <span className="font-semibold text-blue-600 dark:text-blue-400">{userName}</span></p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link href="/history" prefetch={true}>
               <button 
-                className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-slate-400"
+                className="h-10 px-4 flex items-center gap-2 rounded-xl hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 dark:hover:from-slate-800 dark:hover:to-slate-800 transition-all text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium"
                 title="History"
               >
                 <Archive className="w-4 h-4" />
-                <span className="text-sm font-medium hidden sm:inline">History</span>
+                <span className="text-sm hidden sm:inline">History</span>
               </button>
             </Link>
             
             <Link href="/settings" prefetch={true}>
               <button 
-                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-slate-400"
+                className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 dark:hover:from-slate-800 dark:hover:to-slate-800 transition-all text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
                 title="Settings"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-5 h-5" />
               </button>
             </Link>
 
@@ -48,10 +48,10 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
                   router.push('/signout');
                 }
               }}
-              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+              className="h-10 w-10 flex items-center justify-center rounded-xl hover:bg-gradient-to-br hover:from-red-50 hover:to-rose-50 dark:hover:from-red-900/20 dark:hover:to-rose-900/20 transition-all text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
               title="Sign Out"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -62,20 +62,23 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
 
 const StatCard = React.memo(function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor}`}>
-          {React.cloneElement(icon, { className: `w-5 h-5 ${iconColor}` })}
+    <div className="group relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-100/50 dark:border-slate-800/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${bgColor} group-hover:scale-110 transition-transform duration-300`}>
+          {React.cloneElement(icon, { className: `w-6 h-6 ${iconColor}` })}
         </div>
-        <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-        {loading ? (
-          <span className="inline-block w-16 h-7 bg-gray-100 dark:bg-slate-800 rounded animate-pulse"></span>
-        ) : (
-          value
-        )}
-      </p>
+      <div>
+        <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">{label}</p>
+        <p className="text-4xl font-bold text-gray-900 dark:text-white">
+          {loading ? (
+            <span className="inline-block w-20 h-10 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-slate-800 dark:to-slate-700 rounded-lg animate-pulse"></span>
+          ) : (
+            value
+          )}
+        </p>
+      </div>
+      <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br opacity-5 rounded-full blur-3xl" style={{ backgroundImage: `linear-gradient(to bottom right, ${bgColor.includes('blue') ? '#3B82F6' : bgColor.includes('emerald') ? '#10B981' : '#8B5CF6'}, transparent)` }} />
     </div>
   );
 });
@@ -869,24 +872,25 @@ export default function UniversityOverview() {
       <Head>
         <title>Overview — University Planner</title>
       </Head>
-      <div className="min-h-screen bg-white" style={{ background: '#ffffff' }}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-purple-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
       <CalendarHeader userName={userName} />
       
-      <div className="max-w-[1450px] mx-auto px-6 py-8">
+      <div className="max-w-[1450px] mx-auto px-6 py-10">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-5xl font-black text-slate-900 dark:text-slate-100 mb-2" style={{ letterSpacing: '-0.02em' }}>
+        <div className="mb-10">
+          <h2 className="text-5xl font-black bg-gradient-to-r from-gray-900 via-purple-900 to-pink-900 dark:from-white dark:via-purple-200 dark:to-pink-200 bg-clip-text text-transparent mb-3" style={{ letterSpacing: '-0.02em' }}>
             Good {currentDate.getHours() < 12 ? 'morning' : currentDate.getHours() < 18 ? 'afternoon' : 'evening'}, {userName}
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+          <p className="text-gray-600 dark:text-slate-400 text-lg flex items-center gap-2.5 font-medium">
+            <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
             {currentDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <StatCard
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">\n          <StatCard
             icon={<TrendingUp />}
             label="Current GPA"
             loading={loading}
@@ -919,19 +923,19 @@ export default function UniversityOverview() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Today's Classes */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300">
-              <div className="bg-purple-600 px-6 py-5 rounded-t-xl">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-purple-100/50 dark:border-purple-900/30 shadow-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                      <Calendar className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+                      <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-extrabold text-white">Today's Classes</h3>
-                      <p className="text-xs text-purple-100">{todayClasses.length} {todayClasses.length === 1 ? 'class' : 'classes'} scheduled</p>
+                      <h3 className="text-2xl font-bold text-white">Today's Classes</h3>
+                      <p className="text-sm text-purple-100 font-medium mt-0.5">{todayClasses.length} {todayClasses.length === 1 ? 'class' : 'classes'} scheduled</p>
                     </div>
                   </div>
-                  <span className="text-sm font-medium text-purple-100 bg-white/10 px-3 py-1 rounded-lg">
+                  <span className="text-sm font-bold text-white bg-white/20 px-4 py-2 rounded-xl backdrop-blur-sm">
                     {currentDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
@@ -939,11 +943,11 @@ export default function UniversityOverview() {
 
               <div className="p-6">
                 {todayClasses.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {todayClasses.map((cls) => (
                       <div
                         key={cls.id}
-                        className="group flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-1"
+                        className="group flex items-center gap-5 p-5 rounded-2xl bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 hover:from-purple-100/80 hover:to-pink-100/80 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 border border-purple-100/50 dark:border-purple-800/30 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 cursor-pointer hover:shadow-lg hover:-translate-y-1"
                       >
                         <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/40 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm">
                           <GraduationCap className="w-6 h-6 text-purple-700 dark:text-purple-400" strokeWidth={2.5} />

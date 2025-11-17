@@ -363,11 +363,11 @@ export default function TasksPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar - View Filters */}
           <aside className="lg:col-span-1">
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-slate-800">
-              <h2 className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-gray-100/50 dark:border-slate-800/50">
+              <h2 className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-3">
                 Views
               </h2>
-              <nav className="space-y-1">
+              <nav className="space-y-1.5">
                 {FILTER_VIEWS.map(view => {
                   const Icon = view.icon;
                   const isActive = activeView === view.id;
@@ -376,16 +376,19 @@ export default function TasksPage() {
                     <button
                       key={view.id}
                       onClick={() => setActiveView(view.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                         isActive
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : 'text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]'
+                          : 'text-gray-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 dark:hover:from-slate-800 dark:hover:to-slate-800/80 hover:scale-[1.01]'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <Icon className={`w-5 h-5 ${isActive ? '' : 'opacity-60'}`} />
                         <span>{view.label}</span>
                       </div>
+                      {isActive && (
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      )}
                     </button>
                   );
                 })}
@@ -396,15 +399,15 @@ export default function TasksPage() {
           {/* Main Content - Task List */}
           <div className="lg:col-span-3">
             {/* Search Bar + Sort Controls */}
-            <div className="mb-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="mb-6 flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
                   type="text"
                   placeholder="Search tasks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white shadow-sm"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200/50 dark:border-slate-800/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white shadow-sm hover:shadow-md transition-all"
                 />
               </div>
               
@@ -413,7 +416,7 @@ export default function TasksPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-medium cursor-pointer hover:border-gray-300 dark:hover:border-slate-700 transition-colors shadow-sm"
+                  className="px-5 py-3.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-gray-200/50 dark:border-slate-800/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-medium cursor-pointer hover:shadow-md transition-all"
                 >
                   {SORT_OPTIONS.map(option => (
                     <option key={option.id} value={option.id}>
@@ -431,20 +434,20 @@ export default function TasksPage() {
                   <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                 </div>
               ) : filteredTasks.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
-                    <CheckSquare className="w-8 h-8 text-gray-400 dark:text-slate-500" />
+                <div className="text-center py-20">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 flex items-center justify-center border border-blue-100/50 dark:border-blue-900/30">
+                    <CheckSquare className="w-10 h-10 text-blue-500 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                     {activeView === 'inbox' && 'Inbox is empty'}
                     {activeView === 'today' && 'No tasks for today'}
                     {activeView === 'upcoming' && 'No upcoming tasks'}
                     {activeView === 'completed' && 'No completed tasks'}
                   </h3>
-                  <p className="text-gray-600 dark:text-slate-400 text-sm">
+                  <p className="text-gray-500 dark:text-slate-400 text-sm max-w-sm mx-auto">
                     {activeView === 'completed' 
-                      ? 'Completed tasks will appear here'
-                      : 'Click "Quick Add" to create your first task'
+                      ? 'Completed tasks will appear here once you finish them'
+                      : 'Get started by adding your first task'
                     }
                   </p>
                 </div>
@@ -471,71 +474,73 @@ export default function TasksPage() {
                           const visibleTasks = isExpanded ? tasks : tasks.slice(0, 3);
                           
                           return (
-                            <div key={groupKey} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
+                            <div key={groupKey} className="group bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl shadow-md hover:shadow-xl border border-purple-100/50 dark:border-purple-900/30 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden">
                               <button
                                 onClick={() => setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
-                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                                className="w-full p-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 transition-all"
                               >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center text-purple-700 dark:text-purple-400 font-semibold text-sm">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
                                     {courseName.substring(0, 2).toUpperCase()}
                                   </div>
                                   <div className="text-left">
-                                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{courseName}</h3>
-                                    <p className="text-xs text-gray-500 dark:text-slate-400">{tasks.length} lecture{tasks.length !== 1 ? 's' : ''}</p>
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-base">{courseName}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-0.5">{tasks.length} lecture{tasks.length !== 1 ? 's' : ''}</p>
                                   </div>
                                 </div>
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-400" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                                  )}
+                                </div>
                               </button>
                               
                               {isExpanded && (
-                                <div className="border-t border-gray-100 dark:border-slate-800">
+                                <div className="border-t border-purple-100/30 dark:border-purple-900/20 bg-gradient-to-b from-transparent to-purple-50/20 dark:to-purple-950/10">
                                   {visibleTasks.map(task => (
-                                    <div key={task.id} className="p-4 hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors group border-b border-gray-50 dark:border-slate-800/50 last:border-0">
-                                      <div className="flex items-start gap-3">
+                                    <div key={task.id} className="p-5 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all group border-b border-purple-50/50 dark:border-slate-800/30 last:border-0">
+                                      <div className="flex items-start gap-4">
                                         <button
                                           onClick={() => handleToggleComplete(task.id, task.completed)}
-                                          className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border-2 transition-all ${
+                                          className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 transition-all shadow-sm ${
                                             task.completed
-                                              ? 'bg-green-500 border-green-500'
-                                              : 'border-gray-300 dark:border-slate-600 hover:border-purple-400 dark:hover:border-purple-500'
+                                              ? 'bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-500 shadow-emerald-500/30'
+                                              : 'border-gray-300 dark:border-slate-600 hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-purple-500/20'
                                           }`}
                                         >
                                           {task.completed && (
-                                            <svg className="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                             </svg>
                                           )}
                                         </button>
                                         
                                         <div className="flex-1 min-w-0">
-                                          <h4 className={`font-medium text-gray-900 dark:text-white text-sm ${task.completed ? 'line-through opacity-60' : ''}`}>
+                                          <h4 className={`font-semibold text-gray-900 dark:text-white text-base ${task.completed ? 'line-through opacity-50' : ''}`}>
                                             {task.title || 'Untitled Class'}
                                           </h4>
                                           {task.description && (
-                                            <p className="text-xs text-gray-600 dark:text-slate-400 mt-1 line-clamp-1">{task.description}</p>
+                                            <p className="text-sm text-gray-600 dark:text-slate-400 mt-1.5 line-clamp-2">{task.description}</p>
                                           )}
-                                          <div className="flex items-center gap-2 mt-2">
+                                          <div className="flex items-center gap-3 mt-3">
                                             {task.date && (
-                                              <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
-                                                <CalendarIcon className="w-3 h-3" />
+                                              <span className="flex items-center gap-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 px-2.5 py-1 rounded-lg">
+                                                <CalendarIcon className="w-3.5 h-3.5" />
                                                 {new Date(task.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                               </span>
                                             )}
                                             {task.time && (
-                                              <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-slate-400">
-                                                <Clock className="w-3 h-3" />
+                                              <span className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                                                <Clock className="w-3.5 h-3.5" />
                                                 {task.time}
                                               </span>
                                             )}
                                           </div>
                                         </div>
                                         
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                           <button
                                             onClick={() => {
                                               setOpen(
@@ -544,9 +549,10 @@ export default function TasksPage() {
                                                 </CustomModal>
                                               );
                                             }}
-                                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                                            className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-all hover:scale-110"
+                                            title="Edit"
                                           >
-                                            <Edit3 className="w-3.5 h-3.5 text-gray-500 dark:text-slate-400" />
+                                            <Edit3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                                           </button>
                                           <button
                                             onClick={() => handleDeleteTask(task.id)}
@@ -578,12 +584,12 @@ export default function TasksPage() {
                   {/* Assignments & Exams Section */}
                   {Object.keys(courseGroups.assignments).length > 0 && (
                     <div>
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl shadow-lg shadow-blue-500/30">
+                          <GraduationCap className="w-5 h-5 text-white" />
                         </div>
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Assignments & Exams</h2>
-                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Assignments & Exams</h2>
+                        <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-bold border border-blue-200/50 dark:border-blue-800/50">
                           {Object.values(courseGroups.assignments).flat().length}
                         </span>
                       </div>
@@ -595,23 +601,28 @@ export default function TasksPage() {
                           const visibleTasks = isExpanded ? tasks : tasks.slice(0, 3);
                           
                           return (
-                            <div key={groupKey} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
+                            <div key={groupKey} className="group bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl shadow-md hover:shadow-xl border border-blue-100/50 dark:border-blue-900/30 transition-all duration-300 hover:-translate-y-0.5 overflow-hidden">
                               <button
                                 onClick={() => setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
-                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                                className="w-full p-5 flex items-center justify-between hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/50 dark:hover:from-blue-950/20 dark:hover:to-cyan-950/20 transition-all"
                               >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-sm">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
                                     {courseName.substring(0, 2).toUpperCase()}
                                   </div>
                                   <div className="text-left">
-                                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{courseName}</h3>
-                                    <p className="text-xs text-gray-500 dark:text-slate-400">{tasks.length} assignment{tasks.length !== 1 ? 's' : ''}</p>
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-base">{courseName}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-0.5">{tasks.length} assignment{tasks.length !== 1 ? 's' : ''}</p>
                                   </div>
                                 </div>
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-400" />
-                                ) : (
+                                <div className="flex items-center gap-2">
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                                  ) : (
+                                    <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                                  )}
+                                </div>
+                              </button>
                                   <ChevronDown className="w-4 h-4 text-gray-400" />
                                 )}
                               </button>

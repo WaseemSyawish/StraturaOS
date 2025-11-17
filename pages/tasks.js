@@ -449,12 +449,12 @@ export default function TasksPage() {
                   {/* Classes & Lectures Section */}
                   {Object.keys(courseGroups.classes).length > 0 && (
                     <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                          <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                          <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Classes & Lectures</h2>
-                        <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full text-sm font-medium">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Classes & Lectures</h2>
+                        <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-full text-xs font-medium">
                           {Object.values(courseGroups.classes).flat().length}
                         </span>
                       </div>
@@ -573,12 +573,12 @@ export default function TasksPage() {
                   {/* Assignments & Exams Section */}
                   {Object.keys(courseGroups.assignments).length > 0 && (
                     <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                          <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Assignments & Exams</h2>
-                        <span className="px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Assignments & Exams</h2>
+                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium">
                           {Object.values(courseGroups.assignments).flat().length}
                         </span>
                       </div>
@@ -590,29 +590,29 @@ export default function TasksPage() {
                           const visibleTasks = isExpanded ? tasks : tasks.slice(0, 3);
                           
                           return (
-                            <div key={groupKey} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
+                            <div key={groupKey} className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800">
                               <button
                                 onClick={() => setExpandedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
-                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-slate-800/50 transition-colors"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                                  <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-sm">
                                     {courseName.substring(0, 2).toUpperCase()}
                                   </div>
                                   <div className="text-left">
-                                    <h3 className="font-semibold text-gray-900 dark:text-white">{courseName}</h3>
-                                    <p className="text-xs text-gray-600 dark:text-slate-400">{tasks.length} assignment{tasks.length !== 1 ? 's' : ''}</p>
+                                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{courseName}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">{tasks.length} assignment{tasks.length !== 1 ? 's' : ''}</p>
                                   </div>
                                 </div>
                                 {isExpanded ? (
-                                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                                  <ChevronUp className="w-4 h-4 text-gray-400" />
                                 ) : (
-                                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                                  <ChevronDown className="w-4 h-4 text-gray-400" />
                                 )}
                               </button>
                               
                               {isExpanded && (
-                                <div className="border-t border-gray-100 dark:border-slate-800 divide-y divide-gray-100 dark:divide-slate-800">
+                                <div className="border-t border-gray-100 dark:border-slate-800">
                                   {visibleTasks.map(task => (
                                     <div key={task.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group">
                                       <div className="flex items-start gap-3">

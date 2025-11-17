@@ -11,51 +11,49 @@ import { fetchWithCache, invalidateCache } from '../lib/cache';
 const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
   const router = useRouter();
   return (
-    <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
-      <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
-            <Home className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
+    <header className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-40">
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Overview</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Welcome back, {userName}</p>
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Overview</h1>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Link href="/history" prefetch={true}>
-            <button 
-              className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              title="History & Completed Events"
-            >
-              <Archive className="w-4.5 h-4.5" />
-              <span className="text-sm font-medium">History</span>
-            </button>
-          </Link>
-          
-          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-          
-          <Link href="/settings" prefetch={true}>
-            <button 
-              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
-              title="Settings"
-            >
-              <Settings className="w-4.5 h-4.5" />
-            </button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/history" prefetch={true}>
+              <button 
+                className="h-9 px-3 flex items-center gap-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-slate-400"
+                title="History"
+              >
+                <Archive className="w-4 h-4" />
+                <span className="text-sm font-medium hidden sm:inline">History</span>
+              </button>
+            </Link>
+            
+            <Link href="/settings" prefetch={true}>
+              <button 
+                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-gray-600 dark:text-slate-400"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </Link>
 
-          <button 
-            onClick={async () => {
-              try {
-                try { await fetch('/api/auth/local-signout', { method: 'POST' }); } catch (e) { /* ignore */ }
-                router.push('/signin');
-              } catch (e) {
-                router.push('/signout');
-              }
-            }}
-            className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
-            title="Sign Out"
-          >
-            <LogOut className="w-4.5 h-4.5" />
-          </button>
+            <button 
+              onClick={async () => {
+                try {
+                  try { await fetch('/api/auth/local-signout', { method: 'POST' }); } catch (e) { /* ignore */ }
+                  router.push('/signin');
+                } catch (e) {
+                  router.push('/signout');
+                }
+              }}
+              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -64,16 +62,16 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName }) {
 
 const StatCard = React.memo(function StatCard({ icon, label, value, loading, bgColor, iconColor }) {
   return (
-    <div className="group bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgColor} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-          {React.cloneElement(icon, { className: `w-6 h-6 ${iconColor}`, strokeWidth: 2.5 })}
+    <div className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bgColor}`}>
+          {React.cloneElement(icon, { className: `w-5 h-5 ${iconColor}` })}
         </div>
+        <p className="text-gray-600 dark:text-slate-400 text-sm font-medium">{label}</p>
       </div>
-      <p className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-1.5">{label}</p>
-      <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+      <p className="text-2xl font-bold text-gray-900 dark:text-white">
         {loading ? (
-          <span className="inline-block w-20 h-9 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></span>
+          <span className="inline-block w-16 h-7 bg-gray-100 dark:bg-slate-800 rounded animate-pulse"></span>
         ) : (
           value
         )}

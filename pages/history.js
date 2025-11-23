@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { Archive, Search, Calendar, Clock, Tag, X, RotateCcw, Trash2, ChevronDown, ChevronUp, BookOpen, AlertCircle, CheckCircle, Home, Settings, LogOut, FileText, TrendingUp, GraduationCap, Users, Package } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 const ArchivedEventsPage = () => {
   const [events, setEvents] = useState([]);
@@ -106,7 +107,7 @@ const ArchivedEventsPage = () => {
       const res = await fetch(`/api/events/${encodeURIComponent(eventId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archived: false })
+        body: JSON.stringify({ archived: false, completed: false })
       });
 
       if (res.ok) {
@@ -282,6 +283,7 @@ const ArchivedEventsPage = () => {
   }
 
   return (
+    <HygraphSidebar>
     <>
       <Head>
         <title>History — University Planner</title>
@@ -293,7 +295,7 @@ const ArchivedEventsPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 bg-purple-600 dark:bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Archive className="w-6 h-6 text-white" strokeWidth={2} />
                 </div>
                 <div>
@@ -303,26 +305,6 @@ const ArchivedEventsPage = () => {
                   </p>
                 </div>
               </div>
-              
-              {/* Navigation */}
-              <nav className="flex items-center gap-2">
-                <a href="/overview" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-                  <Home className="w-4 h-4" />
-                  Overview
-                </a>
-                <a href="/tasks" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Tasks
-                </a>
-                <a href="/schedule" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Schedule
-                </a>
-                <a href="/grades" className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4" />
-                  Grades
-                </a>
-              </nav>
             </div>
 
             {/* Stats Cards */}
@@ -564,6 +546,7 @@ const ArchivedEventsPage = () => {
         </div>
       </div>
     </>
+    </HygraphSidebar>
   );
 };
 

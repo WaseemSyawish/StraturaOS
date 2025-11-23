@@ -5,6 +5,7 @@ import CustomSelect from '../src/components/CustomSelect';
 import Notification from '../src/components/Notification';
 import Head from 'next/head';
 import AddSessionModal from '../src/components/attendance/AddSessionModal';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 const AttendanceTracker = () => {
   const [sessions, setSessions] = useState([]);
@@ -21,6 +22,10 @@ const AttendanceTracker = () => {
   const [notification, setNotification] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [showAddSessionModal, setShowAddSessionModal] = useState(false);
+  const [scheduledCount, setScheduledCount] = useState(null);
+  const [semesterRange, setSemesterRange] = useState(null);
+  const [scheduledClassCount, setScheduledClassCount] = useState(null);
+  const [lastClassEvent, setLastClassEvent] = useState(null);
   
   const [editingSession, setEditingSession] = useState(null);
 
@@ -160,6 +165,16 @@ const AttendanceTracker = () => {
       }
       
       setSessions(sortSessionsByDate(data.sessions || []));
+      // Capture scheduled (smart-schedule) counts and semester range if provided by API
+      if (typeof data.scheduledCount === 'number') setScheduledCount(data.scheduledCount);
+      else setScheduledCount(null);
+      if (typeof data.scheduledClassCount === 'number') setScheduledClassCount(data.scheduledClassCount);
+      else setScheduledClassCount(null);
+      // Capture last defined scheduled class event (if API provided one)
+      if (data.lastClassEvent) setLastClassEvent(data.lastClassEvent);
+      else setLastClassEvent(null);
+      if (data.semester && data.semester.start_date && data.semester.end_date) setSemesterRange({ start: data.semester.start_date, end: data.semester.end_date });
+      else setSemesterRange(null);
       console.log('Sessions loaded:', data.sessions?.length || 0);
     } catch (err) {
       const errorMessage = err.message || 'Unknown error occurred';
@@ -294,7 +309,32 @@ useEffect(() => {
     // FIXED: Calculate attendance USING weighted points and EXCLUDING holidays entirely
     // Weighted points: PRESENT=2, LATE=1, EXCUSED=1, ABSENT=0, HOLIDAY excluded
     const attendableSessions = sessions.filter(s => s.status !== 'HOLIDAY');
-    const eligibleSessions = attendableSessions.length;
+    const recordedEligibleSessions = attendableSessions.length;
+    // Calculate expected sessions using semester end date and scheduled class count.
+    // This gives us the TOTAL number of class sessions in the semester.
+    let expectedSessions = recordedEligibleSessions;
+    let usedSource = 'recorded';
+
+    // Prefer scheduledClassCount (actual class-type events created by Smart Timetable)
+    if (typeof scheduledClassCount === 'number' && scheduledClassCount > 0) {
+      expectedSessions = scheduledClassCount;
+      usedSource = 'scheduled-class';
+    } else if (typeof scheduledCount === 'number' && scheduledCount > 0) {
+      expectedSessions = scheduledCount;
+      usedSource = 'scheduled-all';
+    }
+
+    // If we have semester range and lastClassEvent, we can verify/adjust the count
+    // by checking if there are classes beyond what we've recorded
+    if (semesterRange && semesterRange.end) {
+      const semEnd = new Date(semesterRange.end);
+      const today = new Date();
+      // If semester hasn't ended yet, we have future sessions to account for
+      if (today < semEnd && usedSource !== 'recorded') {
+        // expectedSessions already includes all scheduled classes through semester end
+        // This is correct - we want total scheduled, not just past ones
+      }
+    }
 
     const MAX_POINTS = 2;
     const derivePoints = (session) => {
@@ -312,28 +352,89 @@ useEffect(() => {
       }
     };
 
-    let totalPointsEarned = 0;
-    let countedSessions = 0;
-    for (const s of sessions) {
-      const pts = derivePoints(s);
-      if (pts === null || pts === undefined) continue; // exclude holidays
-      totalPointsEarned += Number(pts) || 0;
-      countedSessions++;
+    // Find the last recorded session date (student's last entry)
+    let lastRecordedDate = null;
+    if (attendableSessions.length > 0) {
+      const sortedSessions = [...attendableSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+      lastRecordedDate = new Date(sortedSessions[0].date);
     }
-    const totalPointsPossible = countedSessions * MAX_POINTS;
-    const attendancePercentage = totalPointsPossible > 0 ? (totalPointsEarned / totalPointsPossible) * 100 : 0;
-    
+
+    // Calculate points ONLY from recorded sessions (student's actual entries)
+    let pointsEarnedSoFar = 0;
+    let pointsPossibleSoFar = 0;
+    let recordedCount = 0;
+    for (const s of attendableSessions) {
+      const pts = derivePoints(s);
+      if (pts === null || pts === undefined) continue;
+      pointsEarnedSoFar += Number(pts) || 0;
+      pointsPossibleSoFar += MAX_POINTS;
+      recordedCount++;
+    }
+
+    // Overall attendance percentage based on recorded data (what user has so far)
+    const attendancePercentage = pointsPossibleSoFar > 0 ? (pointsEarnedSoFar / pointsPossibleSoFar) * 100 : 0;
+
     // Capping system calculations
     const requiredAttendancePercentage = 80; // 80% minimum required
-  const maxSkippablePercentage = 20; // Can skip up to 20%
-  const maxSkippableSessions = Math.max(0, Math.floor(eligibleSessions * (maxSkippablePercentage / 100)));
-  const skippedSessions = absent; // Only count actual absences (not late/excused)
-  const remainingSkippable = Math.max(0, maxSkippableSessions - skippedSessions);
-  const isCapped = attendancePercentage < requiredAttendancePercentage;
-  // Determine 'at risk' by proximity to the required attendance percentage.
-  // This avoids negative-threshold issues when maxSkippableSessions is small.
-  const riskMarginPoints = 5; // percentage points above the threshold considered 'at risk'
-  const isAtRisk = !isCapped && attendancePercentage < (requiredAttendancePercentage + riskMarginPoints);
+    const maxSkippablePercentage = 20; // Can skip up to 20%
+
+    // Calculate future sessions: From student's LAST ENTRY to the LAST CLASS EVENT date
+    let futureSessionsCount = 0;
+    let lastClassDate = null;
+    
+    if (lastClassEvent && lastClassEvent.date) {
+      lastClassDate = new Date(lastClassEvent.date);
+    } else if (semesterRange && semesterRange.end) {
+      lastClassDate = new Date(semesterRange.end);
+    }
+
+    // If we have both dates, calculate sessions from last recorded to last class
+    if (lastRecordedDate && lastClassDate && lastClassDate > lastRecordedDate) {
+      // Use scheduledClassCount if available, otherwise estimate based on recorded pattern
+      if (typeof scheduledClassCount === 'number' && scheduledClassCount > 0) {
+        // Total scheduled sessions minus what's already recorded
+        futureSessionsCount = Math.max(0, scheduledClassCount - recordedCount);
+      } else {
+        // Fallback: estimate remaining sessions
+        futureSessionsCount = Math.max(0, expectedSessions - recordedCount);
+      }
+    } else {
+      // No future sessions if we don't have dates or semester has ended
+      futureSessionsCount = 0;
+    }
+
+    // Max possible points: current points + (future sessions × 2 points each)
+    const totalPointsPossibleFinal = pointsPossibleSoFar + (futureSessionsCount * MAX_POINTS);
+
+    // PROJECTED FINAL: Assume student attends all future sessions perfectly
+    const projectedFinalPoints = pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS);
+    const projectedFinalPercentage = totalPointsPossibleFinal > 0 ? (projectedFinalPoints / totalPointsPossibleFinal) * 100 : 0;
+
+    // Minimum total points required to meet threshold at semester end
+    const requiredTotalPoints = Math.ceil((requiredAttendancePercentage / 100) * totalPointsPossibleFinal);
+
+    // Points still needed from future sessions to meet required total
+    const requiredPointsNeeded = Math.max(0, requiredTotalPoints - pointsEarnedSoFar);
+
+    // Presences needed (each presence gives MAX_POINTS) — conservative assumption
+    const requiredPresencesNeeded = Math.ceil(requiredPointsNeeded / MAX_POINTS);
+
+    // How many future sessions can be missed and still meet target
+    const maxSkippableFuture = Math.max(0, futureSessionsCount - requiredPresencesNeeded);
+
+    // Total sessions from NOW to LAST CLASS DATE (includes recorded + future)
+    const totalSessionsUntilEnd = recordedCount + futureSessionsCount;
+    
+    // Total allowed absences: 20% of all sessions until end
+    const totalAllowedAbsences = Math.max(0, Math.floor(totalSessionsUntilEnd * (maxSkippablePercentage / 100)));
+    const skippedSessions = absent; // absences already recorded
+    // How many more can be missed from now until last class
+    const remainingAllowedTotal = Math.max(0, totalAllowedAbsences - skippedSessions);
+
+    const isCapped = (pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS)) < Math.ceil((requiredAttendancePercentage / 100) * (pointsPossibleSoFar + futureSessionsCount * MAX_POINTS));
+    // Determine 'at risk' by proximity to the required attendance percentage (based on so-far percentage)
+    const riskMarginPoints = 5; // percentage points above the threshold considered 'at risk'
+    const isAtRisk = !isCapped && attendancePercentage < (requiredAttendancePercentage + riskMarginPoints);
     
     return {
       totalSessions,
@@ -343,14 +444,21 @@ useEffect(() => {
       excused,
       late,
       attendancePercentage,
-      totalPointsEarned,
-      totalPointsPossible,
-      eligibleSessions, // This is now sessions excluding holidays
+      projectedFinalPercentage,
+      pointsEarnedSoFar,
+      pointsPossibleSoFar,
+      totalPointsPossibleFinal,
+      requiredPointsNeeded,
+      eligibleSessions: recordedEligibleSessions, // sessions excluding holidays (recorded)
+      expectedSessions, // expected count (prefers smart-schedule when available)
+      usedSource,
       // Capping system data
       requiredAttendancePercentage,
-      maxSkippableSessions,
+      totalAllowedAbsences,
       skippedSessions,
-      remainingSkippable,
+      remainingAllowedTotal,
+      futureSessionsCount,
+      maxSkippableFuture,
       isCapped,
       isAtRisk
     };
@@ -737,6 +845,7 @@ useEffect(() => {
 
   if (coursesLoading) {
   return (
+    <HygraphSidebar pageName="Attendance">
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
       <Head>
         <title>Attendance — University Planner</title>
@@ -764,12 +873,14 @@ useEffect(() => {
         </div>
       </div>
     </div>
+    </HygraphSidebar>
   );
 }
 
   // Show message if no courses exist
   if (!courses.length) {
   return (
+    <HygraphSidebar pageName="Attendance">
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 flex items-center justify-center">
       <Head>
         <title>Attendance — University Planner</title>
@@ -841,12 +952,14 @@ useEffect(() => {
         </div>
       </div>
     </div>
+    </HygraphSidebar>
   );
 }
 
   // Using extracted AddSessionModal component from src/components/attendance/AddSessionModal.jsx
 
   return (
+    <HygraphSidebar pageName="Attendance">
     <div className="attendance-root calendar-root min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <Head>
         <title>Attendance — University Planner</title>
@@ -874,10 +987,9 @@ useEffect(() => {
         <Notification type={notification?.type} message={notification?.message} onClose={() => setNotification(null)} />
       </div>
   <div className="max-w-7xl mx-auto">
-  <div className={`attendance-content ${showAddSessionModal ? 'blur-md pointer-events-none' : ''}`}>
     {/* Header */}
-  <header className="bg-white border border-slate-200 shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95 rounded-xl">
-  <div className="max-w-7xl mx-auto px-6 py-5">
+  <header className="w-full">
+  <div className="max-w-7xl mx-auto px-6 py-5 bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg rounded-3xl">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -946,6 +1058,7 @@ useEffect(() => {
     </div>
   </div>
 </header>
+  <div className={`attendance-content ${showAddSessionModal ? 'blur-md pointer-events-none' : ''}`}>
 
         {selectedCourseId && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -1053,11 +1166,22 @@ useEffect(() => {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Summary</h2>
                 
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                    <span className="font-medium text-gray-700 dark:text-slate-100">Attendance %</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      {stats.attendancePercentage.toFixed(1)}%
-                    </span>
+                    <div className="py-2 border-b border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-gray-700 dark:text-slate-100">Projected Final %</span>
+                      <span className={`text-2xl font-bold ${stats.projectedFinalPercentage >= 80 ? 'text-green-600' : 'text-red-600'}`}>
+                        {stats.projectedFinalPercentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      (If you attend all remaining {stats.futureSessionsCount} sessions)
+                    </div>
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                      <span className="text-sm text-gray-600 dark:text-slate-100">Current % (so far)</span>
+                      <span className="text-lg font-semibold text-gray-700">
+                        {stats.attendancePercentage.toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
                   
                     <div className="space-y-2">
@@ -1085,12 +1209,16 @@ useEffect(() => {
 
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Points Earned:</span>
-                      <span className="font-medium">{stats.totalPointsEarned}</span>
+                      <span className="text-gray-600">Points Earned (so far):</span>
+                      <span className="font-medium">{stats.pointsEarnedSoFar}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Max Possible:</span>
-                      <span className="font-medium">{stats.totalPointsPossible}</span>
+                      <span className="text-gray-600">Max Possible (so far):</span>
+                      <span className="font-medium">{stats.pointsPossibleSoFar}</span>
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="text-gray-600">Max Possible (final):</span>
+                      <span className="font-medium">{stats.totalPointsPossibleFinal}</span>
                     </div>
                   </div>
 
@@ -1106,6 +1234,46 @@ useEffect(() => {
                         (Holidays excluded)
                       </div>
                     </div>
+                  </div>
+
+                  {/* Expected sessions (automatic) */}
+                  <div className="pt-4 border-t border-gray-200 mt-4">
+                    <div className="text-sm text-gray-600 mb-2">Expected sessions</div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-700">Recorded: <span className="font-medium">{stats.eligibleSessions}</span></div>
+                        {scheduledClassCount !== null && (
+                          <div className="text-sm text-gray-700">Scheduled (class-type): <span className="font-medium">{scheduledClassCount}</span></div>
+                        )}
+                        {scheduledCount !== null && scheduledClassCount === null && (
+                          <div className="text-sm text-gray-700">Scheduled (all): <span className="font-medium">{scheduledCount}</span></div>
+                        )}
+                      </div>
+                    </div>
+                    {lastClassEvent && lastClassEvent.date && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <span className="text-sm font-medium text-gray-700">Last Class:</span>
+                        </div>
+                        <div className="text-sm text-gray-900 font-semibold mt-1">
+                          {formatDate(lastClassEvent.date)}
+                        </div>
+                        {lastClassEvent.title && (
+                          <div className="text-xs text-gray-500 mt-1">{lastClassEvent.title}</div>
+                        )}
+                        <div className="text-xs text-gray-400 mt-2">
+                          System uses this as the semester endpoint for max possible points calculation
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-right mt-2">
+                      <div className="text-xs text-gray-500">Using</div>
+                      <div className="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs bg-indigo-50 text-indigo-700">
+                        {stats.usedSource === 'scheduled-class' ? 'Scheduled (class)' : (stats.usedSource === 'scheduled-all' ? 'Scheduled (all)' : 'Recorded')}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">(Holidays excluded) — preferred source selected automatically</div>
                   </div>
 
                   {/* Capping system */}
@@ -1143,22 +1311,31 @@ useEffect(() => {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Max Skippable:</span>
-                        <span className="font-medium">{stats.maxSkippableSessions} lectures</span>
+                        <span className="text-gray-600">Max Skippable (total):</span>
+                        <span className="font-medium">{stats.totalAllowedAbsences} lectures</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Skipped:</span>
-                        <span className={`font-medium ${stats.skippedSessions >= stats.maxSkippableSessions ? 'text-red-600' : 'text-gray-800'}`}>
+                        <span className={`font-medium ${stats.skippedSessions >= stats.totalAllowedAbsences ? 'text-red-600' : 'text-gray-800'}`}>
                           {stats.skippedSessions} lectures
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Remaining Skippable:</span>
+                        <span className="text-gray-600">Remaining Allowed (total):</span>
                         <span className={`font-medium ${
-                          stats.remainingSkippable === 0 ? 'text-red-600' : 
-                          stats.remainingSkippable <= 1 ? 'text-yellow-600' : 'text-green-600'
+                          stats.remainingAllowedTotal === 0 ? 'text-red-600' : 
+                          stats.remainingAllowedTotal <= 1 ? 'text-yellow-600' : 'text-green-600'
                         }`}>
-                          {stats.remainingSkippable} lectures
+                          {stats.remainingAllowedTotal} lectures
+                        </span>
+                      </div>
+                      <div className="flex justify-between mt-2">
+                        <span className="text-gray-600">Remaining Skippable (future):</span>
+                        <span className={`font-medium ${
+                          stats.maxSkippableFuture === 0 ? 'text-red-600' : 
+                          stats.maxSkippableFuture <= 1 ? 'text-yellow-600' : 'text-green-600'
+                        }`}>
+                          {stats.maxSkippableFuture} lectures
                         </span>
                       </div>
                     </div>
@@ -1208,6 +1385,7 @@ useEffect(() => {
     )}
 
   </div>
+  </HygraphSidebar>
   );
 };
 

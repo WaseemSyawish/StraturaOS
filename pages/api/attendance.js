@@ -208,6 +208,88 @@ async function handleGet(req, res) {
       }
     }
 
+    // Try to count smart-schedule (bulk-created) events for this course inside the active semester
+    let scheduledCount = null;
+    let scheduledClassCount = null;
+    let semesterRange = null;
+    let lastClassEvent = null;
+    try {
+      if (p2) {
+        // Find active semester setting for this user (if any)
+        const sem = await p2.semesterSetting.findFirst({ where: { user_id: effectiveUserId, is_active: true } });
+        if (sem) {
+          semesterRange = { start_date: sem.start_date, end_date: sem.end_date };
+        }
+
+        // Fetch events for this course that were created for schedules (meta.schedulePattern)
+        const events = await p2.event.findMany({
+          where: {
+            course_id: courseId,
+            user_id: effectiveUserId,
+            archived: false
+          },
+          orderBy: { date: 'asc' }
+        });
+
+        // Count only those with meta.schedulePattern and (if semesterRange) within semester
+        const matchedAll = [];
+        const matchedClass = [];
+        const classTypes = ['lecture','class','lab','tutorial','seminar','session'];
+
+        for (const ev of events) {
+          try {
+            const m = ev.meta || null;
+            if (!m) continue;
+            const metaObj = typeof m === 'string' ? JSON.parse(m) : m;
+            if (!metaObj || !metaObj.schedulePattern) continue;
+            if (semesterRange) {
+              const d = new Date(ev.date);
+              const start = new Date(semesterRange.start_date);
+              const end = new Date(semesterRange.end_date);
+              if (!(d >= start && d <= end)) continue;
+            }
+            matchedAll.push(ev);
+
+            // Determine if this is a class-type event by checking event.type, meta.type, or title heuristics
+            const evType = (ev.type || (metaObj && metaObj.type) || '').toString().toLowerCase();
+            const title = (ev.title || '').toString().toLowerCase();
+            const isClass = classTypes.includes(evType) || (metaObj && metaObj.eventType && classTypes.includes(String(metaObj.eventType).toLowerCase())) || /lecture|lab|tutorial|class|seminar/i.test(title);
+            if (isClass) matchedClass.push(ev);
+          } catch (e) {
+            continue;
+          }
+        }
+
+        scheduledCount = matchedAll.length;
+        // scheduledClassCount is a more accurate number for lectures/seminars/labs
+        scheduledClassCount = matchedClass.length;
+
+        // Determine the last defined class-type event (most recent by date)
+        if (matchedClass.length > 0) {
+          // events were ordered by date asc when fetched, so take last
+          const ev = matchedClass[matchedClass.length - 1];
+          try {
+            const metaObj = typeof ev.meta === 'string' ? JSON.parse(ev.meta) : ev.meta;
+            lastClassEvent = {
+              id: ev.id,
+              date: (typeof ev.date === 'string' ? ev.date : (ev.date ? ev.date.toISOString() : null)),
+              title: ev.title || null,
+              type: ev.type || (metaObj && metaObj.eventType) || null,
+              meta: metaObj || null,
+              createdAt: ev.created_at || null
+            };
+          } catch (e) {
+            // tolerate meta parse errors; still return minimal fields
+            lastClassEvent = { id: ev.id, date: (ev.date ? (typeof ev.date === 'string' ? ev.date : ev.date.toISOString()) : null), title: ev.title || null, type: ev.type || null };
+          }
+        }
+      }
+    } catch (e) {
+      // Non-fatal: if we cannot compute scheduledCount, leave it null
+      console.warn('Failed to compute scheduledCount for attendance GET:', e && e.message ? e.message : e);
+      scheduledCount = null;
+    }
+
     const formattedSessions = sessions.map(session => ({
       id: session.id,
       date: (typeof session.date === 'string' ? session.date.split('T')[0] : session.date.toISOString().split('T')[0]),
@@ -230,7 +312,7 @@ async function handleGet(req, res) {
       console.log('Attendance GET result - user:', effectiveUserId, 'courseId:', courseId, 'sessionsFound:', (formattedSessions || []).length);
     } catch (e) {}
 
-    return res.status(200).json({ success: true, sessions: formattedSessions, total: formattedSessions.length, course: { id: course.id, name: course.name, code: course.code, color: course.color } });
+    return res.status(200).json({ success: true, sessions: formattedSessions, total: formattedSessions.length, course: { id: course.id, name: course.name, code: course.code, color: course.color }, scheduledCount, scheduledClassCount: typeof scheduledClassCount === 'number' ? scheduledClassCount : null, semester: semesterRange, lastClassEvent });
   } catch (error) {
     console.error('Error fetching attendance sessions:', error);
     return res.status(500).json({ 

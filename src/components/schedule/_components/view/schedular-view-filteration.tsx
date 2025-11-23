@@ -128,6 +128,7 @@ export default function SchedulerViewFilteration({
               CustomAddEventModal={
                 CustomComponents?.CustomEventModal?.CustomAddEventModal?.CustomForm
               }
+              isSchedulePage={true}
             />
           </CustomModal>
         );
@@ -215,6 +216,7 @@ export default function SchedulerViewFilteration({
                     nextButton={CustomComponents?.customButtons?.CustomNextButton}
                     CustomEventComponent={CustomComponents?.CustomEventComponent}
                     CustomEventModal={CustomComponents?.CustomEventModal}
+                    isSchedulePage={true}
                   />
                 </div>
               </TabsContent>
@@ -229,6 +231,7 @@ export default function SchedulerViewFilteration({
                     nextButton={CustomComponents?.customButtons?.CustomNextButton}
                     CustomEventComponent={CustomComponents?.CustomEventComponent}
                     CustomEventModal={CustomComponents?.CustomEventModal}
+                    isSchedulePage={true}
                   />
                 </div>
               </TabsContent>
@@ -243,6 +246,7 @@ export default function SchedulerViewFilteration({
                     nextButton={CustomComponents?.customButtons?.CustomNextButton}
                     CustomEventComponent={CustomComponents?.CustomEventComponent}
                     CustomEventModal={CustomComponents?.CustomEventModal}
+                    isSchedulePage={true}
                   />
                 </div>
               </TabsContent>

@@ -132,6 +132,37 @@ export default async function handler(req, res) {
 
   // Allow GET to fetch events for a user (used by the client)
   if (req.method === 'GET') {
+
+          try {
+            if (out.meta && typeof out.meta === 'object') {
+              if (out.meta.priority && !out.priority) {
+                out.priority = out.meta.priority;
+              }
+              const recurrence = out.meta.recurrence || null;
+              if (recurrence) {
+                if (!out.recurrence) out.recurrence = recurrence;
+                if (!out.repeatOption && recurrence.repeatOption) {
+                  out.repeatOption = recurrence.repeatOption;
+                }
+                if (!out.byDays && recurrence.byDays) {
+                  out.byDays = recurrence.byDays;
+                }
+                if (!out.interval && recurrence.intervalWeeks) {
+                  out.interval = recurrence.intervalWeeks;
+                }
+                if (!out.materializeCount && recurrence.materializeCount) {
+                  out.materializeCount = recurrence.materializeCount;
+                }
+                if (!out.materializeUntil && recurrence.materializeUntil) {
+                  out.materializeUntil = recurrence.materializeUntil;
+                }
+              } else if (out.meta.repeatOption && !out.repeatOption) {
+                out.repeatOption = out.meta.repeatOption;
+              }
+            }
+          } catch (e) {
+            // best-effort only
+          }
     try {
       // Add cache headers for performance
       res.setHeader('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=30');
@@ -620,7 +651,76 @@ export default async function handler(req, res) {
       }
 
       // Persist meta object if provided (meta is sent separately by clients)
-      const metaToStore = req.body && req.body.meta ? req.body.meta : null;
+      let metaToStore = null;
+      if (req.body && req.body.meta && typeof req.body.meta === 'object') {
+        metaToStore = { ...req.body.meta };
+      }
+
+      const ensureMeta = () => {
+        if (!metaToStore || typeof metaToStore !== 'object') metaToStore = {};
+        return metaToStore;
+      };
+
+      const normalizePriority = (value) => {
+        if (typeof value !== 'string') return null;
+        const trimmed = value.trim();
+        return trimmed.length ? trimmed : null;
+      };
+
+      const incomingPriority = normalizePriority(req.body?.priority) || normalizePriority(req.body?.meta?.priority);
+      if (incomingPriority) {
+        ensureMeta().priority = incomingPriority;
+      }
+
+      const buildRecurrenceMeta = (body = {}) => {
+        // Prefer explicit recurrence blob if provided
+        if (body.meta && typeof body.meta === 'object' && body.meta.recurrence) {
+          return body.meta.recurrence;
+        }
+        const repeatOpt = body.repeatOption || body.repeat_option;
+        if (!repeatOpt) return null;
+        const coerceNumber = (val) => {
+          const parsed = Number(val);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+        const days = Array.isArray(body.byDays)
+          ? body.byDays
+              .map((d) => Number(d))
+              .filter((d) => Number.isFinite(d) && d >= 0 && d <= 6)
+          : undefined;
+        const intervalWeeks = coerceNumber(body.interval);
+        const materializeCount = coerceNumber(body.materializeCount);
+        const recurrence = {
+          repeatOption: repeatOpt,
+          byDays: days && days.length ? days : undefined,
+          intervalWeeks: intervalWeeks && intervalWeeks > 0 ? intervalWeeks : undefined,
+          materializeCount: materializeCount && materializeCount > 0 ? materializeCount : undefined,
+          materializeUntil: body.materializeUntil || null,
+          mode: body.recurrenceMode || null,
+        };
+        const cleaned = Object.fromEntries(
+          Object.entries(recurrence).filter(([_, val]) => {
+            if (Array.isArray(val)) return val.length > 0;
+            if (val === null || typeof val === 'undefined') return false;
+            return true;
+          })
+        );
+        return Object.keys(cleaned).length ? cleaned : null;
+      };
+
+      const recurrenceMeta = buildRecurrenceMeta(req.body);
+      if (recurrenceMeta) {
+        const metaRef = ensureMeta();
+        metaRef.recurrence = recurrenceMeta;
+        // expose repeatOption at meta root for older clients/tools
+        if (recurrenceMeta.repeatOption && !metaRef.repeatOption) {
+          metaRef.repeatOption = recurrenceMeta.repeatOption;
+        }
+      }
+
+      if (metaToStore && Object.keys(metaToStore).length === 0) {
+        metaToStore = null;
+      }
 
       // If the client intended to create a timetable template (a collection of modules)
       // they can send `isTemplate: true` or `templateModules` in the body. In that case

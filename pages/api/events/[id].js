@@ -319,13 +319,68 @@ export default async function handler(req, res) {
           for (const k of allowed) {
             if (Object.prototype.hasOwnProperty.call(src, k)) out[k] = src[k];
           }
-          
-          // If color is provided, store it in meta instead of as a top-level field
+
+          const ensureMeta = () => {
+            const existing = out.meta && typeof out.meta === 'object' ? out.meta : {};
+            out.meta = { ...existing };
+            return out.meta;
+          };
+
           if (Object.prototype.hasOwnProperty.call(src, 'color')) {
-            const existingMeta = out.meta && typeof out.meta === 'object' ? out.meta : {};
-            out.meta = { ...existingMeta, color: src.color };
+            ensureMeta().color = src.color;
           }
-          
+
+          if (Object.prototype.hasOwnProperty.call(src, 'priority')) {
+            const normalized = typeof src.priority === 'string' ? src.priority.trim() : src.priority;
+            if (normalized) ensureMeta().priority = normalized;
+          } else if (src.meta && src.meta.priority) {
+            ensureMeta().priority = src.meta.priority;
+          }
+
+          const coerceDays = (value) => {
+            if (!Array.isArray(value)) return undefined;
+            const days = value.map((d) => Number(d)).filter((d) => Number.isFinite(d) && d >= 0 && d <= 6);
+            return days.length ? days : undefined;
+          };
+
+          const buildRecurrence = () => {
+            if (src.recurrence && typeof src.recurrence === 'object') return src.recurrence;
+            const repeatOpt = src.repeatOption || src.repeat_option;
+            const byDays = coerceDays(src.byDays || (src.meta && src.meta.byDays));
+            const intervalWeeks = Number.isFinite(Number(src.intervalWeeks || src.interval)) ? Number(src.intervalWeeks || src.interval) : undefined;
+            const materializeCount = Number.isFinite(Number(src.materializeCount)) ? Number(src.materializeCount) : undefined;
+            const materializeUntil = src.materializeUntil || null;
+            if (!repeatOpt && !byDays && !intervalWeeks && !materializeCount && !materializeUntil) return null;
+            const recurrence = {
+              repeatOption: repeatOpt,
+              byDays,
+              intervalWeeks: intervalWeeks > 0 ? intervalWeeks : undefined,
+              materializeCount: materializeCount && materializeCount > 0 ? materializeCount : undefined,
+              materializeUntil,
+            };
+            const cleaned = Object.fromEntries(
+              Object.entries(recurrence).filter(([_, val]) => {
+                if (Array.isArray(val)) return val.length > 0;
+                if (val === null || typeof val === 'undefined') return false;
+                return true;
+              })
+            );
+            return Object.keys(cleaned).length ? cleaned : null;
+          };
+
+          const recurrenceMeta = buildRecurrence();
+          if (recurrenceMeta) {
+            const metaRef = ensureMeta();
+            metaRef.recurrence = recurrenceMeta;
+            if (recurrenceMeta.repeatOption && !metaRef.repeatOption) {
+              metaRef.repeatOption = recurrenceMeta.repeatOption;
+            }
+          }
+
+          if (out.meta && Object.keys(out.meta).length === 0) {
+            delete out.meta;
+          }
+
           return out;
         };
 
@@ -1219,6 +1274,29 @@ function normalizeEventRow(ev) {
         const ed = (Object.prototype.toString.call(out.end_date) === '[object Date]') ? out.end_date : new Date(String(out.end_date));
         if (!isNaN(ed.getTime())) out.endDate = ed.toISOString();
       } catch (e) {}
+    }
+  } catch (e) {}
+
+  try {
+    if (out.meta && typeof out.meta === 'object') {
+      if (out.meta.priority && !out.priority) {
+        out.priority = out.meta.priority;
+      }
+      const recurrence = out.meta.recurrence || null;
+      if (recurrence) {
+        if (!out.recurrence) out.recurrence = recurrence;
+        if (!out.repeatOption && recurrence.repeatOption) {
+          out.repeatOption = recurrence.repeatOption;
+        }
+        if (!out.byDays && recurrence.byDays) {
+          out.byDays = recurrence.byDays;
+        }
+        if (!out.interval && recurrence.intervalWeeks) {
+          out.interval = recurrence.intervalWeeks;
+        }
+      } else if (out.meta.repeatOption && !out.repeatOption) {
+        out.repeatOption = out.meta.repeatOption;
+      }
     }
   } catch (e) {}
   return out;

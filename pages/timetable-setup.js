@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import HygraphSidebar from '@/components/HygraphSidebar';
 import { Calendar, Clock, CheckCircle, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { showCustomAlert } from '@/utils/dialogs';
 
@@ -226,7 +227,7 @@ export default function TimetableSetup() {
 
       if (data.success) {
         await showCustomAlert('Success!', `Created ${data.eventsCreated} timetable events`, 'success');
-        router.push('/timetable');
+        router.push('/schedule');
       } else {
         await showCustomAlert('Creation Failed', data.error, 'danger');
       }
@@ -399,7 +400,7 @@ export default function TimetableSetup() {
                         />
                         <div className="ml-4 flex-1">
                           <div className="font-bold text-gray-900">{course.name}</div>
-                          <div className="text-sm text-gray-600">{course.code}{course.semester ? ` • ${course.semester}` : ''}</div>
+                          <div className="text-sm text-gray-600">{course.code}</div>
                         </div>
                         {selectedCourses.includes(course.id) && (
                           <CheckCircle className="w-6 h-6 text-indigo-600" />
@@ -411,7 +412,7 @@ export default function TimetableSetup() {
 
                 <div className="flex justify-between items-center pt-6 border-t">
                   <button
-                    onClick={() => router.push('/timetable')}
+                    onClick={() => router.push('/schedule')}
                     className="px-6 py-3 text-gray-600 hover:text-gray-900 font-semibold"
                   >
                     Cancel

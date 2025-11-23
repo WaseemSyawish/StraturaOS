@@ -8,9 +8,6 @@ module.exports = {
   compress: true,
   poweredByHeader: false,
   
-  // Add empty turbopack config to silence the webpack warning
-  turbopack: {},
-  
   // Suppress ESLint during builds (moved from deprecated eslint key)
   experimental: {
     turbo: {

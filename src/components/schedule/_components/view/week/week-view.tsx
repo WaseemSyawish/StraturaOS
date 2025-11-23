@@ -33,7 +33,7 @@ const pageTransitionVariants = {
   exit: (direction: number) => ({
     opacity: 0,
     transition: {
-      opacity: { duration: 0.2, ease: "easeInOut" },
+      opacity: { duration: 0.2 },
     },
   }),
 };
@@ -44,12 +44,14 @@ export default function WeeklyView({
   CustomEventComponent,
   CustomEventModal,
   classNames,
+  isSchedulePage,
 }: {
   prevButton?: React.ReactNode;
   nextButton?: React.ReactNode;
   CustomEventComponent?: React.FC<Event>;
   CustomEventModal?: CustomEventModal;
   classNames?: { prev?: string; next?: string; addEvent?: string };
+  isSchedulePage?: boolean;
 }) {
   const { getters, handlers } = useScheduler();
   const hoursColumnRef = useRef<HTMLDivElement>(null);
@@ -58,11 +60,53 @@ export default function WeeklyView({
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [direction, setDirection] = useState<number>(0);
   const { setOpen } = useModal();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
 
   const daysOfWeek = getters?.getDaysInWeek(
     getters?.getWeekNumber(currentDate),
     currentDate.getFullYear()
   );
+
+  // Update current time every minute for live indicator
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Calculate position based on current time
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      const ROW_PX_PER_HOUR = 64;
+      const position = (totalMinutes / 60) * ROW_PX_PER_HOUR;
+      setCurrentTimePosition(position);
+    };
+
+    updateCurrentTime();
+    const interval = setInterval(updateCurrentTime, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check if current time is in the displayed week
+  const isCurrentWeek = React.useMemo(() => {
+    const now = new Date();
+    const weekStart = daysOfWeek[0];
+    const weekEnd = new Date(daysOfWeek[6]);
+    weekEnd.setHours(23, 59, 59, 999);
+    return now >= weekStart && now <= weekEnd;
+  }, [daysOfWeek]);
+
+  const currentDayIndex = React.useMemo(() => {
+    if (!isCurrentWeek) return -1;
+    const now = new Date();
+    return daysOfWeek.findIndex(day => 
+      day.getDate() === now.getDate() && 
+      day.getMonth() === now.getMonth() &&
+      day.getFullYear() === now.getFullYear()
+    );
+  }, [isCurrentWeek, daysOfWeek]);
 
   const rAFRef = useRef<number | null>(null);
   const lastMouseEventRef = useRef<MouseEvent | null>(null);
@@ -110,6 +154,7 @@ export default function WeeklyView({
           CustomAddEventModal={
             CustomEventModal?.CustomAddEventModal?.CustomForm
           }
+          isSchedulePage={isSchedulePage}
         />
       </CustomModal>,
       async () => {
@@ -179,10 +224,36 @@ export default function WeeklyView({
 
   const computeMinaStyle = React.useCallback((event: Event, allDayEvents: Event[] | undefined) => {
     const ROW_PX_PER_HOUR = 64;
-  const ensureDate = (d: any) => (d instanceof Date ? d : (parseDatePreserveLocal(d) || new Date(String(d))));
+    const ensureDate = (d: any) => (d instanceof Date ? d : (parseDatePreserveLocal(d) || new Date(String(d))));
 
+    const thisStart = ensureDate(event.startDate);
+    const thisEnd = ensureDate(event.endDate);
+    const thisStartMin = thisStart.getHours() * 60 + thisStart.getMinutes();
+    const thisEndMin = thisEnd.getHours() * 60 + thisEnd.getMinutes();
+    const thisDuration = Math.max(1, thisEndMin - thisStartMin);
+
+    const rawTop = (thisStartMin / 60) * ROW_PX_PER_HOUR;
+    const rawHeight = (thisDuration / 60) * ROW_PX_PER_HOUR;
+    const topPx = Math.max(0, Math.floor(rawTop));
+    const heightPx = Math.max(20, Math.ceil(rawHeight) + 1);
+
+    // Separate tasks from timed events
+    const isTask = (ev: any) => ev.type === 'task' || ev.type === 'assignment' || ev.type === 'deadline';
+    
+    // Handle tasks differently - show as compact pills on the right side
+    if (isTask(event)) {
+      return {
+        height: '24px',
+        top: `${topPx}px`,
+        zIndex: 100,
+        left: '78%',
+        width: '20%',
+      };
+    }
+
+    // For regular events, find truly concurrent events (same time slot)
     const items = (allDayEvents || [])
-      .filter((ev) => ev && ev.startDate && ev.endDate)
+      .filter((ev) => ev && ev.startDate && ev.endDate && !isTask(ev))
       .map((ev) => {
         const s = ensureDate(ev.startDate);
         const e = ensureDate(ev.endDate);
@@ -191,56 +262,73 @@ export default function WeeklyView({
         const duration = Math.max(1, endMinutes - startMinutes);
         return { ev, startMinutes, endMinutes, duration };
       })
-      .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes);
+      .sort((a, b) => a.startMinutes - b.startMinutes || b.duration - a.duration);
 
+    // Build columns for truly overlapping events
     const columns: Array<Array<any>> = [];
-    const columnsIndexMap: number[] = [];
-    items.forEach((it, idx) => {
+    items.forEach((it) => {
       let placed = false;
       for (let ci = 0; ci < columns.length; ci++) {
         const col = columns[ci];
         const last = col[col.length - 1];
+        // Only place in existing column if times don't overlap
         if (it.startMinutes >= last.endMinutes) {
           col.push(it);
-          columnsIndexMap[idx] = ci;
           placed = true;
           break;
         }
       }
       if (!placed) {
-        columnsIndexMap[idx] = columns.length;
         columns.push([it]);
       }
     });
 
-    const totalCols = Math.max(1, columns.length);
-
-    const thisStart = ensureDate(event.startDate);
-    const thisEnd = ensureDate(event.endDate);
-    const thisStartMin = thisStart.getHours() * 60 + thisStart.getMinutes();
-    const thisEndMin = thisEnd.getHours() * 60 + thisEnd.getMinutes();
-    const thisDuration = Math.max(1, thisEndMin - thisStartMin);
-
+    // Find which column this event belongs to
     let colIndex = 0;
     for (let ci = 0; ci < columns.length; ci++) {
-      if (columns[ci].some((it) => it.ev.id === event.id)) {
+      const idx = columns[ci].findIndex((it) => it.ev.id === event.id);
+      if (idx !== -1) {
         colIndex = ci;
         break;
       }
     }
 
-    const widthPercent = 100 / totalCols;
-    const leftPercent = colIndex * widthPercent;
+    // The actual number of columns is just the columns array length (max concurrent events)
+    const totalCols = Math.min(2, columns.length); // Max 2 columns side-by-side
+    const actualColIndex = Math.min(colIndex, totalCols - 1);
 
-    const rawTop = (thisStartMin / 60) * ROW_PX_PER_HOUR;
-    const rawHeight = (thisDuration / 60) * ROW_PX_PER_HOUR;
-    const topPx = Math.max(0, Math.floor(rawTop));
-    const heightPx = Math.max(20, Math.ceil(rawHeight) + 1);
+    if (totalCols === 1) {
+      // No overlap - full width
+      return {
+        height: `${heightPx}px`,
+        top: `${topPx}px`,
+        zIndex: 1,
+        left: '0%',
+        width: '98%',
+      };
+    }
 
+    // For 2 overlapping events - clean side-by-side with good width
+    if (totalCols === 2) {
+      const width = '48.5%'; // 48.5% each = 97% total with 1% gap
+      const leftPos = actualColIndex === 0 ? '0%' : '49.5%';
+      return {
+        height: `${heightPx}px`,
+        top: `${topPx}px`,
+        zIndex: actualColIndex + 1,
+        left: leftPos,
+        width: width,
+      };
+    }
+
+    // For 3+ overlaps (fallback, but max is 2)
+    const widthPercent = Math.max(48, (98 / totalCols) - 1);
+    const leftPercent = actualColIndex * (98 / totalCols);
+    
     return {
       height: `${heightPx}px`,
       top: `${topPx}px`,
-      zIndex: colIndex + 1,
+      zIndex: actualColIndex + 1,
       left: `${leftPercent}%`,
       width: `${widthPercent}%`,
     };
@@ -533,7 +621,23 @@ export default function WeeklyView({
             </div>
           </div>
 
-          {/* Timeline indicator */}
+          {/* Current Time Indicator - Live */}
+          {isCurrentWeek && (
+            <div
+              className="absolute left-[60px] w-[calc(100%-60px)] h-[2px] bg-red-500 dark:bg-red-400 pointer-events-none z-50 transition-all duration-1000"
+              style={{ top: `${currentTimePosition + 80}px` }}
+            >
+              <div className="absolute left-0 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-red-500 dark:bg-red-400 rounded-full shadow-lg" />
+              <Badge
+                variant="outline"
+                className="absolute -translate-y-1/2 bg-white dark:bg-slate-800 border-red-400 dark:border-red-500 text-red-600 dark:text-red-400 font-semibold z-50 left-[-55px] text-xs shadow-md"
+              >
+                {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+              </Badge>
+            </div>
+          )}
+
+          {/* Hover Timeline indicator */}
           {detailedHour && (
             <div
               className="absolute left-[60px] w-[calc(100%-60px)] h-[2px] bg-purple-500 dark:bg-purple-400 rounded-full pointer-events-none z-40 shadow-sm"

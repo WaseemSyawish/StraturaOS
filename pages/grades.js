@@ -4,6 +4,7 @@ import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, Che
 import { Button } from '@/components/ui/button';
 import Head from 'next/head';
 import GradeCalculator from '../src/components/grades/GradeCalculator';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 const GradesPage = () => {
   const [selectedSemester, setSelectedSemester] = useState('all');
@@ -161,11 +162,6 @@ const GradesPage = () => {
       items: []
     };
 
-    // Optimistically update UI with a temporary id
-    const tempId = Date.now();
-    const optimistic = { ...categoryPayload, id: tempId };
-    setCourses(prev => prev.map(course => course.id === selectedCourse.id ? { ...course, categories: [...(course.categories || []), optimistic] } : course));
-
     setNewCategory({ name: '', weight: '', type: 'assignment' });
     setShowCategoryModal(false);
 
@@ -208,6 +204,24 @@ const GradesPage = () => {
         }
       } catch (e) {
         console.warn('persist category failed', e);
+        // On error, refresh to get actual server state
+        try {
+          const listRes = await fetch('/api/grades');
+          if (listRes.ok) {
+            const listJs = await listRes.json().catch(() => null);
+            const arr = listJs && Array.isArray(listJs.data) ? listJs.data : [];
+            const found = arr.find(c => String(c.id) === String(selectedCourse.id));
+            if (found) {
+              const foundCategories = Array.isArray(found.assessments) ? found.assessments : (Array.isArray(found.categories) ? found.categories : []);
+              setCourses(prev => prev.map(course => course.id === selectedCourse.id ? ({ ...course, categories: foundCategories }) : course));
+              if (selectedCourse && selectedCourse.id === found.id) {
+                setSelectedCourse({ ...selectedCourse, categories: foundCategories });
+              }
+            }
+          }
+        } catch (e2) {
+          console.error('Failed to refresh after error:', e2);
+        }
       }
     })();
   };
@@ -494,8 +508,9 @@ const GradesPage = () => {
           return {
             // prefer canonical module fields from /api/courses
             ...sc,
-            // ensure categories shape exists (some APIs call them assessments)
-            categories: Array.isArray(sc.categories) ? sc.categories : (Array.isArray(sc.assessments) ? sc.assessments : (match && (match.assessments || match.categories) ? (match.assessments || match.categories) : [])),
+            // IMPORTANT: Always use assessments/categories from grades API (match), not from courses API
+            // The courses API doesn't have grade/assessment data - only the grades API does
+            categories: match && (match.assessments || match.categories) ? (match.assessments || match.categories) : [],
             // keep credits/semester from module record if present
             credits: sc.credits ?? (match && match.credits) ?? 0,
             semester: sc.semester ?? (match && match.semester) ?? null
@@ -608,6 +623,7 @@ const GradesPage = () => {
   }, []);
 
   return (
+    <HygraphSidebar>
     <div className="min-h-screen relative z-10 text-slate-900 dark:text-slate-100 dark:bg-slate-900">
       <Head>
         <title>Grade Calculator & Predictor — University Planner</title>
@@ -644,26 +660,6 @@ const GradesPage = () => {
         }
       `}} />
       {/* Navbar: consistent with Calendar/Overview styling */}
-      <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
-        <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
-              <Calculator className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Grade Calculator & Predictor</h1>
-          </div>
-
-          <button 
-            onClick={() => { /* Export grades functionality */ }}
-            className="h-10 px-4 flex items-center gap-2 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium"
-            title="Export Grades"
-          >
-            <Download className="w-4 h-4" />
-            <span className="text-sm">Export</span>
-          </button>
-        </div>
-      </header>
-
       <div className="max-w-7xl mx-auto px-8 py-8">
         {/* Loading State */}
         {loading ? (
@@ -697,23 +693,23 @@ const GradesPage = () => {
             {courses && courses.length > 0 && (
               <div className="mb-8">
                 {/* Main Calculator Display */}
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl p-8 mb-6 border border-slate-700 dark:from-slate-900 dark:to-black">
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-lg p-8 mb-6 border border-purple-200 dark:border-slate-700">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                      <Calculator className="w-6 h-6 text-purple-400" />
+                      <Calculator className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-300">Your Academic Calculator</h2>
-                      <p className="text-sm text-slate-400">Real-time grade analysis & prediction</p>
+                      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-300">Your Academic Calculator</h2>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">Real-time grade analysis & prediction</p>
                     </div>
                   </div>
                   
                   {/* Digital Display */}
-                  <div className="bg-slate-950/50 rounded-xl p-6 mb-6 border border-slate-800">
+                  <div className="bg-white/60 dark:bg-slate-950/50 rounded-xl p-6 mb-6 border border-purple-200 dark:border-slate-800">
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-sm font-mono text-slate-400 mb-2">CURRENT GPA</div>
-                        <div className="text-5xl font-bold font-mono text-emerald-400 tracking-tight">
+                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">CURRENT GPA</div>
+                        <div className="text-5xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
                           {stats.gpa}
                         </div>
                         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -722,9 +718,9 @@ const GradesPage = () => {
                         </div>
                       </div>
                       
-                      <div className="text-center border-l border-r border-slate-800">
-                        <div className="text-sm font-mono text-slate-400 mb-2">TOTAL CREDITS</div>
-                        <div className="text-5xl font-bold font-mono text-blue-400 tracking-tight">
+                      <div className="text-center border-l border-r border-purple-200 dark:border-slate-800">
+                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">TOTAL CREDITS</div>
+                        <div className="text-5xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">
                           {stats.credits}
                         </div>
                         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -734,8 +730,8 @@ const GradesPage = () => {
                       </div>
                       
                       <div className="text-center">
-                        <div className="text-sm font-mono text-slate-400 mb-2">AVG GRADE</div>
-                        <div className="text-5xl font-bold font-mono text-amber-400 tracking-tight">
+                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">AVG GRADE</div>
+                        <div className="text-5xl font-bold font-mono text-amber-600 dark:text-amber-400 tracking-tight">
                           {stats.avgGrade}
                         </div>
                         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -755,21 +751,21 @@ const GradesPage = () => {
                           setShowCalculator(true);
                         }
                       }}
-                      className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-600 active:scale-95"
+                      className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 active:scale-95"
                     >
                       <Target className="w-5 h-5" />
                       Grade Predictor
                     </button>
                     <button 
                       onClick={() => window.location.href = '/modules'}
-                      className="bg-purple-600 hover:bg-purple-500 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-purple-500 active:scale-95"
+                      className="bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-500 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-purple-500 active:scale-95"
                     >
                       <Plus className="w-5 h-5" />
                       Add Course
                     </button>
                     <button 
                       onClick={() => { /* Export grades functionality */ }}
-                      className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-600 active:scale-95"
+                      className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 active:scale-95"
                     >
                       <Download className="w-5 h-5" />
                       Export Data
@@ -779,7 +775,7 @@ const GradesPage = () => {
                 
                 {/* Quick Stats Row */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
                         <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -791,7 +787,7 @@ const GradesPage = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
                         <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -805,7 +801,7 @@ const GradesPage = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700 shadow-sm">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -868,8 +864,8 @@ const GradesPage = () => {
               <div className="min-h-[50vh] flex items-center justify-center">
                 <div className="max-w-2xl w-full mx-auto text-center px-6">
                   {/* Hero Card */}
-                  <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-8 mb-8 shadow-xl">
-                    <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-8 mb-8">
+                    <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <GraduationCap className="w-10 h-10 text-white" strokeWidth={2} />
                     </div>
                     <h2 className="text-3xl font-bold text-white mb-2">No Courses Yet</h2>
@@ -877,7 +873,7 @@ const GradesPage = () => {
                   </div>
 
                   {/* Instructions */}
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 text-left shadow-lg border border-gray-200 dark:border-slate-700">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-6 mb-6 text-left border border-gray-200 dark:border-slate-700">
                     <p className="text-gray-700 dark:text-slate-300 mb-4">
                       You haven't added any courses yet. Head to the Modules Manager to create your first course.
                     </p>
@@ -889,7 +885,7 @@ const GradesPage = () => {
                   {/* CTA Button */}
                   <button
                     onClick={() => window.location.href = '/modules'}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors shadow-lg"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                     Add Your First Course
@@ -1447,6 +1443,7 @@ const GradesPage = () => {
         />
       )}
     </div>
+    </HygraphSidebar>
   );
 };
 

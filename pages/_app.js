@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react'
 import ModalProvider from '@/providers/modal-context'
 import { ToastProvider } from '@/providers/toast-provider'
 import { ConfirmProvider } from '@/providers/confirm-provider'
+import { SessionProvider } from 'next-auth/react'
 
 function NavEnhancer() {
   useEffect(() => {
@@ -147,16 +148,18 @@ export default function App({ Component, pageProps }) {
   // or via CSS variables; here we prefer CSS variables already defined in
   // src/index.css and rely on next-themes to toggle the html.dark class.
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system">
-      <NextUISystemProvider navigate={undefined}>
-        <ToastProvider>
-          <ConfirmProvider>
-            <ModalProvider>
-              {content}
-            </ModalProvider>
-          </ConfirmProvider>
-        </ToastProvider>
-      </NextUISystemProvider>
-    </NextThemesProvider>
+    <SessionProvider session={pageProps.session}>
+      <NextThemesProvider attribute="class" defaultTheme="system">
+        <NextUISystemProvider navigate={undefined}>
+          <ToastProvider>
+            <ConfirmProvider>
+              <ModalProvider>
+                {content}
+              </ModalProvider>
+            </ConfirmProvider>
+          </ToastProvider>
+        </NextUISystemProvider>
+      </NextThemesProvider>
+    </SessionProvider>
   );
 }

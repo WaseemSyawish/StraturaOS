@@ -5,6 +5,7 @@ import Notification from '../src/components/Notification';
 import SemesterSettings from '../src/components/SemesterSettings';
 import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 const ModulesManager = () => {
   const [courses, setCourses] = useState([]);
@@ -488,6 +489,7 @@ const ModulesManager = () => {
   };
 
   return (
+  <HygraphSidebar pageName="Modules">
   <div className="modules-root min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <Head>
         <title>Modules — University Planner</title>
@@ -1208,6 +1210,7 @@ const ModulesManager = () => {
         )}
       </div>
     </div>
+  </HygraphSidebar>
   );
 };
 

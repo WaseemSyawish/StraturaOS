@@ -247,6 +247,38 @@ export default function WeekView({ weekDates = [], timeSlots = [], classes = [],
                 return m >= slotStartMinutes && m < slotStartMinutes + 60;
               });
 
+              // Detect overlaps and assign column positions
+              const eventsWithPositions = eventsForCell.map(evItem => {
+                const startM = minutesFromDateTimeParts(evItem.date, evItem.time) ?? parseTimeToMinutes(evItem.time);
+                const dur = Number(evItem.durationMinutes || (evItem.raw && evItem.raw.durationMinutes) || evItem.duration || 60) || 60;
+                const endM = startM + dur;
+                return { ...evItem, startM, endM };
+              });
+
+              // Sort by start time, then duration
+              eventsWithPositions.sort((a, b) => a.startM - b.startM || (b.endM - b.startM) - (a.endM - a.startM));
+
+              // Assign columns to avoid horizontal overlap
+              const columns = [];
+              eventsWithPositions.forEach(ev => {
+                // Find first column where this event doesn't overlap
+                let placed = false;
+                for (let i = 0; i < columns.length; i++) {
+                  const lastInCol = columns[i][columns[i].length - 1];
+                  if (!lastInCol || lastInCol.endM <= ev.startM) {
+                    columns[i].push(ev);
+                    ev.column = i;
+                    placed = true;
+                    break;
+                  }
+                }
+                if (!placed) {
+                  columns.push([ev]);
+                  ev.column = columns.length - 1;
+                }
+              });
+
+              const maxColumns = columns.length;
               return (
                 <div
                   key={idx}

@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { Sparkles } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
 import { useReminders } from '../lib/useReminders';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
@@ -94,6 +95,24 @@ function mapToSchedulerEvents(list) {
     // First, check if the event has a linked course with a color
     if (e.courses && e.courses.color) {
       color = e.courses.color;
+    }
+    
+    // If no course color, assign default colors based on type/priority for tasks
+    if (!color && (e.type === 'task' || e.type === 'assignment' || e.type === 'deadline')) {
+      // Map Eisenhower matrix priorities to colors
+      const priority = e.priority || e.eisenhower || '';
+      if (priority.includes('urgent') && priority.includes('important')) {
+        color = '#ef4444'; // red for urgent + important
+      } else if (priority.includes('not-urgent') && priority.includes('important')) {
+        color = '#3b82f6'; // blue for not urgent + important
+      } else if (priority.includes('urgent') && priority.includes('not-important')) {
+        color = '#f59e0b'; // amber for urgent + not important
+      } else if (priority.includes('not-urgent') && priority.includes('not-important')) {
+        color = '#10b981'; // green for not urgent + not important
+      } else {
+        // Default task color if no priority
+        color = '#8b5cf6'; // purple
+      }
     }
     
     try {
@@ -682,6 +701,7 @@ export default function SchedulePage() {
   }, []);
 
   return (
+    <HygraphSidebar pageName="Schedule">
     <div className="schedule-root min-h-screen bg-gray-50 dark:bg-slate-950">
       <style jsx global>{`
         [data-nextui-dialog-backdrop], [data-nextui-dialog], .nextui-portal, .modal-portal, .modal-container, .modal-panel {
@@ -772,28 +792,6 @@ export default function SchedulePage() {
       <Head>
         <title>Schedule — University Planner</title>
       </Head>
-
-      <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
-        <div className="max-w-[1450px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
-              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Schedule</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/timetable-setup')}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg hover:shadow-xl"
-            >
-              <Sparkles className="w-4 h-4" />
-              Smart Schedule Creator
-            </button>
-          </div>
-        </div>
-      </header>
 
       <main className="max-w-7xl mx-auto p-6">
         {loading ? (
@@ -969,5 +967,6 @@ export default function SchedulePage() {
         )}
       </main>
     </div>
+    </HygraphSidebar>
   )
 }

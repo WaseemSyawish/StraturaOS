@@ -153,6 +153,7 @@ export default function DailyView({
   CustomEventModal,
   stopDayEventSummary,
   classNames,
+  isSchedulePage,
 }: {
   prevButton?: React.ReactNode;
   nextButton?: React.ReactNode;
@@ -160,6 +161,7 @@ export default function DailyView({
   CustomEventModal?: CustomEventModal;
   stopDayEventSummary?: boolean;
   classNames?: { prev?: string; next?: string; addEvent?: string };
+  isSchedulePage?: boolean;
 }) {
   const hoursColumnRef = useRef<HTMLDivElement>(null);
   // Replace per-frame React state updates with DOM writes. Keep a small
@@ -174,6 +176,8 @@ export default function DailyView({
   const [direction, setDirection] = useState<number>(0);
   const { setOpen } = useModal();
   const { getters, handlers } = useScheduler();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
 
   React.useEffect(() => {
     function onGoToDate(e: any) {
@@ -185,6 +189,35 @@ export default function DailyView({
     window.addEventListener('scheduler:goToDate', onGoToDate as any);
     return () => window.removeEventListener('scheduler:goToDate', onGoToDate as any);
   }, []);
+
+  // Update current time every minute for live indicator
+  React.useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      // Calculate position based on current time
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      const ROW_PX_PER_HOUR = 64;
+      const position = (totalMinutes / 60) * ROW_PX_PER_HOUR;
+      setCurrentTimePosition(position);
+    };
+
+    updateCurrentTime();
+    const interval = setInterval(updateCurrentTime, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check if current date is today
+  const isToday = React.useMemo(() => {
+    const now = new Date();
+    return currentDate.getDate() === now.getDate() &&
+           currentDate.getMonth() === now.getMonth() &&
+           currentDate.getFullYear() === now.getFullYear();
+  }, [currentDate]);
 
   // Batch mousemove updates via requestAnimationFrame to avoid flooding React
   // with setState calls while the user is moving the mouse.
@@ -263,8 +296,36 @@ export default function DailyView({
     const ROW_PX_PER_HOUR = 64;
     const ensureDate = (d: any) => (d instanceof Date ? d : new Date(d));
 
+    const thisStart = ensureDate(event.startDate);
+    const thisEnd = ensureDate(event.endDate);
+    const thisStartMin = thisStart.getHours() * 60 + thisStart.getMinutes();
+    const thisEndMin = thisEnd.getHours() * 60 + thisEnd.getMinutes();
+    const thisDuration = Math.max(1, thisEndMin - thisStartMin);
+
+    const rawTop = (thisStartMin / 60) * ROW_PX_PER_HOUR;
+    const rawHeight = (thisDuration / 60) * ROW_PX_PER_HOUR;
+    const topPx = Math.max(0, Math.floor(rawTop));
+    const heightPx = Math.max(20, Math.ceil(rawHeight) + 1);
+
+    // Separate tasks from timed events
+    const isTask = (ev: any) => ev.type === 'task' || ev.type === 'assignment' || ev.type === 'deadline';
+    
+    // Handle tasks differently - show as compact pills on the right side
+    if (isTask(event)) {
+      return {
+        height: '24px',
+        top: `${topPx}px`,
+        zIndex: 100,
+        left: '83%',
+        maxWidth: '15%',
+        minWidth: '15%',
+        _debug: { startMinutes: thisStartMin, endMinutes: thisEndMin, durationMinutes: thisDuration, topPx, heightPx: 24 }
+      };
+    }
+
+    // For regular events, find truly concurrent events
     const items = (allDayEvents || [])
-      .filter((ev) => ev && ev.startDate && ev.endDate)
+      .filter((ev) => ev && ev.startDate && ev.endDate && !isTask(ev))
       .map((ev) => {
         const s = ensureDate(ev.startDate);
         const e = ensureDate(ev.endDate);
@@ -273,56 +334,75 @@ export default function DailyView({
         const duration = Math.max(1, endMinutes - startMinutes);
         return { ev, startMinutes, endMinutes, duration };
       })
-      .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes);
+      .sort((a, b) => a.startMinutes - b.startMinutes || b.duration - a.duration);
 
+    // Build columns for truly overlapping events
     const columns: Array<Array<any>> = [];
-    const columnsIndexMap: number[] = [];
-    items.forEach((it, idx) => {
+    items.forEach((it) => {
       let placed = false;
       for (let ci = 0; ci < columns.length; ci++) {
         const col = columns[ci];
         const last = col[col.length - 1];
         if (it.startMinutes >= last.endMinutes) {
           col.push(it);
-          columnsIndexMap[idx] = ci;
           placed = true;
           break;
         }
       }
       if (!placed) {
-        columnsIndexMap[idx] = columns.length;
         columns.push([it]);
       }
     });
 
-    const totalCols = Math.max(1, columns.length);
-
-    const thisStart = ensureDate(event.startDate);
-    const thisEnd = ensureDate(event.endDate);
-    const thisStartMin = thisStart.getHours() * 60 + thisStart.getMinutes();
-    const thisEndMin = thisEnd.getHours() * 60 + thisEnd.getMinutes();
-    const thisDuration = Math.max(1, thisEndMin - thisStartMin);
-
+    // Find which column this event belongs to
     let colIndex = 0;
     for (let ci = 0; ci < columns.length; ci++) {
-      if (columns[ci].some((it) => it.ev.id === event.id)) {
+      const idx = columns[ci].findIndex((it) => it.ev.id === event.id);
+      if (idx !== -1) {
         colIndex = ci;
         break;
       }
     }
 
-    const widthPercent = 100 / totalCols;
-    const leftPercent = colIndex * widthPercent;
+    // The actual number of columns is the columns array length
+    const totalCols = Math.min(2, columns.length); // Max 2 columns
+    const actualColIndex = Math.min(colIndex, totalCols - 1);
 
-    const rawTop = (thisStartMin / 60) * ROW_PX_PER_HOUR;
-    const rawHeight = (thisDuration / 60) * ROW_PX_PER_HOUR;
-    const topPx = Math.max(0, Math.floor(rawTop));
-    const heightPx = Math.max(20, Math.ceil(rawHeight) + 1);
+    if (totalCols === 1) {
+      return {
+        height: `${heightPx}px`,
+        top: `${topPx}px`,
+        zIndex: 1,
+        left: '0%',
+        maxWidth: '98%',
+        minWidth: '98%',
+        _debug: { startMinutes: thisStartMin, endMinutes: thisEndMin, durationMinutes: thisDuration, topPx, heightPx }
+      };
+    }
 
+    // For 2 overlapping events - clean side-by-side
+    if (totalCols === 2) {
+      const width = '48.5%';
+      const leftPos = actualColIndex === 0 ? '0%' : '49.5%';
+      return {
+        height: `${heightPx}px`,
+        top: `${topPx}px`,
+        zIndex: actualColIndex + 1,
+        left: leftPos,
+        maxWidth: width,
+        minWidth: width,
+        _debug: { startMinutes: thisStartMin, endMinutes: thisEndMin, durationMinutes: thisDuration, topPx, heightPx }
+      };
+    }
+
+    // Fallback for 3+ overlaps
+    const widthPercent = Math.max(48, (98 / totalCols) - 1);
+    const leftPercent = actualColIndex * (98 / totalCols);
+    
     return {
       height: `${heightPx}px`,
       top: `${topPx}px`,
-      zIndex: colIndex + 1,
+      zIndex: actualColIndex + 1,
       left: `${leftPercent}%`,
       maxWidth: `${widthPercent}%`,
       minWidth: `${widthPercent}%`,
@@ -340,6 +420,7 @@ export default function DailyView({
           CustomAddEventModal={
             CustomEventModal?.CustomAddEventModal?.CustomForm
           }
+          isSchedulePage={isSchedulePage}
         />
       </CustomModal>,
       async () => {
@@ -519,22 +600,25 @@ export default function DailyView({
                         zIndex,
                       } = computeMinaStyle(event, dayEvents);
                       
+                      const eventStyle = computeMinaStyle(event, dayEvents);
+                      
                       return (
                         <div
                           key={event.id}
                           style={{
                             display: 'block',
-                            minHeight: height,
-                            height: height,
-                            top: top,
-                            left: left,
-                            maxWidth: maxWidth,
-                            minWidth: minWidth,
+                            minHeight: eventStyle.height,
+                            height: eventStyle.height,
+                            top: eventStyle.top,
+                            left: eventStyle.left,
+                            maxWidth: eventStyle.maxWidth,
+                            minWidth: eventStyle.minWidth,
                             padding: "0 2px",
                             boxSizing: "border-box",
                             overflow: 'visible',
+                            zIndex: eventStyle.zIndex,
                           }}
-                          className="absolute z-50 pointer-events-auto"
+                          className="absolute pointer-events-auto"
                         >
                           {/** Memoize event props to avoid recreating object each render **/}
                           <EventWrapper
@@ -548,6 +632,19 @@ export default function DailyView({
                   : ""}
               </div>
             </div>
+
+            {/* Current Time Indicator - Live */}
+            {isToday && (
+              <div
+                className="absolute left-[60px] w-[calc(100%-60px)] h-[2px] bg-red-500 dark:bg-red-400 pointer-events-none z-50 transition-all duration-1000"
+                style={{ top: `${currentTimePosition + 80}px` }}
+              >
+                <div className="absolute left-0 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-red-500 dark:bg-red-400 rounded-full shadow-lg" />
+                <div className="absolute -translate-y-1/2 bg-white dark:bg-slate-800 border-2 border-red-400 dark:border-red-500 text-red-600 dark:text-red-400 font-semibold z-50 left-[-55px] text-xs shadow-md px-2 py-0.5 rounded">
+                  {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </div>
+              </div>
+            )}
 
             {/* Hover timeline - updated to use DOM writes so we avoid re-rendering */}
             <div

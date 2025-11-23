@@ -375,64 +375,69 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
             width: '100%',
             height: '100%',
             backgroundColor: colors.bg,
-            borderRadius: '6px',
-            borderLeft: `4px solid ${colors.border}`,
-            borderTop: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(203, 213, 225, 0.5)'}`,
-            borderRight: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(203, 213, 225, 0.5)'}`,
-            borderBottom: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.3)' : 'rgba(203, 213, 225, 0.5)'}`,
-            padding: (event as any)?.minmized ? '8px 10px' : '10px 12px',
+            borderRadius: '8px',
+            borderLeft: `3px solid ${colors.border}`,
+            borderTop: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.2)' : 'rgba(203, 213, 225, 0.4)'}`,
+            borderRight: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.2)' : 'rgba(203, 213, 225, 0.4)'}`,
+            borderBottom: `1px solid ${isDark ? 'rgba(71, 85, 105, 0.2)' : 'rgba(203, 213, 225, 0.4)'}`,
+            padding: (event as any)?.minmized ? '6px 8px' : '10px 12px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            gap: '3px',
             minHeight: 0,
-            transition: 'transform 150ms linear, opacity 150ms linear',
-            boxShadow: 'none',
+            transition: 'all 200ms ease-in-out',
+            boxShadow: isDark ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
           }}
         >
           <div style={{
             fontWeight: 600,
-            fontSize: '13px',
+            fontSize: (event as any)?.minmized ? '11.5px' : '12.5px',
             lineHeight: '1.3',
             color: colors.text,
-            marginBottom: '2px',
+            marginBottom: '1px',
             overflow: 'hidden',
+            textOverflow: 'ellipsis',
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: (event as any)?.minmized ? 1 : 2,
             WebkitBoxOrient: 'vertical',
             wordBreak: 'break-word',
+            whiteSpace: 'normal',
           }}>
             {event?.title || 'Untitled Event'}
+          </div>
+          <div style={{
+            fontSize: '10px',
+            fontWeight: 500,
+            color: isDark ? '#94a3b8' : '#64748b',
+            marginBottom: (event as any)?.meta?.schedulePattern ? '3px' : '0',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {formatTime(event?.startDate)}
           </div>
           {(event as any)?.meta?.schedulePattern && (
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '3px',
-              padding: '2px 6px',
-              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.15)',
-              border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.25)'}`,
-              borderRadius: '4px',
-              fontSize: '9px',
+              padding: '1px 5px',
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)',
+              border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.2)'}`,
+              borderRadius: '3px',
+              fontSize: '8.5px',
               fontWeight: 700,
               color: isDark ? '#a5b4fc' : '#6366f1',
               textTransform: 'uppercase',
               letterSpacing: '0.3px',
-              marginBottom: '2px',
               width: 'fit-content',
             }}>
-              <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
               Smart
             </div>
           )}
-          <div style={{
-            fontSize: '11px',
-            fontWeight: 500,
-            color: isDark ? '#94a3b8' : '#64748b',
-          }}>
-            {formatTime(event?.startDate)}
-          </div>
 
           {!((event as any)?.minmized) && event?.description && (
             <div style={{

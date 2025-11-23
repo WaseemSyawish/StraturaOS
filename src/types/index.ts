@@ -7,6 +7,18 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 
 // SchedulerTypes.ts
 
+const PRIORITY_VALUES = [
+  "low",
+  "medium",
+  "high",
+  "urgent-important",
+  "not-urgent-important",
+  "urgent-not-important",
+  "not-urgent-not-important",
+] as const;
+
+export type PriorityValue = (typeof PRIORITY_VALUES)[number];
+
 export interface Event {
   id: string;
   title: string;
@@ -42,7 +54,7 @@ export interface Event {
   // Derived quadrants: Q1 (urgent+important), Q2 (important only), Q3 (urgent only), Q4 (neither)
   
   // Legacy priority (deprecated in favor of Eisenhower Matrix)
-  priority?: 'low' | 'medium' | 'high';
+  priority?: PriorityValue;
   
   // Recurring event fields
   template_id?: string | null;
@@ -158,11 +170,13 @@ export const eventSchema = z.object({
   location: z.string().optional(),
   startDate: z.date().optional(), // Optional for tasks in inbox
   endDate: z.date().optional(),   // Optional for tasks in inbox
+  startTime: z.string().optional(), // For schedule page simplified view
+  endTime: z.string().optional(),   // For schedule page simplified view
   variant: z.enum(["primary", "danger", "success", "warning", "default"]),
   color: z.string().nonempty("Color selection is required"),
   type: z.string().optional(),
   reminders: z.array(z.string()).optional(), // ['1week', '2days', '1day', '1hour', 'morning']
-  priority: z.enum(["low", "medium", "high"]).optional(), // Priority level
+  priority: z.enum(PRIORITY_VALUES).optional(), // Priority level
 });
 
 export type EventFormData = z.infer<typeof eventSchema>;

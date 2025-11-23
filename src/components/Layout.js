@@ -1,6 +1,6 @@
 // src/components/Layout.js
 import React, { useState, useEffect } from 'react';
-import Sidebar from './Sidebar';
+import HygraphSidebar from './HygraphSidebar';
 import { useRouter } from 'next/router';
 
 // Simple error boundary to catch render errors in pages during client navigation.
@@ -36,16 +36,6 @@ class ErrorBoundary extends React.Component {
 }
 
 const Layout = ({ children }) => {
-  // start collapsed by default to give the main content more horizontal space
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
-  
-  // Handle hydration to prevent layout shift
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Call hooks unconditionally at top-level
   const router = useRouter();
 
   // Developer logging: track route change events so we can verify navigation
@@ -121,48 +111,23 @@ const Layout = ({ children }) => {
     };
   }, []);
 
-  // Prevent rendering until mounted to avoid hydration mismatch
-  if (!isMounted) {
+  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout'];
+  const isPublic = publicPaths.includes(router.pathname);
+
+  // Public pages don't need sidebar
+  if (isPublic) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="flex items-center justify-center h-screen">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="min-h-screen">
+        <ErrorBoundary>{children}</ErrorBoundary>
       </div>
     );
   }
-  
-  const publicPaths = ['/', '/landing', '/signin', '/signup', '/signout'];
-  const noSidebarPaths = ['/docs', '/reset-password'];
-  const isPublic = publicPaths.includes(router.pathname);
-  const hideSidebar = isPublic || noSidebarPaths.includes(router.pathname);
 
-  // Sidebar rendered in-flow so it naturally takes up space and the main content
-  // sits beside it; this avoids the large empty left gutter and preserves
-  // the expected application layout for users.
+  // All protected pages already have HygraphSidebar wrapped individually,
+  // so Layout.js just provides ErrorBoundary wrapper
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="flex">
-        {/* Sidebar - keep it in the flow so it contributes to layout width */}
-        {!hideSidebar && (
-          <div className="flex-shrink-0">
-            <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-          </div>
-        )}
-
-        {/* Main Content */}
-        <main className="flex-1 min-h-screen">
-          {/* Use router.asPath as a key so client-side route changes reliably remount
-              the page content. Some users observed the URL updating while the
-              previous page content (Overview) remained visible — forcing a
-              remount fixes that symptom by ensuring React replaces the tree.
-              This is a lightweight, low-risk remediation while we investigate
-              the root cause further. */}
-          <div key={router.asPath} className={`flex-1 flex flex-col overflow-hidden`}>
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </div>
-        </main>
-      </div>
+    <div className="min-h-screen">
+      <ErrorBoundary>{children}</ErrorBoundary>
     </div>
   );
 };

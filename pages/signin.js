@@ -301,20 +301,16 @@ export default function SignInPolished() {
 
               {/* Forgot Password Link */}
               <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowResetModal(true)}
+                <a
+                  href="/forgot-password"
                   className="text-sm font-medium transition-colors"
                   style={{
                     color: '#7c3aed',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0'
+                    textDecoration: 'none'
                   }}
                 >
                   Forgot password?
-                </button>
+                </a>
               </div>
 
               {/* Show success banner when redirected from signup */}

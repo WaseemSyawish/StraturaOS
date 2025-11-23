@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import HygraphSidebar from '@/components/HygraphSidebar';
 // CustomDropdown: dark-mode friendly select replacement
 function CustomDropdown({ value, options, onChange, label }) {
   const selected = options.find((opt) => opt.value === value);
@@ -362,14 +363,15 @@ export default function Settings() {
 
   const sections = [
     { id: 'appearance', label: 'Appearance', icon: Palette },
-    { id: 'timetable', label: 'Timetable', icon: Calendar },
+    { id: 'timetable', label: 'Schedule', icon: Calendar },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'preferences', label: 'Preferences', icon: SettingsIcon },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-6">
+    <HygraphSidebar>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-6">
       <Head>
         <title>Settings — University Planner</title>
       </Head>
@@ -479,15 +481,15 @@ export default function Settings() {
               </Card>
             )}
 
-            {/* Timetable Section (formerly Calendar) */}
+            {/* Schedule Section (formerly Calendar) */}
             {activeSection === 'timetable' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
-                    Timetable Settings
+                    Schedule Settings
                   </CardTitle>
-                  <CardDescription>Configure your timetable defaults and how views behave</CardDescription>
+                  <CardDescription>Configure your schedule defaults and how views behave</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
@@ -901,5 +903,6 @@ export default function Settings() {
         )}
       </div>
     </div>
+    </HygraphSidebar>
   );
 }

@@ -5,6 +5,7 @@ import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 import { toYMDLocal } from '@/lib/dateHelpers';
+import HygraphSidebar from '@/components/HygraphSidebar';
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -282,28 +283,13 @@ export default function CalendarPage() {
   }, [currentDate]);
 
   return (
-    <>
+    <HygraphSidebar>
+      <>
       <Head>
         <title>Calendar — University Planner</title>
       </Head>
       <div className="calendar-page min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <header className="border-b border-purple-100/50 bg-gradient-to-b from-white to-purple-50/30 sticky top-0 z-40 backdrop-blur-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-900/80">
-  <div className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto px-6 ${HEADER_HEIGHT_TAILWIND} flex items-center justify-between`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl flex items-center justify-center shadow-sm dark:from-purple-500/20 dark:to-purple-600/20">
-              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" strokeWidth={2.5} />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Calendar</h1>
-          </div>
-
-          <button onClick={() => openModal('create')} className="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-2xl font-medium text-sm transition-all duration-200 flex items-center gap-2 shadow-md shadow-purple-500/25 hover:shadow-lg hover:shadow-purple-500/30">
-            <Plus className="w-4 h-4" strokeWidth={3} />
-            <span>New Event</span>
-          </button>
-        </div>
-      </header>
-
-      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-4 h-[calc(100vh-4rem)]`}>
+      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-4`}>
         <div className="flex gap-6 h-full">
           <div className="flex-1 flex flex-col h-full">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col h-full dark:bg-slate-900/80 dark:border-slate-800">
@@ -492,6 +478,7 @@ export default function CalendarPage() {
       </main>
       
     </div>
-    </>
+      </>
+    </HygraphSidebar>
   );
 }

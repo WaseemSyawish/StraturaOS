@@ -28,7 +28,7 @@ const pageTransitionVariants = {
   exit: (direction: number) => ({
     opacity: 0,
     transition: {
-      opacity: { duration: 0.2, ease: "easeInOut" },
+      opacity: { duration: 0.2 },
     },
   }),
 };
@@ -39,12 +39,14 @@ export default function MonthView({
   CustomEventComponent,
   CustomEventModal,
   classNames,
+  isSchedulePage,
 }: {
   prevButton?: React.ReactNode;
   nextButton?: React.ReactNode;
   CustomEventComponent?: React.FC<Event>;
   CustomEventModal?: CustomEventModal;
   classNames?: { prev?: string; next?: string; addEvent?: string };
+  isSchedulePage?: boolean;
 }) {
   const { getters, weekStartsOn } = useScheduler();
   const { setOpen } = useModal();
@@ -102,6 +104,7 @@ export default function MonthView({
           CustomAddEventModal={
             CustomEventModal?.CustomAddEventModal?.CustomForm
           }
+          isSchedulePage={isSchedulePage}
         />
       </CustomModal>,
       async () => {

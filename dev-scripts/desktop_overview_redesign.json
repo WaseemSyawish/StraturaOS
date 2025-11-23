@@ -1,0 +1,208 @@
+{
+  "context": {
+    "platform": "Desktop Web Application (Primary Focus)",
+    "target_users": "University students using laptops/desktop computers for academic planning",
+    "research_basis": "210+ sources analyzing student productivity app preferences, pain points, and UI/UX requirements",
+    "core_principle": "Unified information architecture - Overview as command center eliminating need for excessive page navigation"
+  },
+  "overview_page_restructure": {
+    "header_section": {
+      "current": "Good afternoon greeting + date + utilities",
+      "changes": {
+        "add_quick_stats": "Inline stats showing urgent items (3 tasks today, 2 classes in 30min)",
+        "keep_utilities": "History, Settings, Logout buttons remain top-right",
+        "maintain_personalization": "Greeting with student name stays prominent"
+      }
+    },
+    "stats_cards_section": {
+      "current_problem": "Three static cards (GPA empty, Credits 60, Attendance empty) wasting prime real estate",
+      "solution_option_a": "Consolidate into one Academic Progress card with GPA, Credits progress bar, Attendance with target",
+      "solution_option_b_recommended": "Replace with dynamic alerts that are actionable",
+      "implementation": {
+        "when_empty": "Show actionable prompt to add courses and grades",
+        "when_populated": "Show insights like grade needed for target GPA",
+        "rationale": "Students need actionable insights not empty placeholders"
+      }
+    },
+    "todays_classes_section": {
+      "current_strengths": [
+        "Visually prominent blue background",
+        "Shows class list with times",
+        "Course codes visible"
+      ],
+      "required_enhancements": {
+        "add_location_clickable": "Building/room info that students can click for directions",
+        "add_time_until_countdown": "Starts in 30min badge for next class",
+        "add_instructor_info": "Instructor name visible inline",
+        "add_related_assignments": "Show assignments due this week badge on relevant classes",
+        "add_quick_actions": "Inline buttons for View materials Mark attended Get directions",
+        "add_next_day_preview": "Tomorrow first class preview at bottom",
+        "add_status_indicators": "Upcoming In-Progress Completed states with color coding"
+      },
+      "desktop_specific": {
+        "hover_states": "Show quick actions on hover over class items",
+        "expandable_details": "Click class to expand inline details without modal",
+        "keyboard_shortcuts": "Arrow keys to navigate Enter to expand M for materials"
+      }
+    },
+    "upcoming_deadlines_section": {
+      "current_problem": "Shows only empty state with generic Create Event button - passive not proactive",
+      "complete_restructure": {
+        "when_empty": {
+          "success_message": "All caught up celebration with illustration",
+          "proactive_suggestions": [
+            "Review upcoming week schedule",
+            "Update grades from recent assignments",
+            "Plan study sessions for exams"
+          ],
+          "cta_button": "Create Event remains but with context"
+        },
+        "when_populated": {
+          "urgency_grouping": {
+            "overdue_critical": "Red section top priority warning icon",
+            "due_today_urgent": "Orange section Due Today with count",
+            "due_this_week_soon": "Yellow section Due This Week grouped",
+            "upcoming_normal": "Blue section next 5 items shown"
+          },
+          "deadline_item_structure": {
+            "checkbox": "Large color-coded by urgency",
+            "task_title": "Bold scannable",
+            "course_tag": "Color-coded pill matching course color",
+            "due_date": "Formatted with urgency text in 2 days Today OVERDUE",
+            "priority_badge": "Visual P1-P4 or High Med Low indicator",
+            "quick_actions_desktop": "Edit Reschedule Delete icons visible on hover"
+          }
+        },
+        "view_toggles": "Next 7 days default This month All - tabs at section header",
+        "desktop_interactions": {
+          "click_checkbox": "Immediately complete with subtle animation",
+          "click_title": "Edit inline without modal",
+          "drag_to_reschedule": "Drag deadline to different date updates due date",
+          "right_click_context_menu": "Quick actions menu"
+        }
+      }
+    },
+    "right_sidebar_section": {
+      "current_problem": "Static mini calendar unchanging stats basic module list",
+      "complete_restructure": {
+        "week_navigator": {
+          "layout": "Horizontal 7-day strip showing Sun-Sat",
+          "day_buttons": "Show day name date number event indicator dots",
+          "click_behavior": "Clicking day filters main content to show that day details",
+          "current_day_highlight": "Bold border background fill for today"
+        },
+        "dynamic_stats": {
+          "classes_this_week": "6 total with breakdown 4 attended 2 upcoming",
+          "assignments_due": "Show count with urgency 2 today 1 tomorrow or All caught up",
+          "study_hours_logged": "Progress bar toward weekly goal 8h of 20h"
+        },
+        "active_modules_enhanced": {
+          "keep_color_coding": "Left border colored per course",
+          "add_smart_badges": [
+            "2 due soon warning badge",
+            "Exam in 5 days critical badge",
+            "Grade 85% info badge"
+          ],
+          "click_behavior": "Navigate to course detail page",
+          "hover_state": "Lift shadow chevron appears"
+        },
+        "quick_actions_section_new": {
+          "action_grid": "2x2 grid of quick action buttons",
+          "actions": [
+            "Add Task plus icon",
+            "Add Class calendar icon",
+            "Start Focus timer icon",
+            "View Stats chart icon"
+          ],
+          "desktop_benefit": "Always visible sidebar means no FAB needed"
+        }
+      }
+    }
+  },
+  "desktop_specific_design_patterns": {
+    "layout_grid": {
+      "structure": "Two-column layout Main content 70% plus Sidebar 30%",
+      "main_content_sections": [
+        "Todays Classes top full width",
+        "Upcoming Deadlines below full width"
+      ],
+      "sidebar_sections": [
+        "Week Navigator top",
+        "Dynamic Stats middle",
+        "Active Modules scrollable",
+        "Quick Actions bottom sticky"
+      ],
+      "spacing": "Generous padding 24px between sections white space for breathing room"
+    },
+    "mouse_interactions": {
+      "hover_states": "Subtle background lift 2px translate-y shadow increase action buttons appear",
+      "click_states": "Brief scale animation 0.98 ripple effect from click point",
+      "drag_and_drop": "Visual placeholder shows where item will land smooth snap-to-grid",
+      "context_menus": "Right-click shows contextual actions keyboard accessible"
+    },
+    "keyboard_navigation": {
+      "global_shortcuts": {
+        "cmd_k": "Open quick add command palette",
+        "cmd_slash": "Open search command center",
+        "cmd_1_to_5": "Navigate between main pages Overview Schedule Tasks Courses Analytics",
+        "cmd_n": "New task quick add",
+        "cmd_d": "Toggle dark mode"
+      },
+      "list_navigation": {
+        "arrow_keys": "Navigate through tasks and classes",
+        "enter": "Edit selected item",
+        "space": "Complete check selected task",
+        "delete": "Delete selected item with confirmation"
+      },
+      "focus_indicators": "2px solid blue outline never hide focus rings"
+    },
+    "desktop_viewport_optimization": {
+      "min_width": "1280px recommended 1024px minimum",
+      "max_width": "1920px with centered content container",
+      "sidebar_behavior": "Always visible on desktop no collapse",
+      "responsive_scaling": "Use CSS clamp for fluid typography between viewports"
+    }
+  },
+  "color_and_visual_system": {
+    "urgency_based_colors": {
+      "critical_red": "#DC2626 Overdue items critical alerts",
+      "urgent_orange": "#EA580C Due today needs immediate attention",
+      "soon_yellow": "#CA8A04 Due this week plan ahead",
+      "normal_blue": "#2563EB Upcoming standard priority",
+      "success_green": "#059669 Completed on track"
+    },
+    "course_colors": {
+      "customizable_per_course": "Students assign colors during course setup",
+      "default_palette": [
+        "#7C3AED purple",
+        "#2563EB blue",
+        "#059669 green",
+        "#DC2626 red",
+        "#EA580C orange",
+        "#CA8A04 yellow"
+      ],
+      "usage": "Course tags left borders event dots calendar color blocks"
+    },
+    "ui_system_colors": {
+      "backgrounds": "#FFFFFF base #F9FAFB secondary #F3F4F6 tertiary",
+      "text": "#111827 primary #4B5563 secondary #9CA3AF tertiary",
+      "borders": "#E5E7EB standard #D1D5DB darker",
+      "shadows": "Subtle layering with rgba shadows"
+    },
+    "dark_mode_support": {
+      "backgrounds": "#111827 base #1F2937 secondary #374151 tertiary",
+      "text": "#F9FAFB primary #D1D5DB secondary #9CA3AF tertiary",
+      "maintain_contrast": "Minimum 4.5 to 1 for WCAG AA compliance"
+    }
+  },
+  "critical_design_principles": {
+    "principle_1": "Every element must answer What can I do with this right now - No decorative components",
+    "principle_2": "Prioritize by urgency always Overdue then Due Today then Due This Week then Upcoming",
+    "principle_3": "Reduce navigation Show enough context on Overview to avoid page-switching",
+    "principle_4": "Visual hierarchy guides attention Size color position direct eyes to urgent items",
+    "principle_5": "Desktop advantages Use hover states keyboard shortcuts larger viewport for information density",
+    "principle_6": "Course color-coding consistency Same colors across all components",
+    "principle_7": "Empty states guide action Never just say empty always suggest next step",
+    "principle_8": "Performance is UX Sub-100ms interactions no janky animations instant feedback"
+  }
+}

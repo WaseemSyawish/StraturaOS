@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -919,9 +919,9 @@ export default function UniversityOverview() {
         {/* Attendance diagnostic (only visible when there's an issue) */}
     {/* Removed user-facing attendance hint: show neutral stat ('—') until data exists. Dev-only debug block still present below. */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* LEFT COLUMN: Today's Schedule + Tasks */}
+          <div className="space-y-6">
             {/* Today's Classes */}
             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-purple-100/50 dark:border-purple-900/30 shadow-xl overflow-hidden">
               <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-6">
@@ -1187,9 +1187,77 @@ export default function UniversityOverview() {
                 )}
               </div>
             </div>
+
+            {/* Tasks Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300">
+              <div className="bg-purple-600 px-6 py-5 rounded-t-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ListTodo className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    <h2 className="text-xl font-bold text-white">Tasks</h2>
+                  </div>
+                  <span className="text-sm font-bold text-white bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                    {upcomingDeadlines.length} pending
+                  </span>
+                </div>
+              </div>
+              
+              <div className="p-6 max-h-96 overflow-y-auto">
+                {upcomingDeadlines.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-8 h-8 text-purple-600 dark:text-purple-400" strokeWidth={2} />
+                    </div>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">All caught up!</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">No pending tasks at the moment</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {upcomingDeadlines.slice(0, 5).map((deadline, index) => {
+                      const course = courses.find(c => c.id === deadline.course_id);
+                      const daysUntil = Math.ceil((new Date(deadline.startDate) - currentDate) / (1000 * 60 * 60 * 24));
+                      const isUrgent = daysUntil <= 2;
+
+                      return (
+                        <div
+                          key={deadline.id}
+                          className="group flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={() => toggleCompleted(deadline.id, true)}
+                            className="w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                              {deadline.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {course && (
+                                <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                                  {course.code}
+                                </span>
+                              )}
+                              <span className={`text-xs font-medium ${
+                                isUrgent 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : 'text-slate-500 dark:text-slate-400'
+                              }`}>
+                                {daysUntil === 0 ? 'Due today' : daysUntil === 1 ? 'Due tomorrow' : `${daysUntil} days left`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Sidebar */}
+          {/* RIGHT COLUMN: This Week */}
           <div className="space-y-6">
             {/* This Week */}
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 transition-shadow duration-300 hover:shadow-lg">
@@ -1234,42 +1302,6 @@ export default function UniversityOverview() {
                   <span className="text-sm text-slate-700 dark:text-slate-300">Study hours</span>
                   <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">{studyHoursLogged}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Active Modules */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 transition-shadow duration-300 hover:shadow-lg">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-4.5 h-4.5 text-blue-700 dark:text-blue-400" strokeWidth={2} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Active Modules</h3>
-              </div>
-              
-              <div className="space-y-2.5">
-                {courses.map((course) => {
-                  const colors = [
-                    { dot: 'bg-blue-500', hover: 'hover:bg-blue-50 dark:hover:bg-blue-900/20' },
-                    { dot: 'bg-emerald-500', hover: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' },
-                    { dot: 'bg-violet-500', hover: 'hover:bg-violet-50 dark:hover:bg-violet-900/20' }
-                  ];
-                  const color = colors[courses.indexOf(course) % colors.length];
-                  
-                  return (
-                    <Link href="/modules" key={course.id} prefetch={true}>
-                      <div className={`group flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${color.hover} border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 cursor-pointer hover:shadow-md hover:-translate-y-0.5`}>
-                        <div className={`w-2 h-2 rounded-full ${color.dot}`}></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{course.code}</p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{course.name}</p>
-                        </div>
-                        <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </Link>
-                  );
-                })}
               </div>
             </div>
           </div>

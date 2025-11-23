@@ -11,16 +11,19 @@ datasource db {
 model User {
   id                  String              @id @default(uuid())
   email               String              @unique
-  // JSON blob for user preferences (theme, weekStartsOn, defaultView, etc.)
   settings            Json?
   password_hash       String?
   name                String?
+  password_reset_token String?
+  password_reset_expires DateTime?
   created_at          DateTime?           @default(now())
   updated_at          DateTime?           @default(now())
+  archived_events     ArchivedEvent[]
   attendance_sessions AttendanceSession[]
   courses             Course[]
   events              Event[]
-  archived_events     ArchivedEvent[]
+  focus_sessions      FocusSession[]
+  focus_settings      FocusSettings?
   semester_settings   SemesterSetting[]
 
   @@map("users")
@@ -29,7 +32,7 @@ model User {
 model SemesterSetting {
   id         String    @id @default(uuid())
   user_id    String
-  name       String    // e.g., "2025/2026 - Semester 1"
+  name       String
   start_date DateTime
   end_date   DateTime
   is_active  Boolean   @default(false)
@@ -50,19 +53,18 @@ model Course {
   semester            String?
   instructor          String?
   description         String?
-  // Academic resource links
-  office_hours        String?             // e.g., "Mon/Wed 2-4pm, Room 305"
-  zoom_link           String?             // Online meeting link
-  course_website      String?             // LMS or course website URL
   user_id             String
   created_at          DateTime?           @default(now())
   updated_at          DateTime?           @default(now())
-  attendance_sessions AttendanceSession[]
-  users               User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  events              Event[]
+  course_website      String?
+  office_hours        String?
+  zoom_link           String?
   archived_events     ArchivedEvent[]
   assessments         Assessment[]
+  attendance_sessions AttendanceSession[]
   resources           CourseResource[]
+  users               User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events              Event[]
 
   @@map("courses")
 }
@@ -72,14 +74,12 @@ model Assessment {
   name       String
   type       String    @default("assignment")
   weight     Float?
-  // JSON array of assessment items: [{ id, name, score, maxScore }]
   items      Json?     @default("[]")
   course_id  String
   user_id    String
   created_at DateTime? @default(now())
   updated_at DateTime? @default(now())
-
-  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course     Course    @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([course_id], map: "idx_assessment_course")
   @@index([user_id], map: "idx_assessment_user")
@@ -104,42 +104,29 @@ model AttendanceSession {
   @@map("attendance_sessions")
 }
 
-enum attendance_status {
-  PRESENT
-  ABSENT
-  HOLIDAY
-  EXCUSED
-  LATE
-}
-
 model Event {
-  id          String    @id @default(uuid())
-  title       String
-  type        String    @default("assignment")
-  // human-friendly location/room text (kept separate from description)
-  location    String?
-  archived    Boolean   @default(false)
-  course_id   String?
-  template_id String?
-  date        DateTime? // Made optional to support undated tasks in inbox
-  time        String?
-  end_date    DateTime?
-  description String?
-  // optional JSON blob for UI metadata (color/variant/durationMinutes etc.)
-  meta        Json?
-  completed   Boolean   @default(false)
-  // Array of reminder times ('1week', '2days', '1day', '1hour', 'morning')
-  reminders   String[]  @default([])
-  // Array tracking which reminders have been shown to avoid duplicates
-  remindersFired String[] @default([])
-  user_id     String
-  created_at  DateTime? @default(now())
-  updated_at  DateTime? @default(now())
-
-  courses Course? @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  eventTemplate EventTemplate? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users   User    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  attachments Attachment[]
+  id             String         @id @default(uuid())
+  title          String
+  type           String         @default("assignment")
+  archived       Boolean        @default(false)
+  course_id      String?
+  date           DateTime
+  time           String?
+  description    String?
+  completed      Boolean        @default(false)
+  user_id        String
+  created_at     DateTime?      @default(now())
+  updated_at     DateTime?      @default(now())
+  meta           Json?
+  end_date       DateTime?
+  template_id    String?
+  location       String?
+  reminders      String[]       @default([])
+  remindersFired String[]       @default([])
+  attachments    Attachment[]
+  courses        Course?        @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  eventTemplate  EventTemplate? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          User           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([date], map: "idx_events_date")
   @@index([user_id], map: "idx_events_user")
@@ -147,21 +134,16 @@ model Event {
 }
 
 model EventTemplate {
-  id          String    @id @default(uuid())
-  title       String
-  course_id   String?
+  id            String    @id @default(uuid())
+  title         String
+  course_id     String?
   repeat_option String?
-  start_date  DateTime?
-  // payload is a JSON blob storing timetable template details such as
-  // an array of module definitions (room, time, duration, periods, etc.)
-  // This allows a template to represent multiple modules without
-  // materializing them as Event rows until the user chooses to apply it.
-  payload     Json?
-  user_id     String
-  created_at  DateTime? @default(now())
-  updated_at  DateTime? @default(now())
-
-  events  Event[]
+  start_date    DateTime?
+  payload       Json?
+  user_id       String
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @default(now())
+  events        Event[]
 
   @@map("event_templates")
 }
@@ -173,20 +155,17 @@ model ArchivedEvent {
   type              String    @default("assignment")
   archived          Boolean   @default(true)
   course_id         String?
-  // preserved location/room when archiving
-  location          String?
   date              DateTime
   time              String?
   description       String?
-  // optional JSON blob for UI metadata (color/variant/durationMinutes etc.)
-  meta              Json?
   completed         Boolean   @default(false)
   user_id           String
   created_at        DateTime? @default(now())
   updated_at        DateTime? @default(now())
-
-  courses Course? @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users   User    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  location          String?
+  meta              Json?
+  courses           Course?   @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([date], map: "idx_archived_events_date")
   @@index([user_id], map: "idx_archived_events_user")
@@ -194,33 +173,83 @@ model ArchivedEvent {
 }
 
 model Attachment {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   filename   String
   path       String
   mime       String?
   size       Int?
   event_id   String
   created_at DateTime? @default(now())
-
-  event Event @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  event      Event     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("attachments")
 }
 
 model CourseResource {
-  id          String    @id @default(uuid())
-  course_id   String
-  title       String
-  type        String    @default("link")  // 'link', 'file', 'note'
-  url         String?   // For links
-  content     String?   // For notes or file paths
-  category    String?   // 'syllabus', 'slides', 'readings', 'assignments', 'other'
-  order       Int?      @default(0)
-  created_at  DateTime? @default(now())
-  updated_at  DateTime? @default(now())
-
-  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String    @id @default(uuid())
+  course_id  String
+  title      String
+  type       String    @default("link")
+  url        String?
+  content    String?
+  category   String?
+  order      Int?      @default(0)
+  created_at DateTime? @default(now())
+  updated_at DateTime? @default(now())
+  course     Course    @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([course_id], map: "idx_course_resources_course")
   @@map("course_resources")
+}
+
+model FocusSession {
+  id           String    @id @default(uuid())
+  user_id      String
+  task_id      String?
+  session_type String    @default("focus")
+  duration     Int
+  started_at   DateTime
+  ended_at     DateTime?
+  completed    Boolean   @default(false)
+  notes        String?
+  created_at   DateTime? @default(now())
+  updated_at   DateTime? @default(now())
+  task_name    String?
+  interrupted  Boolean   @default(false)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_focus_sessions_user")
+  @@index([started_at], map: "idx_focus_sessions_date")
+  @@index([task_id], map: "idx_focus_sessions_task")
+  @@map("focus_sessions")
+}
+
+model FocusSettings {
+  id                        String    @id @default(uuid())
+  user_id                   String    @unique
+  focus_duration            Int       @default(1500)
+  short_break_duration      Int       @default(300)
+  long_break_duration       Int       @default(900)
+  sessions_until_long_break Int       @default(4)
+  sound_enabled             Boolean   @default(true)
+  sound_volume              Int       @default(50)
+  sound_type                String    @default("chime")
+  notifications_enabled     Boolean   @default(true)
+  auto_start_breaks         Boolean   @default(false)
+  auto_start_focus          Boolean   @default(false)
+  daily_goal_sessions       Int?      @default(8)
+  theme_preference          String    @default("system")
+  created_at                DateTime? @default(now())
+  updated_at                DateTime? @default(now())
+  user                      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("focus_settings")
+}
+
+enum attendance_status {
+  PRESENT
+  ABSENT
+  HOLIDAY
+  EXCUSED
+  LATE
 }

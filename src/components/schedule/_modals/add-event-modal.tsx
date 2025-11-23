@@ -120,11 +120,13 @@ export default function AddEventModal({
   mode,
   initialData,
   onSuccess,
+  isSchedulePage = false,
 }: {
   CustomAddEventModal?: React.FC<{ register: any; errors: any }>;
   mode?: 'task' | 'event' | 'edit';
   initialData?: any;
   onSuccess?: () => void;
+  isSchedulePage?: boolean;
 }) {
   const { setClose, data } = useModal();
   const [origin, setOrigin] = useState<string | undefined>(undefined);
@@ -1533,6 +1535,7 @@ export default function AddEventModal({
                   )}
 
                   {/* Reminders - Any.do Style */}
+                  {!isSchedulePage && (
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                       <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1540,7 +1543,7 @@ export default function AddEventModal({
                       </svg>
                       Reminders
                     </Label>
-                    
+
                     {/* Added reminders list */}
                     {selectedReminders.length > 0 && (
                       <div className="space-y-1">
@@ -1583,7 +1586,7 @@ export default function AddEventModal({
                           <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Next week']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Next week</button>
                           <button type="button" onClick={() => { setSelectedReminders([...selectedReminders, 'Someday']); setShowReminderPicker(false); }} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Someday</button>
                         </div>
-                        
+
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
                           <button type="button" onClick={() => { setCustomReminderDate(''); setCustomReminderTime(''); }} className="w-full text-left px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded flex items-center gap-2">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1628,6 +1631,37 @@ export default function AddEventModal({
                       </div>
                     )}
                   </div>
+                  )}
+
+                  {/* Start and End Time - Only shown for schedule page */}
+                  {isSchedulePage && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Time
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-600 dark:text-gray-400">Start Time</Label>
+                        <input
+                          type="time"
+                          {...register('startTime')}
+                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-gray-600 dark:text-gray-400">End Time</Label>
+                        <input
+                          type="time"
+                          {...register('endTime')}
+                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  )}
                 </div>
               )}
 

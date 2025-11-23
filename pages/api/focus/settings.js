@@ -9,6 +9,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Debug logging
+    console.log('[settings API] Prisma client:', prisma ? 'EXISTS' : 'UNDEFINED');
+    console.log('[settings API] Prisma.focusSettings:', prisma?.focusSettings ? 'EXISTS' : 'UNDEFINED');
+    
     if (req.method === 'GET') {
       console.log('[settings API] GET request for user:', userId);
       // Get user's focus settings

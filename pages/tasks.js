@@ -591,37 +591,6 @@ const TaskDetailPanel = ({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Close status dropdown
-      const statusDropdown = document.getElementById(`status-dropdown-${task?.id || 'new'}`);
-      const statusButton = event.target.closest('button');
-      if (statusDropdown && !statusDropdown.contains(event.target) && (!statusButton || !statusButton.textContent.includes(currentStatus.label))) {
-        statusDropdown.classList.add('hidden');
-      }
-      
-      // Close event type dropdown
-      const eventTypeDropdown = document.getElementById(`eventtype-dropdown-${task?.id || 'new'}`);
-      const eventTypeButton = event.target.closest('button');
-      if (eventTypeDropdown && !eventTypeDropdown.contains(event.target) && (!eventTypeButton || !eventTypeButton.textContent.toLowerCase().includes(localEventType))) {
-        eventTypeDropdown.classList.add('hidden');
-      }
-      
-      // Close priority dropdown
-      const priorityDropdown = document.getElementById(`priority-dropdown-${task?.id || 'new'}`);
-      if (priorityDropdown && !priorityDropdown.contains(event.target)) {
-        const clickedPriorityButton = event.target.closest('[id^="priority-button-"]');
-        if (!clickedPriorityButton) {
-          priorityDropdown.classList.add('hidden');
-        }
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [task?.id, currentStatus, localEventType]);
-
   useEffect(() => {
     if (isCreateMode) {
       if (initialDueDate) {

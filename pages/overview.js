@@ -1467,19 +1467,37 @@ export default function UniversityOverview() {
                       return (
                         <div 
                           key={deadline.id} 
-                          className={`group relative rounded-xl border border-gray-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-800/50 transition-all duration-200 hover:shadow-sm cursor-pointer ${isChecked ? 'opacity-50' : ''}`}
+                          className={`group relative rounded-xl border bg-white dark:bg-slate-800/50 transition-all duration-200 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-700 cursor-pointer ${
+                            isChecked 
+                              ? 'opacity-50 border-gray-200/60 dark:border-slate-700/60' 
+                              : 'border-gray-200 dark:border-slate-700 hover:-translate-y-0.5'
+                          }`}
                         >
                           <div className="p-4">
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3.5">
                               {/* Custom Checkbox */}
                               <div className="flex-shrink-0 pt-0.5">
                                 <button
                                   onClick={handleCheckTask}
-                                  className="relative w-5 h-5 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer transition-all hover:scale-105 flex items-center justify-center hover:border-blue-500 dark:hover:border-blue-400"
+                                  className="relative w-5 h-5 rounded-md border-2 cursor-pointer transition-all hover:scale-110 flex items-center justify-center shadow-sm"
                                   style={isChecked ? { 
                                     borderColor: courseColor,
                                     backgroundColor: courseColor
-                                  } : {}}
+                                  } : {
+                                    borderColor: '#cbd5e1'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isChecked) {
+                                      e.currentTarget.style.borderColor = courseColor;
+                                      e.currentTarget.style.backgroundColor = courseColor + '20';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isChecked) {
+                                      e.currentTarget.style.borderColor = '#cbd5e1';
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                    }
+                                  }}
                                 >
                                   {isChecked && (
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
@@ -1490,25 +1508,25 @@ export default function UniversityOverview() {
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 {/* Title */}
-                                <h4 className={`text-base font-semibold text-gray-900 dark:text-white mb-2 leading-snug ${isChecked ? 'line-through' : ''}`}>
+                                <h4 className={`text-[15px] font-semibold text-gray-900 dark:text-white mb-2.5 leading-snug ${isChecked ? 'line-through' : ''}`}>
                                   {deadline.title}
                                 </h4>
                                 
                                 {/* Meta info row */}
-                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
                                   {/* Course badge */}
                                   {course && (
                                     <span 
-                                      className="px-2 py-0.5 rounded text-xs font-medium text-white"
+                                      className="px-2.5 py-1 rounded-md text-xs font-semibold text-white shadow-sm"
                                       style={{ backgroundColor: courseColor }}
                                     >
                                       {course.code || course.name}
                                     </span>
                                   )}
                                   
-                                  {/* Priority dot */}
-                                  <span className={`flex items-center gap-1.5 text-xs font-medium ${priority.color.replace('bg-', 'text-').replace('/20', '').replace('/30', '')}`}>
-                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'currentColor' }}></span>
+                                  {/* Priority badge */}
+                                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${priority.color}`}>
+                                    <PriorityIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
                                     {priority.label}
                                   </span>
                                 </div>

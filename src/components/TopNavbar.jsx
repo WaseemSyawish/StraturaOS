@@ -7,6 +7,8 @@ export default function TopNavbar({ onToggleSidebar, userName, pageName, pageAct
   const router = useRouter();
   const { data: session } = useSession();
   const [notificationCount, setNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Fetch notification count on mount and periodically
   useEffect(() => {
@@ -25,28 +27,45 @@ export default function TopNavbar({ onToggleSidebar, userName, pageName, pageAct
         const assessmentsRes = await fetch('/api/assessments');
         const assessments = await assessmentsRes.json();
 
-        let count = 0;
+        const notificationsList = [];
 
-        // Count tasks with reminders in next 24 hours or overdue
+        // Add tasks with reminders in next 24 hours or overdue
         if (Array.isArray(tasks)) {
-          count += tasks.filter(task => {
-            if (!task.reminder) return false;
-            const reminderDate = new Date(task.reminder);
-            return reminderDate >= now && reminderDate <= next24Hours;
-          }).length;
+          tasks.filter(task => {
+            if (!task.reminder && !task.dueDate) return false;
+            const taskDate = new Date(task.reminder || task.dueDate);
+            return taskDate >= now && taskDate <= next24Hours;
+          }).forEach(task => {
+            notificationsList.push({
+              type: 'task',
+              title: task.title,
+              dueDate: task.reminder || task.dueDate,
+              priority: task.priority || 'not-urgent-not-important',
+              id: task.id
+            });
+          });
         }
 
-        // Count assessments due in next 7 days or overdue
+        // Add assessments due in next 7 days
         const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         if (Array.isArray(assessments)) {
-          count += assessments.filter(assessment => {
+          assessments.filter(assessment => {
             if (!assessment.dueDate) return false;
             const dueDate = new Date(assessment.dueDate);
             return dueDate >= now && dueDate <= next7Days;
-          }).length;
+          }).forEach(assessment => {
+            notificationsList.push({
+              type: 'assessment',
+              title: assessment.title || assessment.name,
+              dueDate: assessment.dueDate,
+              courseName: assessment.courseName,
+              id: assessment.id
+            });
+          });
         }
 
-        setNotificationCount(count);
+        setNotifications(notificationsList);
+        setNotificationCount(notificationsList.length);
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
       }
@@ -87,26 +106,115 @@ export default function TopNavbar({ onToggleSidebar, userName, pageName, pageAct
         )}
 
         {/* Notifications */}
-        <button
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all relative"
-          title="Notifications"
-        >
-          <Bell className="w-5 h-5" strokeWidth={2} />
-          {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900">
-              {notificationCount > 99 ? '99+' : notificationCount}
-            </span>
-          )}
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all relative"
+            title="Notifications"
+          >
+            <Bell className="w-5 h-5" strokeWidth={2} />
+            {notificationCount > 0 && (
+              <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900">
+                {notificationCount > 99 ? '99+' : notificationCount}
+              </span>
+            )}
+          </button>
 
-        {/* User Profile - Hidden for now (incomplete) */}
-        {/* <button
-          onClick={() => router.push('/profile')}
-          className="w-9 h-9 rounded-full bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm hover:bg-slate-800 dark:hover:bg-slate-500 transition-all border border-slate-600 dark:border-slate-500"
-          title={userName || 'Profile'}
+          {/* Notification Panel */}
+          {showNotifications && (
+            <div className="absolute right-0 top-full mt-2 w-96 max-h-[500px] overflow-y-auto bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50">
+              <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Notifications {notificationCount > 0 && `(${notificationCount})`}
+                </h3>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-2">
+                {notifications.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Bell className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">All caught up!</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No upcoming tasks or deadlines</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {notifications.map((notif, idx) => (
+                      <button
+                        key={`${notif.type}-${notif.id}-${idx}`}
+                        onClick={() => {
+                          setShowNotifications(false);
+                          router.push(notif.type === 'task' ? '/tasks' : '/grades');
+                        }}
+                        className="w-full text-left p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                            notif.type === 'task' 
+                              ? notif.priority === 'urgent-important' 
+                                ? 'bg-red-100 dark:bg-red-900/30' 
+                                : 'bg-purple-100 dark:bg-purple-900/30'
+                              : 'bg-blue-100 dark:bg-blue-900/30'
+                          }`}>
+                            {notif.type === 'task' ? (
+                              <svg className={`w-4 h-4 ${
+                                notif.priority === 'urgent-important' 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : 'text-purple-600 dark:text-purple-400'
+                              }`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                              {notif.title}
+                            </p>
+                            {notif.courseName && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {notif.courseName}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {new Date(notif.dueDate).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Profile - Keep avatar but make non-clickable */}
+        <div
+          className="w-9 h-9 rounded-full bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm border border-slate-600 dark:border-slate-500"
+          title={userName || 'User'}
         >
           {(userName || 'U').charAt(0).toUpperCase()}
-        </button> */}
+        </div>
 
         {/* Settings Button */}
         <button

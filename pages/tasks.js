@@ -1895,42 +1895,71 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
   );
 };
 
-const ReminderWidget = ({ reminder, className = '' }) => {
-  const router = typeof window !== 'undefined' ? require('next/router').default : null;
-  
-  if (!reminder) {
-    return null;
+const ReminderWidget = ({ tasks = [], className = '' }) => {
+  // Filter tasks that have reminders set and are upcoming
+  const tasksWithReminders = tasks
+    .filter(task => task.reminder && !task.completed)
+    .sort((a, b) => new Date(a.reminder) - new Date(b.reminder))
+    .slice(0, 3);
+
+  if (tasksWithReminders.length === 0) {
+    return (
+      <section className={`rounded-[28px] border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_15px_40px_rgba(15,23,42,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.2)] ${className}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <Bell size={18} className="text-slate-400" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Upcoming Reminders</h3>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No reminders set — add one to get notified before deadlines.</p>
+      </section>
+    );
   }
-  const actionLabel = reminder.action || (reminder.attendanceStatus ? 'View attendance' : 'Open session');
+
   return (
-    <section className={`rounded-[28px] border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_15px_40px_rgba(15,23,42,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.2)] ${className}`} style={statFontStyle}>
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{reminder.title}</h3>
-        </div>
-        {reminder.attendanceStatus ? (
-          <span className="rounded-full bg-purple-50 dark:bg-purple-900/30 px-3 py-1 text-xs font-semibold text-purple-600 dark:text-purple-300">Logged</span>
-        ) : (
-          <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-600 dark:text-slate-400">Pending</span>
-        )}
+    <section className={`rounded-[28px] border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_15px_40px_rgba(15,23,42,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.2)] ${className}`}>
+      <div className="flex items-center gap-2 mb-4">
+        <Bell size={18} className="text-purple-600 dark:text-purple-400" />
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Upcoming Reminders</h3>
       </div>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{reminder.subtitle}</p>
-      <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-        <div className="flex items-center gap-2">
-          <Clock3 size={16} className="text-purple-500 dark:text-purple-400" />
-          {reminder.time}
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-blue-500 dark:text-blue-400" />
-          {reminder.location}
-        </div>
+      
+      <div className="space-y-3">
+        {tasksWithReminders.map(task => {
+          const reminderDate = new Date(task.reminder);
+          const now = new Date();
+          const hoursUntil = Math.round((reminderDate - now) / (1000 * 60 * 60));
+          const isPast = reminderDate < now;
+          
+          return (
+            <div 
+              key={task.id}
+              className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors cursor-pointer"
+            >
+              <div className="shrink-0 mt-0.5">
+                <div className={`w-2 h-2 rounded-full ${isPast ? 'bg-red-500 animate-pulse' : 'bg-amber-500'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{task.title}</p>
+                <div className="flex items-center gap-2 mt-1 text-xs text-slate-600 dark:text-slate-400">
+                  <Clock3 size={12} />
+                  <span>
+                    {isPast ? 'Overdue' : 
+                     hoursUntil < 1 ? 'Within 1 hour' :
+                     hoursUntil < 24 ? `In ${hoursUntil} hours` :
+                     reminderDate.toLocaleDateString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </div>
+                {task.course && (
+                  <span
+                    className="inline-block mt-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}
+                  >
+                    {task.course}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <button 
-        onClick={() => router?.push('/timetable')}
-        className="mt-4 w-full rounded-full bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 py-2 text-sm font-semibold text-white shadow-sm shadow-purple-500/20 hover:shadow-md transition-shadow"
-      >
-        View in Timetable
-      </button>
     </section>
   );
 };
@@ -2395,59 +2424,91 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
 };
 
 const TimelineCard = ({ entries, className = '' }) => {
-  const router = typeof window !== 'undefined' ? require('next/router').default : null;
+  if (entries.length === 0) {
+    return (
+      <section className={`rounded-[28px] border border-gray-100 bg-white px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] ${className}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900">Day timeline</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Visual timeline from first to last task</p>
+          </div>
+          <CalendarDays size={18} className="text-slate-400" />
+        </div>
+        <p className="mt-4 text-sm text-slate-500">No timed tasks today — use the board to plan a slot.</p>
+      </section>
+    );
+  }
+
+  // Calculate timeline bounds
+  const firstTime = entries[0].time;
+  const lastEntry = entries[entries.length - 1];
+  const lastTime = lastEntry.end || new Date(lastEntry.time.getTime() + 60 * 60000); // +1hr default
+  const totalMinutes = (lastTime - firstTime) / 60000;
   
   return (
     <section className={`rounded-[28px] border border-gray-100 bg-white px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] ${className}`}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-xl font-semibold text-slate-900">Day timeline</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Your schedule from first to last task</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {firstTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} → {lastTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </p>
         </div>
         <CalendarDays size={18} className="text-slate-400" />
       </div>
-      <div className="mt-4 space-y-5">
-        {entries.length === 0 ? (
-          <p className="text-sm text-slate-500">No timed tasks today — use the board to plan a slot.</p>
-        ) : (
-        entries.map((entry, index) => (
-          <button
-            key={entry.id}
-            onClick={() => {
-              if (entry.id.startsWith('event-')) {
-                router?.push('/timetable');
-              } else {
-                // Scroll to task or open detail modal
-                const taskElement = document.querySelector(`[data-task-id="${entry.id}"]`);
-                if (taskElement) {
-                  taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-              }
-            }}
-            className="flex items-start gap-3 w-full text-left hover:opacity-80 transition-opacity cursor-pointer"
-          >
-            <div className="flex flex-col items-center pt-1 text-xs font-semibold text-slate-500">
-              <span>{entry.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-              {index < entries.length - 1 ? <span className="mt-1 h-10 w-px bg-slate-200" /> : null}
-            </div>
-            <div className="flex-1 rounded-[28px] border border-slate-100 bg-white/95 px-4 py-3 shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:shadow-lg transition-shadow">
-              <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
-              <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                <span
-                  className="rounded-full px-2 py-0.5"
-                  style={{ color: entry.courseColor, backgroundColor: `${entry.courseColor}15` }}
-                >
-                  {entry.course}
+      
+      <div className="mt-4 space-y-3 relative">
+        {/* Vertical timeline line */}
+        <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-200" />
+        
+        {entries.map((entry, index) => {
+          const startTime = entry.time;
+          const endTime = entry.end || new Date(startTime.getTime() + 60 * 60000);
+          const durationMin = (endTime - startTime) / 60000;
+          const offsetMin = (startTime - firstTime) / 60000;
+          
+          return (
+            <div key={entry.id} className="flex items-start gap-3 relative">
+              {/* Time marker */}
+              <div className="flex flex-col items-center w-10 shrink-0 z-10">
+                <div className="w-2 h-2 rounded-full bg-purple-500 ring-4 ring-white" />
+                <span className="text-xs font-semibold text-slate-600 mt-1">
+                  {startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </span>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">•</span>
-                <span>{entry.location || 'Focus block'}</span>
+              </div>
+              
+              {/* Task bar */}
+              <div className="flex-1 relative">
+                <div 
+                  className="rounded-lg border-l-4 bg-gradient-to-r from-white to-slate-50 px-3 py-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  style={{ borderLeftColor: entry.courseColor || '#8b5cf6' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                        <span
+                          className="rounded-full px-2 py-0.5 font-medium"
+                          style={{ color: entry.courseColor, backgroundColor: `${entry.courseColor}15` }}
+                        >
+                          {entry.course}
+                        </span>
+                        <span>•</span>
+                        <Clock3 size={12} className="inline" />
+                        <span>{Math.round(durationMin)} min</span>
+                      </div>
+                    </div>
+                    <div className="text-right text-xs text-slate-400">
+                      {endTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </button>
-        ))
-      )}
-    </div>
-  </section>
+          );
+        })}
+      </div>
+    </section>
   );
 };
 
@@ -3319,10 +3380,10 @@ export default function TasksPage() {
   const widgetFactory = useMemo(
     () => ({
       timeline: () => <TimelineCard entries={timelineEntries} />,
-      reminder: () => <ReminderWidget reminder={reminderData} />,
+      reminder: () => <ReminderWidget tasks={actionableTasks} />,
       time: () => <TimeTrackerWidget stats={trackerStats} />,
     }),
-    [reminderData, timelineEntries, trackerStats]
+    [actionableTasks, timelineEntries, trackerStats]
   );
 
   const toggleGroup = useCallback((groupId) => {

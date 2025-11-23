@@ -467,7 +467,17 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
             <input
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={(e) => {
+                const newTime = e.target.value;
+                setTime(newTime);
+                // Update parent immediately when time changes
+                if (date) {
+                  const [hours, minutes] = newTime.split(':');
+                  const dateTime = new Date(date + 'T00:00:00');
+                  dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                  onChange?.(dateTime.toISOString());
+                }
+              }}
               className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100"
             />
           </div>
@@ -1886,6 +1896,8 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
 };
 
 const ReminderWidget = ({ reminder, className = '' }) => {
+  const router = typeof window !== 'undefined' ? require('next/router').default : null;
+  
   if (!reminder) {
     return null;
   }
@@ -1913,22 +1925,30 @@ const ReminderWidget = ({ reminder, className = '' }) => {
           {reminder.location}
         </div>
       </div>
-      <button className="mt-4 w-full rounded-full bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 py-2 text-sm font-semibold text-white shadow-sm shadow-purple-500/20">Open session</button>
+      <button 
+        onClick={() => router?.push('/timetable')}
+        className="mt-4 w-full rounded-full bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-500 dark:to-purple-600 py-2 text-sm font-semibold text-white shadow-sm shadow-purple-500/20 hover:shadow-md transition-shadow"
+      >
+        View in Timetable
+      </button>
     </section>
   );
 };
 
 const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
+  const router = typeof window !== 'undefined' ? require('next/router').default : null;
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [sessionType, setSessionType] = useState('focus'); // 'focus' or 'break'
   const [sessionId, setSessionId] = useState(null);
   const [todayStats, setTodayStats] = useState({ total_duration: 0, total_sessions: 0 });
+  const [focusSettings, setFocusSettings] = useState({ focus_duration: 1500, short_break_duration: 300 });
   const timerRef = useRef(null);
 
-  // Load stats on mount
+  // Load stats and settings on mount
   useEffect(() => {
     fetchStats();
+    fetchFocusSettings();
   }, []);
 
   const fetchStats = async () => {
@@ -1940,6 +1960,20 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
       }
     } catch (error) {
       console.error('Failed to fetch session stats:', error);
+    }
+  };
+
+  const fetchFocusSettings = async () => {
+    try {
+      const response = await fetch('/api/focus/settings');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.settings) {
+          setFocusSettings(data.settings);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch focus settings:', error);
     }
   };
 
@@ -1968,22 +2002,8 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
 
   const handleStartStop = async () => {
     if (!isRunning) {
-      // Start new session
-      try {
-        const duration = sessionType === 'focus' ? 1500 : 300; // 25min or 5min
-        const response = await fetch('/api/sessions/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_type: sessionType, duration }),
-        });
-        const data = await response.json();
-        if (data.success) {
-          setSessionId(data.session.id);
-          setIsRunning(true);
-        }
-      } catch (error) {
-        console.error('Failed to start session:', error);
-      }
+      // Redirect to /focus page for full experience
+      router?.push('/focus');
     } else {
       // Stop session
       setIsRunning(false);
@@ -2040,7 +2060,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
             sessionType === 'focus' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
           } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          Focus (25min)
+          Focus ({Math.floor((focusSettings.focus_duration || 1500) / 60)}min)
         </button>
         <button
           onClick={() => !isRunning && setSessionType('break')}
@@ -2049,7 +2069,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
             sessionType === 'break' ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
           } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          Break (5min)
+          Break ({Math.floor((focusSettings.short_break_duration || 300) / 60)}min)
         </button>
       </div>
 
@@ -2057,20 +2077,14 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
       <div className="mt-4 flex gap-2">
         <button
           onClick={handleStartStop}
-          className="flex-1 rounded-xl bg-white/20 hover:bg-white/30 py-3 text-sm font-semibold transition-all"
+          className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 py-3 text-sm font-semibold transition-all"
         >
-          {isRunning ? 'Pause' : 'Start'}
-        </button>
-        <button
-          onClick={handleReset}
-          className="rounded-xl bg-white/10 hover:bg-white/20 px-4 text-sm font-semibold transition-all"
-        >
-          Reset
+          Open Focus Timer
         </button>
       </div>
 
       <button
-        onClick={() => window.location.href = '/sessions'}
+        onClick={() => router?.push('/sessions')}
         className="mt-4 w-full rounded-xl border border-white/20 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition-all"
       >
         View Session History →
@@ -2381,11 +2395,14 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
 };
 
 const TimelineCard = ({ entries, className = '' }) => {
+  const router = typeof window !== 'undefined' ? require('next/router').default : null;
+  
   return (
     <section className={`rounded-[28px] border border-gray-100 bg-white px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] ${className}`}>
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-semibold text-slate-900">Day timeline</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Your schedule from first to last task</p>
         </div>
         <CalendarDays size={18} className="text-slate-400" />
       </div>
@@ -2394,12 +2411,26 @@ const TimelineCard = ({ entries, className = '' }) => {
           <p className="text-sm text-slate-500">No timed tasks today — use the board to plan a slot.</p>
         ) : (
         entries.map((entry, index) => (
-          <div key={entry.id} className="flex items-start gap-3">
+          <button
+            key={entry.id}
+            onClick={() => {
+              if (entry.id.startsWith('event-')) {
+                router?.push('/timetable');
+              } else {
+                // Scroll to task or open detail modal
+                const taskElement = document.querySelector(`[data-task-id="${entry.id}"]`);
+                if (taskElement) {
+                  taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }
+            }}
+            className="flex items-start gap-3 w-full text-left hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <div className="flex flex-col items-center pt-1 text-xs font-semibold text-slate-500">
               <span>{entry.time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
               {index < entries.length - 1 ? <span className="mt-1 h-10 w-px bg-slate-200" /> : null}
             </div>
-            <div className="flex-1 rounded-[28px] border border-slate-100 bg-white/95 px-4 py-3 shadow-[0_15px_35px_rgba(15,23,42,0.08)]">
+            <div className="flex-1 rounded-[28px] border border-slate-100 bg-white/95 px-4 py-3 shadow-[0_15px_35px_rgba(15,23,42,0.08)] hover:shadow-lg transition-shadow">
               <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
               <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                 <span
@@ -2412,7 +2443,7 @@ const TimelineCard = ({ entries, className = '' }) => {
                 <span>{entry.location || 'Focus block'}</span>
               </div>
             </div>
-          </div>
+          </button>
         ))
       )}
     </div>

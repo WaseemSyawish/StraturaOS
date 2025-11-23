@@ -208,15 +208,21 @@ export default function FocusPage() {
         
         setSettingsLoaded(true);
       } else if (response.status === 401) {
-        console.log('[fetchSettings] Not authenticated yet, will retry when session is available');
+        console.log('[fetchSettings] Not authenticated yet, using defaults');
+        // Use default settings and mark as loaded so UI doesn't hang
+        setSettingsLoaded(true);
       } else {
         console.error('[fetchSettings] FAILED - Status:', response.status);
         const errorText = await response.text();
         console.error('[fetchSettings] Error response:', errorText);
+        // Mark as loaded with defaults to prevent infinite loading
+        setSettingsLoaded(true);
       }
     } catch (error) {
       console.error('[fetchSettings] EXCEPTION caught:', error);
       console.error('[fetchSettings] Error stack:', error.stack);
+      // Mark as loaded with defaults to prevent infinite loading
+      setSettingsLoaded(true);
     }
   };
 
@@ -407,14 +413,10 @@ export default function FocusPage() {
   const pageActions = (
     <>
       <button
-        onClick={() => setShowStats(!showStats)}
-        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-          showStats 
-            ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' 
-            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-        }`}
-        aria-label="Toggle statistics"
-        title="Toggle Statistics"
+        onClick={() => router.push('/sessions')}
+        className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all"
+        aria-label="View sessions"
+        title="View Sessions"
       >
         <BarChart3 className="w-5 h-5" />
       </button>

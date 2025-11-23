@@ -1654,10 +1654,10 @@ export default function UniversityOverview() {
                     return (
                       <button
                         key={day}
-                        className={`flex flex-col items-center justify-center py-2.5 rounded-lg transition-all relative ${
+                        className={`flex flex-col items-center justify-center py-2.5 rounded-lg transition-all relative border-2 ${
                           isToday 
-                            ? 'bg-purple-600 text-white shadow-sm' 
-                            : 'hover:bg-gray-100 dark:hover:bg-slate-700'
+                            ? 'bg-purple-600 text-white shadow-sm border-purple-700' 
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-purple-300 dark:hover:border-purple-700'
                         }`}
                       >
                         <span className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${

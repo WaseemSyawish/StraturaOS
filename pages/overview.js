@@ -1145,7 +1145,7 @@ export default function UniversityOverview() {
   return (
     <HygraphSidebar pageName="Overview">
       <Head>
-        <title>Overview â€” University Planner</title>
+        <title>Overview — University Planner</title>
       </Head>
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       

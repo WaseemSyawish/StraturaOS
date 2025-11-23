@@ -10,15 +10,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('[forgot-password] Starting password reset request');
     const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
+    console.log('[forgot-password] Looking up user with email:', email);
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() }
     });
+    console.log('[forgot-password] User found:', user ? 'YES' : 'NO');
 
     if (!user) {
       // Don't reveal if email exists or not for security
@@ -29,10 +32,12 @@ export default async function handler(req, res) {
     }
 
     // Generate reset token
+    console.log('[forgot-password] Generating reset token');
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     // Save reset token to user
+    console.log('[forgot-password] Saving reset token to database');
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -41,6 +46,7 @@ export default async function handler(req, res) {
         updated_at: new Date()
       }
     });
+    console.log('[forgot-password] Reset token saved successfully');
 
     // Send reset email - use the request's host so it works in dev and production
     // Priority: 1) NEXTAUTH_URL env var, 2) x-forwarded headers (production), 3) request host header
@@ -54,6 +60,10 @@ export default async function handler(req, res) {
     
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
+    console.log('[forgot-password] Sending email via Resend');
+    console.log('[forgot-password] RESEND_API_KEY configured:', !!process.env.RESEND_API_KEY);
+    console.log('[forgot-password] Reset URL:', resetUrl);
+    
     try {
       await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || 'University Planner <noreply@universityplanner.com>',
@@ -100,11 +110,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('[forgot-password] Unhandled error:', error);
+    console.error('[forgot-password] Error stack:', error.stack);
     return res.status(500).json({
-      error: process.env.NODE_ENV === 'development'
-        ? `Server error: ${error.message}`
-        : 'An error occurred'
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }

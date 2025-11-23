@@ -457,6 +457,31 @@ export default function FocusPage() {
                   isRunning={timer.isRunning}
                 />
 
+                {/* Focus Tip */}
+                {showTips && mode === 'focus' && !timer.isRunning && (
+                  <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                        <Lightbulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                          Focus Tip
+                        </h4>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          {randomTip}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowTips(false)}
+                        className="text-amber-400 hover:text-amber-600 dark:hover:text-amber-200"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Timer Display */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 sm:p-12">
                   <div className="flex flex-col items-center space-y-8">
@@ -498,31 +523,6 @@ export default function FocusPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Focus Tip */}
-                {showTips && mode === 'focus' && !timer.isRunning && (
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg">
-                        <Lightbulb className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">
-                          Focus Tip
-                        </h4>
-                        <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                          {randomTip}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowTips(false)}
-                        className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Right Column - Tasks & Completed */}

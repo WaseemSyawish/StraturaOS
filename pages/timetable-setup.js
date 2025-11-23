@@ -354,8 +354,8 @@ export default function TimetableSetup() {
                 )}
 
                 {semesterSettings.length === 0 && semester !== 'custom' && (
-                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
+                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-800">
                       💡 <strong>Tip:</strong> Configure your semester dates in the{' '}
                       <button
                         onClick={() => router.push('/modules')}

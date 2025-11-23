@@ -144,7 +144,6 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
           </button>
 
           <button
-            onClick={() => router.push('/profile')}
             className="w-8 h-8 rounded-full bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm hover:bg-slate-800 dark:hover:bg-slate-500 transition-all border border-slate-600 dark:border-slate-500"
             title={userName || 'Profile'}
           >

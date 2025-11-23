@@ -1,9 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Menu, Search, Bell, User } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 export default function TopNavbar({ onToggleSidebar, userName, pageName, pageActions }) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // Fetch notification count on mount and periodically
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const now = new Date();
+        const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        // Fetch upcoming task reminders
+        const tasksRes = await fetch('/api/tasks/search');
+        const tasks = await tasksRes.json();
+        
+        // Fetch upcoming assessment deadlines
+        const assessmentsRes = await fetch('/api/assessments');
+        const assessments = await assessmentsRes.json();
+
+        let count = 0;
+
+        // Count tasks with reminders in next 24 hours or overdue
+        if (Array.isArray(tasks)) {
+          count += tasks.filter(task => {
+            if (!task.reminder) return false;
+            const reminderDate = new Date(task.reminder);
+            return reminderDate >= now && reminderDate <= next24Hours;
+          }).length;
+        }
+
+        // Count assessments due in next 7 days or overdue
+        const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (Array.isArray(assessments)) {
+          count += assessments.filter(assessment => {
+            if (!assessment.dueDate) return false;
+            const dueDate = new Date(assessment.dueDate);
+            return dueDate >= now && dueDate <= next7Days;
+          }).length;
+        }
+
+        setNotificationCount(count);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [session]);
   
   return (
     <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between px-4 flex-shrink-0">
@@ -37,6 +92,11 @@ export default function TopNavbar({ onToggleSidebar, userName, pageName, pageAct
           title="Notifications"
         >
           <Bell className="w-5 h-5" strokeWidth={2} />
+          {notificationCount > 0 && (
+            <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-purple-600 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900">
+              {notificationCount > 99 ? '99+' : notificationCount}
+            </span>
+          )}
         </button>
 
         {/* User Profile */}

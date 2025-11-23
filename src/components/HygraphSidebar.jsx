@@ -81,11 +81,9 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
             <React.Fragment key={section.id}>
               <div className="flex flex-col items-center gap-0.5 py-3 px-2">
                 {section.items.map((item) => {
-                  // Render separator
+                  // Skip separators in collapsed sidebar
                   if (item.type === 'separator') {
-                    return (
-                      <div key={item.id} className="w-8 h-px bg-slate-200 dark:bg-slate-800 my-2" />
-                    );
+                    return null;
                   }
                   
                   const Icon = item.icon;
@@ -191,6 +189,13 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
                   
                   <nav className="space-y-1">
                     {section.items.map((item) => {
+                      // Render separator
+                      if (item.type === 'separator') {
+                        return (
+                          <div key={item.id} className="my-3 mx-3 h-px bg-slate-200 dark:bg-slate-800" />
+                        );
+                      }
+                      
                       const hasSubmenu = item.submenu && item.submenu.length > 0;
                       const isItemActive = item.path && isActivePath(item.path);
                       const Icon = item.icon;

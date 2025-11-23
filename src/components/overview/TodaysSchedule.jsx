@@ -84,8 +84,8 @@ export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
           variants={fadeIn}
           className="py-16 text-center"
         >
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
-            <CalendarOff className="w-7 h-7 text-gray-400 dark:text-gray-600" />
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+            <CalendarOff className="w-7 h-7 text-purple-600 dark:text-purple-400" />
           </div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             No classes today

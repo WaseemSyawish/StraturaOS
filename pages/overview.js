@@ -1130,7 +1130,7 @@ export default function UniversityOverview() {
     return (
       <>
         <Head>
-          <title>Overview â€” University Planner</title>
+          <title>Overview — University Planner</title>
         </Head>
         <div className="min-h-screen bg-white flex items-center justify-center">
           <div className="text-center">

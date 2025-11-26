@@ -9,13 +9,6 @@ import React, {
   Dispatch,
   useEffect,
 } from "react";
-
-// Expose a global type for legacy callers that use window.__schedulerHandlers
-declare global {
-  interface Window {
-    __schedulerHandlers?: any;
-  }
-}
 import { z } from "zod";
 
 import {
@@ -32,6 +25,13 @@ import { startOfWeekYear } from 'date-fns/startOfWeekYear';
 import { addDays } from 'date-fns/addDays';
 import ModalProvider from "./modal-context";
 import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../lib/dateHelpers';
+
+// Expose a global type for legacy callers that use window.__schedulerHandlers
+declare global {
+  interface Window {
+    __schedulerHandlers?: any;
+  }
+}
 // Define event and state types
 
 interface SchedulerState {

@@ -33,9 +33,7 @@ export default function ShowMoreEventsModal() {
   }, [dayEvents]);
 
   const { setClose, setOpen } = useModal();
-  const scheduler = (() => {
-    try { return useScheduler(); } catch (e) { return null; }
-  })();
+  const scheduler = useScheduler();
 
   const [showDeleteScope, setShowDeleteScope] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Event | null>(null);

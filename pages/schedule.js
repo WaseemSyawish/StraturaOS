@@ -71,14 +71,16 @@ function mapToSchedulerEvents(list) {
     // continue mapping
     // Prefer using startDate from API (already timezone-adjusted) over reconstructing from date+time strings
     let start = new Date();
+    let dateStr = null;
+    let timeStr = null;
     try {
       if (e.startDate) {
         // API returns timezone-adjusted ISO strings - use them directly
         start = new Date(e.startDate);
       } else if (e.date && typeof e.date === 'string') {
         // Fallback: reconstruct from date and time strings
-        const dateStr = e.date;
-        const timeStr = e.time || e.startTime || e.start_time || '09:00';
+        dateStr = e.date;
+        timeStr = e.time || e.startTime || e.start_time || '09:00';
         const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
         const [hh, mm] = String(timeStr || '09:00').split(':').map(Number);
         start = new Date(y, (m || 1) - 1, d, hh || 9, mm || 0, 0);
@@ -136,6 +138,7 @@ function mapToSchedulerEvents(list) {
     const durationMinutes = (typeof durationMinutesRaw !== 'undefined' && durationMinutesRaw !== null) ? Number(durationMinutesRaw) : null;
     
     let endDate;
+    let rawEnd = null;
     // Prefer API's endDate (already timezone-adjusted)
     if (e.endDate && typeof e.endDate === 'string') {
       try {
@@ -147,7 +150,7 @@ function mapToSchedulerEvents(list) {
       endDate = new Date(start.getTime() + Number(durationMinutes) * 60000);
     } else {
       // Fallback
-      const rawEnd = e.end_date || (e.raw && (e.raw.endDate || e.raw.end_date));
+      rawEnd = e.end_date || (e.raw && (e.raw.endDate || e.raw.end_date));
       if (rawEnd) {
         try {
           const s = String(rawEnd);

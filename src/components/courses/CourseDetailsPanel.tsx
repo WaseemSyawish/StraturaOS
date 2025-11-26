@@ -179,7 +179,7 @@ const CourseDetailsPanel: React.FC<CourseDetailsPanelProps> = ({ course, onClose
   };
 
   const handleDeleteResource = async (resourceId: string) => {
-    if (!confirm('Delete this resource?')) return;
+    // if (!confirm('Delete this resource?')) return;
 
     setSaving(true);
     try {

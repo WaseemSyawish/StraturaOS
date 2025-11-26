@@ -357,25 +357,6 @@ export default function UniversityPlanner({ initialEvents = [], initialCourses =
           // the confirm handler will call resolve when done; stash it
           window.__pendingResolve = resolve;
         });
-        if (scope === 'single' || !tplId) {
-          const res = await fetch(`/api/events/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateData) });
-          let j = null; try { j = await res.json(); } catch (e) {}
-          console.info('[editEventOptimistic] PATCH response', { status: res.status, ok: res.ok, body: j });
-          if (res.ok && j && j.success && j.event) { setEvents(prev => prev.map(e => e.id === id ? j.event : e)); addToast({ type: 'success', text: 'Event updated' }); return { success: true }; }
-          else { setEvents(snapshot); const msg = (j && (j.message || j.error || j.details)) ? (j.message || j.error || j.details) : (res.statusText || 'Failed to update event'); addToast({ type: 'error', text: `Failed to update event: ${msg}` }); return { success: false }; }
-        }
-
-        // 'all' scope: apply to all materialized events with same template id
-        try {
-          const list = await fetch('/api/events').then(r => r.ok ? r.json().catch(() => null) : null);
-          const eventsList = Array.isArray(list?.events) ? list.events : (Array.isArray(list) ? list : []);
-          const toPatch = eventsList.filter(ei => (ei && (ei.template_id || (ei.raw && (ei.raw.template_id || ei.raw.templateId))) && String((ei.template_id || (ei.raw && (ei.raw.template_id || ei.raw.templateId))) ) === String(tplId)));
-          for (const p of toPatch) {
-            try { await fetch(`/api/events/${encodeURIComponent(p.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateData) }); } catch (e) { console.warn('Bulk update failed for event', p && p.id, e); }
-          }
-          addToast({ type: 'success', text: 'Events updated' });
-          return { success: true };
-        } catch (err) { console.warn('Bulk update failed', err); }
       }
 
       const res = await fetch(`/api/events/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateData) });

@@ -113,7 +113,7 @@ export default function CourseResourcesPanel({ courseId }) {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this resource?')) return;
+    // if (!confirm('Delete this resource?')) return;
 
     try {
       const response = await fetch(`/api/course-resources?id=${id}`, {

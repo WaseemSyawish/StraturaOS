@@ -1793,9 +1793,9 @@ export default function UniversityOverview() {
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (confirm('Archive this task? It will be moved to history.')) {
+                                    // if (confirm('Archive this task? It will be moved to history.')) {
                                       await archiveDeadline(deadline.id);
-                                    }
+                                    // }
                                   }}
                                   className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                   title="Archive task"

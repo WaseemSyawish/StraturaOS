@@ -7,7 +7,7 @@
       "es2021"
     ],
     "allowJs": false,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "module": "ESNext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,

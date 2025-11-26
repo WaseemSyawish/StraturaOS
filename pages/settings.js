@@ -2,27 +2,6 @@ import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import HygraphSidebar from '@/components/HygraphSidebar';
-// CustomDropdown: dark-mode friendly select replacement
-function CustomDropdown({ value, options, onChange, label }) {
-  const selected = options.find((opt) => opt.value === value);
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-  <button className="max-w-xs w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 flex justify-between items-center transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-purple-50 dark:focus:bg-purple-900 shadow-none border border-transparent">
-          <span>{selected ? selected.label : label}</span>
-          <svg className="w-4 h-4 ml-2 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" strokeWidth="2" d="M6 8l4 4 4-4"/></svg>
-        </button>
-      </DropdownMenu.Trigger>
-  <DropdownMenu.Content align="start" sideOffset={4} className="w-full rounded-lg shadow-md bg-white dark:bg-gray-800 py-1 border border-transparent z-50">
-        {options.map((opt) => (
-          <DropdownMenu.Item key={opt.value} onSelect={() => onChange(opt.value)} className={`px-3 py-2 cursor-pointer text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 rounded ${value === opt.value ? 'bg-purple-50 dark:bg-purple-900 font-semibold' : ''}`}>
-            {opt.label}
-          </DropdownMenu.Item>
-        ))}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-  );
-}
 import { useTheme } from 'next-themes';
 import { 
   User, 
@@ -44,7 +23,27 @@ import {
   Smartphone
   , Loader2
 } from 'lucide-react';
-
+// CustomDropdown: dark-mode friendly select replacement
+function CustomDropdown({ value, options, onChange, label }) {
+  const selected = options.find((opt) => opt.value === value);
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+  <button className="max-w-xs w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 flex justify-between items-center transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-purple-50 dark:focus:bg-purple-900 shadow-none border border-transparent">
+          <span>{selected ? selected.label : label}</span>
+          <svg className="w-4 h-4 ml-2 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" strokeWidth="2" d="M6 8l4 4 4-4"/></svg>
+        </button>
+      </DropdownMenu.Trigger>
+  <DropdownMenu.Content align="start" sideOffset={4} className="w-full rounded-lg shadow-md bg-white dark:bg-gray-800 py-1 border border-transparent z-50">
+        {options.map((opt) => (
+          <DropdownMenu.Item key={opt.value} onSelect={() => onChange(opt.value)} className={`px-3 py-2 cursor-pointer text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 rounded ${value === opt.value ? 'bg-purple-50 dark:bg-purple-900 font-semibold' : ''}`}>
+            {opt.label}
+          </DropdownMenu.Item>
+        ))}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  );
+}
 const DEFAULTS = {
   theme: 'system',
   weekStartsOn: 'monday',

@@ -8,20 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CalendarDaysIcon } from "@/components/icons/simple-icons";
 import { ModernViewSwitcher } from "./modern-controls";
-// react-icons can be moderately large; import only used icons via dynamic if necessary
-const BsCalendarMonth = dynamic(() => import("react-icons/bs").then((m) => m.BsCalendarMonth), { ssr: false });
-const BsCalendarWeek = dynamic(() => import("react-icons/bs").then((m) => m.BsCalendarWeek), { ssr: false });
-
-// AddEventModal is loaded lazily inside handleAddEvent to avoid pulling
-// heavy form libraries (react-hook-form, zod, etc.) into this module's
-// initial build chunk during development which slows compilation.
-const DailyView = dynamic(() => import('./day/daily-view'), { ssr: false });
-const MonthView = dynamic(() => import('./month/month-view'), { ssr: false });
-const WeeklyView = dynamic(() => import('./week/week-view'), { ssr: false });
 import { useModal } from "@/providers/modal-context";
 import { ClassNames, CustomComponents, Views } from "@/types/index";
 import { cn } from "@/lib/utils";
 import CustomModal from "@/components/ui/custom-modal";
+// react-icons can be moderately large; import only used icons via dynamic if necessary
+const BsCalendarMonth = dynamic(() => import("react-icons/bs").then((m) => m.BsCalendarMonth), { ssr: false });
+const BsCalendarWeek = dynamic(() => import("react-icons/bs").then((m) => m.BsCalendarWeek), { ssr: false });
+
+// Dynamic component imports
+const DailyView = dynamic(() => import('./day/daily-view'), { ssr: false });
+const MonthView = dynamic(() => import('./month/month-view'), { ssr: false });
+const WeeklyView = dynamic(() => import('./week/week-view'), { ssr: false });
 
 // Animation settings for Framer Motion (used when Motion is loaded)
 const animationConfig = {

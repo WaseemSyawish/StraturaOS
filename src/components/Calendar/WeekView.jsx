@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { buildLocalDateFromParts, formatTimeFromParts } from '../../lib/dateHelpers';
 
-export default function WeekView({ weekDates = [], timeSlots = [], classes = [], onSlotClick, onEventClick, compact = false, courses = [] }) {
+export default function WeekView({ weekDates = [], timeSlots = [], classes = [], onSlotClick, onEventClick, compact = false, courses = [], onEventDelete }) {
   // make the grid responsive: compute a dynamic gutter based on container width
   const cols = weekDates.length || 7;
   const containerRef = useRef(null);

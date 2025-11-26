@@ -122,7 +122,7 @@ export default function AddEventModal({
   onSuccess,
   isSchedulePage = false,
 }: {
-  CustomAddEventModal?: React.FC<{ register: any; errors: any }>;
+  CustomAddEventModal?: React.ComponentType<{ register: any; errors: any }>;
   mode?: 'task' | 'event' | 'edit';
   initialData?: any;
   onSuccess?: () => void;

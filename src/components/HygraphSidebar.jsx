@@ -46,17 +46,36 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [userName, setUserName] = useState('');
+  const [avatarColor, setAvatarColor] = useState('#7c3aed');
 
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.name) setUserName(data.name);
+        if (data?.avatarColor) setAvatarColor(data.avatarColor);
+        // If no avatarColor in auth/me, fetch user profile
+        if (data?.id && !data.avatarColor) {
+          fetch(`/api/users/${data.id}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(profile => {
+              if (profile?.avatarColor) setAvatarColor(profile.avatarColor);
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => {});
   }, []);
 
   const isActivePath = (path) => router.pathname === path;
+  
+  // Mobile navigation items
+  const mobileNavItems = [
+    { id: 'overview', label: 'Home', icon: Home, path: '/overview' },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare, path: '/tasks' },
+    { id: 'schedule', label: 'Schedule', icon: Calendar, path: '/schedule' },
+    { id: 'focus', label: 'Focus', icon: Timer, path: '/focus' },
+  ];
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950">
@@ -64,14 +83,15 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
       <TopNavbar 
         onToggleSidebar={() => setIsExpanded(!isExpanded)} 
         userName={userName} 
+        avatarColor={avatarColor}
         pageName={pageName}
         pageActions={pageActions}
       />
       
       {/* Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
-      {/* Left Icon Sidebar - Always visible 64px */}
-      <div className="w-16 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col flex-shrink-0">
+      {/* Left Icon Sidebar - Hidden on mobile and when expanded sidebar is open */}
+      <div className={`${isExpanded ? 'w-0 overflow-hidden' : 'w-16'} hidden md:flex bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex-col flex-shrink-0 transition-all duration-300`}>
         {/* Top spacing */}
         <div className="h-2"></div>
 
@@ -144,19 +164,30 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
           </button>
 
           <button
-            className="w-8 h-8 rounded-full bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm hover:bg-slate-800 dark:hover:bg-slate-500 transition-all border border-slate-600 dark:border-slate-500"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-all"
+            style={{ backgroundColor: avatarColor }}
             title={userName || 'Profile'}
+            onClick={() => router.push('/profile')}
           >
             {(userName || 'U').charAt(0).toUpperCase()}
           </button>
         </div>
       </div>
 
+      {/* Overlay to close expanded sidebar */}
+      {isExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/20 dark:bg-black/40 z-30"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
+
       {/* Expandable Navigation Panel - Hygraph Style */}
       <div
         className={`
+          fixed md:relative inset-y-0 left-0 md:inset-auto
           bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800
-          transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0
+          transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 z-40
           ${isExpanded ? 'w-64' : 'w-0'}
         `}
       >
@@ -168,10 +199,7 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
                   <GraduationCap className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
-                <div>
-                  <div className="text-base font-bold text-slate-900 dark:text-white">University Planner</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Student Dashboard</div>
-                </div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">University Planner</div>
               </div>
             </div>
 
@@ -270,24 +298,60 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
                 </div>
               </Link>
               
-              <div className="px-3 py-2 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-700 dark:bg-slate-600 flex items-center justify-center text-white text-sm font-semibold border border-slate-600 dark:border-slate-500">
-                  {(userName || 'U').charAt(0).toUpperCase()}
+              <Link href="/profile">
+                <div className="px-3 py-2 flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors">
+                  <div 
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                    style={{ backgroundColor: avatarColor }}
+                  >
+                    {(userName || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-900 dark:text-white truncate">{userName || 'User'}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">View Profile</div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-slate-900 dark:text-white truncate">{userName || 'User'}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">View Profile</div>
-                </div>
-              </div>
+              </Link>
             </div>
           </div>
         )}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-16 md:pb-0">
         {children}
       </div>
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-inset-bottom">
+        <div className="flex items-center justify-around h-16">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.path && isActivePath(item.path);
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.action) {
+                    item.action();
+                  } else if (item.path) {
+                    router.push(item.path);
+                  }
+                }}
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+                  isActive 
+                    ? 'text-purple-600 dark:text-purple-400' 
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

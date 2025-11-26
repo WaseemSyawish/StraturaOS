@@ -1,5 +1,6 @@
 import prisma from '../../../../lib/prisma';
 import { resolveUser } from '../../../../lib/resolveUser';
+import withPrisma from '../../../../lib/withPrisma';
 import { TASK_EVENT_INCLUDE, buildTaskUpdatePayload, eventToTask } from '../../../../lib/task-helpers';
 
 const requireTaskId = (taskId) => {
@@ -15,7 +16,7 @@ const loadTask = async (taskId) =>
     include: TASK_EVENT_INCLUDE,
   });
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { taskId: taskIdRaw } = req.query;
 
   try {
@@ -65,3 +66,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Task update failed' });
   }
 }
+
+export default withPrisma(handler);

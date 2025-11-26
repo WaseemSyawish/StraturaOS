@@ -1,7 +1,7 @@
 // Modern Focus Session Page - Clean, minimal design inspired by best Pomodoro apps
 import Head from 'next/head';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Settings, X, Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
+import { Settings, X, Lightbulb, BarChart3, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import HygraphSidebar from '@/components/HygraphSidebar';
@@ -88,8 +88,10 @@ export default function FocusPage() {
     // Save completed session to database
     if (completedMode === 'focus' && sessionStartTime) {
       try {
+        console.log('[focus] Completing session, sessionId=', currentSessionId);
         const response = await fetch('/api/focus/sessions', {
           method: 'PATCH',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             session_id: currentSessionId,
@@ -99,6 +101,7 @@ export default function FocusPage() {
           }),
         });
 
+        console.log('[focus] PATCH /api/focus/sessions status=', response.status);
         if (response.ok) {
           setCompletedSessions(prev => prev + 1);
           
@@ -183,6 +186,7 @@ export default function FocusPage() {
       console.log('[fetchSettings] STARTING - Fetching settings from API...');
       const response = await fetch('/api/focus/settings', {
         cache: 'no-store',
+        credentials: 'same-origin',
         headers: {
           'Cache-Control': 'no-cache'
         }
@@ -287,28 +291,40 @@ export default function FocusPage() {
   // Handle timer start
   const handleTimerStart = async () => {
     if (!timer.isRunning && mode === 'focus') {
-      // Create new session in database
-      try {
-        const response = await fetch('/api/focus/sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            task_name: currentTask?.isNew ? currentTaskName : null,
-            task_id: currentTask?.id || null,
-            session_type: 'focus',
-            duration: settings.focus_duration,
-            started_at: new Date().toISOString(),
-            completed: false,
-          }),
-        });
+      // Prevent creating duplicate sessions if one already exists
+      if (currentSessionId) {
+        console.log('[focus] Session already exists, skipping create, id=', currentSessionId);
+      } else {
+        // Create new session in database
+        try {
+          console.log('[focus] Creating session (POST)');
+          const response = await fetch('/api/focus/sessions', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              task_name: currentTask?.isNew ? currentTaskName : null,
+              task_id: currentTask?.id || null,
+              session_type: 'focus',
+              duration: settings.focus_duration,
+              started_at: new Date().toISOString(),
+              completed: false,
+            }),
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentSessionId(data.session.id);
-          setSessionStartTime(new Date());
+          console.log('[focus] POST /api/focus/sessions status=', response.status);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('[focus] Created session id=', data.session?.id);
+            setCurrentSessionId(data.session.id);
+            setSessionStartTime(new Date());
+          } else {
+            const txt = await response.text();
+            console.error('[focus] Failed to create session:', response.status, txt);
+          }
+        } catch (error) {
+          console.error('Error creating session:', error);
         }
-      } catch (error) {
-        console.error('Error creating session:', error);
       }
     }
 
@@ -319,8 +335,10 @@ export default function FocusPage() {
   const handleTimerReset = () => {
     if (currentSessionId) {
       // Mark session as interrupted if it was running
+      console.log('[focus] Marking session interrupted, id=', currentSessionId);
       fetch('/api/focus/sessions', {
         method: 'PATCH',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: currentSessionId,
@@ -336,6 +354,8 @@ export default function FocusPage() {
     setSessionStartTime(null);
   };
 
+  // (dev test helper removed)
+
   // Handle task selection
   const handleTaskSelect = (task) => {
     setCurrentTask(task);
@@ -346,12 +366,55 @@ export default function FocusPage() {
     }
   };
 
+  // Mark current task as truly complete (separate from session completion)
+  const handleMarkTaskComplete = async () => {
+    if (!currentTask) return;
+    
+    try {
+      // If it's an existing task (has id), mark it complete in the database
+      if (currentTask.id) {
+        const response = await fetch(`/api/events/${currentTask.id}`, {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed: true }),
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to mark task as complete');
+          return;
+        }
+      }
+      
+      // Add to completed tasks list with "task complete" flag
+      setCompletedTasksToday(prev => [
+        {
+          taskName: currentTask.title || currentTaskName,
+          duration: 0, // Not a session duration, just task completion
+          completedAt: new Date().toISOString(),
+          isTaskComplete: true,
+        },
+        ...prev,
+      ]);
+      
+      // Clear the current task
+      setCurrentTask(null);
+      setCurrentTaskName('');
+      
+      // Refresh available tasks
+      fetchTasks();
+    } catch (error) {
+      console.error('Error marking task complete:', error);
+    }
+  };
+
   // Handle settings save
   const handleSettingsSave = async (newSettings) => {
     try {
       console.log('[handleSettingsSave] STARTING - Saving settings:', JSON.stringify(newSettings, null, 2));
       const response = await fetch('/api/focus/settings', {
         method: 'PUT',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
       });
@@ -515,6 +578,8 @@ export default function FocusPage() {
                       onReset={handleTimerReset}
                     />
 
+                    {/* Dev test button removed */}
+
                     {/* Session Progress */}
                     <div className="w-full max-w-md">
                       <SessionProgress
@@ -541,6 +606,22 @@ export default function FocusPage() {
                     availableTasks={availableTasks}
                     lastTask={lastTask}
                   />
+                  
+                  {/* Mark Task Complete Button - Only show when a task is selected */}
+                  {currentTask && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Done with this task? Mark it as complete when you're finished (separate from session completion).
+                      </p>
+                      <button
+                        onClick={handleMarkTaskComplete}
+                        className="w-full px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                        Mark "{currentTask.title?.slice(0, 25)}{currentTask.title?.length > 25 ? '...' : ''}" as Complete
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Completed Tasks Today */}

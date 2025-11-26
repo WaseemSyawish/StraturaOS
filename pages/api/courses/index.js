@@ -1,7 +1,8 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
+import withPrisma from '../../../lib/withPrisma';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS');
     return res.status(204).end();
@@ -186,3 +187,5 @@ export default async function handler(req, res) {
   res.setHeader('Allow', 'GET,POST,PUT,DELETE,OPTIONS');
   res.status(405).end();
 }
+
+export default withPrisma(handler);

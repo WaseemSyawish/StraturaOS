@@ -17,7 +17,10 @@ export default async function handler(req, res) {
       if (tokenUserId !== id) return res.status(403).json({ error: 'Forbidden' });
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) return res.status(404).json({ error: 'User not found' });
-      return res.json({ id: user.id, name: user.name || 'User', email: user.email || '', avatarColor: user.color || '#60A5FA' });
+      // Extract avatarColor from settings JSON
+      const settings = user.settings || {};
+      const avatarColor = settings.avatarColor || '#7c3aed';
+      return res.json({ id: user.id, name: user.name || 'User', email: user.email || '', avatarColor });
     }
 
     if (req.method === 'PATCH') {
@@ -26,12 +29,24 @@ export default async function handler(req, res) {
       if (!tokenUserId) return res.status(401).json({ error: 'Unauthorized' });
       if (tokenUserId !== id) return res.status(403).json({ error: 'Forbidden' });
       const { name, email, avatarColor } = req.body || {};
+      
+      // First, get current user to merge settings
+      const currentUser = await prisma.user.findUnique({ where: { id } });
+      if (!currentUser) return res.status(404).json({ error: 'User not found' });
+      
       const data = {};
       if (typeof name === 'string') data.name = name;
       if (typeof email === 'string') data.email = email;
-      if (typeof avatarColor === 'string') data.color = avatarColor;
+      
+      // Store avatarColor in settings JSON
+      if (typeof avatarColor === 'string') {
+        const currentSettings = currentUser.settings || {};
+        data.settings = { ...currentSettings, avatarColor };
+      }
+      
       const updated = await prisma.user.update({ where: { id }, data });
-      return res.json({ success: true, user: { id: updated.id, name: updated.name, email: updated.email, avatarColor: updated.color } });
+      const updatedSettings = updated.settings || {};
+      return res.json({ success: true, user: { id: updated.id, name: updated.name, email: updated.email, avatarColor: updatedSettings.avatarColor || '#7c3aed' } });
     }
 
     res.setHeader('Allow', 'GET,PATCH');

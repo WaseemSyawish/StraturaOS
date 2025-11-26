@@ -8,6 +8,12 @@ export const useFocusTimer = (initialDuration, onComplete) => {
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const remainingTimeRef = useRef(initialDuration);
+  const onCompleteRef = useRef(onComplete);
+
+  // keep latest onComplete in a ref to avoid stale closures when timer fires
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   // Use Web Worker for accurate timing (optional, can be added later)
   useEffect(() => {
@@ -36,8 +42,12 @@ export const useFocusTimer = (initialDuration, onComplete) => {
   const handleComplete = useCallback(() => {
     setIsRunning(false);
     setIsPaused(false);
-    if (onComplete) {
-      onComplete();
+    // call the latest onComplete from ref to avoid stale closures
+    try {
+      if (onCompleteRef.current) onCompleteRef.current();
+    } catch (e) {
+      // swallow errors from user callback to avoid breaking timer internals
+      console.error('Error in onComplete callback:', e);
     }
   }, [onComplete]);
 

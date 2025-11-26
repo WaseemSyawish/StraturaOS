@@ -289,20 +289,20 @@ export default function CalendarPage() {
         <title>Calendar — University Planner</title>
       </Head>
       <div className="calendar-page min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-4`}>
-        <div className="flex gap-6 h-full">
-          <div className="flex-1 flex flex-col h-full">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col h-full dark:bg-slate-900/80 dark:border-slate-800">
-              <div className="px-6 py-4 border-b border-slate-200/60 flex items-center justify-between bg-gradient-to-r from-white via-blue-50/20 to-white dark:border-slate-800 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-900">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
-                    <ChevronLeft className="w-5 h-5" />
+      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-2 sm:p-4`}>
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
+          <div className="flex-1 flex flex-col h-full w-full">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col h-full dark:bg-slate-900/80 dark:border-slate-800">
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-blue-50/20 to-white dark:border-slate-800 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-900">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <div className="text-3xl font-black text-slate-800 dark:text-slate-100" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-xl sm:text-3xl font-black text-slate-800 dark:text-slate-100" style={{ letterSpacing: '-0.02em' }}>
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </div>
-                  <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-10 w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
-                    <ChevronRight className="w-5 h-5" />
+                  <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
                 <button 
@@ -311,22 +311,23 @@ export default function CalendarPage() {
                     setCurrentDate(t); 
                     setSelectedDate(toYMD(t)); 
                   }} 
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
+                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />
                   <span>Today</span>
                 </button>
               </div>
 
-              <div className="p-6 flex-1 flex flex-col min-h-0">
-                <div className="grid grid-cols-7 gap-4 mb-4 flex-shrink-0">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                    <div key={d} className="text-center text-sm font-semibold uppercase tracking-wider text-slate-600 py-2 dark:text-slate-400">
-                      {d}
+              <div className="p-3 sm:p-6 flex-1 flex flex-col min-h-0">
+                <div className="grid grid-cols-7 gap-1 sm:gap-4 mb-2 sm:mb-4 flex-shrink-0">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                    <div key={d} className="text-center text-[10px] sm:text-sm font-semibold uppercase tracking-wider text-slate-600 py-1 sm:py-2 dark:text-slate-400">
+                      <span className="hidden sm:inline">{d}</span>
+                      <span className="sm:hidden">{d.charAt(0)}</span>
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-3 flex-1 min-h-0" style={{ gridAutoRows: '1fr', ...gridStyle }}>
+                <div className="grid grid-cols-7 gap-1 sm:gap-3 flex-1 min-h-0" style={{ gridAutoRows: '1fr', ...gridStyle }}>
                   {days.map((day, idx) => {
                     const dayEvents = getEventsForDate(day.date);
                     const holiday = isHoliday(day.date);
@@ -337,7 +338,7 @@ export default function CalendarPage() {
                       <div
                         key={idx}
                         onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                        className={`p-2 border-2 rounded-xl cursor-pointer transition-all duration-150 flex flex-col min-h-0 overflow-hidden ${
+                        className={`p-1 sm:p-2 border sm:border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-150 flex flex-col min-h-0 overflow-hidden ${
                           day.isCurrentMonth
                             ? (isSelected
                               ? 'bg-white border-purple-400 shadow-md shadow-purple-100/50 dark:bg-slate-800 dark:border-purple-500 dark:shadow-purple-500/20'
@@ -345,20 +346,20 @@ export default function CalendarPage() {
                             : 'bg-slate-50/50 border-slate-100 dark:bg-slate-900/30 dark:border-slate-800'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                          <div className={`text-base font-bold ${
+                        <div className="flex items-center justify-between mb-0.5 sm:mb-2 flex-shrink-0">
+                          <div className={`text-xs sm:text-base font-bold ${
                             !day.isCurrentMonth ? 'text-slate-400 dark:text-slate-600' :
-                            today ? 'text-white bg-gradient-to-br from-purple-600 to-purple-700 w-7 h-7 rounded-lg flex items-center justify-center shadow-md text-sm' :
+                            today ? 'text-white bg-gradient-to-br from-purple-600 to-purple-700 w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg flex items-center justify-center shadow-md text-[10px] sm:text-sm' :
                             'text-slate-800 dark:text-slate-200'
                           }`}>
                             {day.date.getDate()}
                           </div>
                           {holiday && (
-                            <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" title={holiday} />
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-500 rounded-full flex-shrink-0" title={holiday} />
                           )}
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 overflow-hidden max-h-[2.5rem]">
+                        <div className="hidden sm:flex flex-wrap gap-1.5 overflow-hidden max-h-[2.5rem]">
                           {dayEvents.slice(0, 3).map((item) => (
                             <div
                               key={item.id}
@@ -373,6 +374,12 @@ export default function CalendarPage() {
                             </div>
                           )}
                         </div>
+                        {/* Mobile: show event count dot */}
+                        {dayEvents.length > 0 && (
+                          <div className="sm:hidden flex justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -381,12 +388,12 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <aside className="w-96 flex-shrink-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden sticky top-24 dark:bg-slate-900/80 dark:border-slate-800" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
-              <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-6 text-white flex-shrink-0">
-                <div className="text-sm font-medium opacity-90 mb-1">Selected Day</div>
-                <div className="text-2xl font-extrabold">{formatSelectedDate()}</div>
-                <div className="text-sm opacity-80 mt-2">
+          <aside className="w-full lg:w-96 flex-shrink-0">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden lg:sticky lg:top-24 dark:bg-slate-900/80 dark:border-slate-800" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
+              <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-4 sm:p-6 text-white flex-shrink-0">
+                <div className="text-xs sm:text-sm font-medium opacity-90 mb-1">Selected Day</div>
+                <div className="text-xl sm:text-2xl font-extrabold">{formatSelectedDate()}</div>
+                <div className="text-xs sm:text-sm opacity-80 mt-2">
                   {(() => {
                     const evs = getEventsForDate(selectedDate || '');
                     return evs.length ? `${evs.length} event${evs.length > 1 ? 's' : ''}` : 'No events scheduled';
@@ -394,7 +401,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto calendar-scrollbar-hide" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
+              <div className="p-4 sm:p-6 overflow-y-auto calendar-scrollbar-hide" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
                 {selectedDate ? (
                   (() => {
                     const evs = getEventsForDate(selectedDate);

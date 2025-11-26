@@ -1,6 +1,7 @@
 // pages/api/grades.js
 import fs from 'fs';
 import path from 'path';
+import { resolveUser } from '../../lib/resolveUser';
 
 const dataFilePath = path.join(process.cwd(), 'data', 'grades.json');
 
@@ -38,9 +39,6 @@ const writeGradesData = (data) => {
     return false;
   }
 };
-
-// Import the centralized resolveUser that checks all cookie types
-import { resolveUser } from '../../lib/resolveUser';
 
 // Try to load Prisma client (shared instance). If unavailable we'll fall back to file storage.
 let prismaClient = null;

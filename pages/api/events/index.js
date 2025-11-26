@@ -1,4 +1,5 @@
 import prisma from '../../../lib/prisma';
+import withPrisma from '../../../lib/withPrisma';
 
 // Helper: treat date-only strings (YYYY-MM-DD) as a date without local-midnight
 // to avoid timezone shifts when parsed by `new Date(string)`.
@@ -123,7 +124,7 @@ async function createEventWithFallback(client, data) {
   throw new Error('Failed to create event after retries due to unsupported DB fields');
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // Support OPTIONS for simple CORS checks or preflight from tools
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET,POST,OPTIONS');
@@ -132,37 +133,6 @@ export default async function handler(req, res) {
 
   // Allow GET to fetch events for a user (used by the client)
   if (req.method === 'GET') {
-
-          try {
-            if (out.meta && typeof out.meta === 'object') {
-              if (out.meta.priority && !out.priority) {
-                out.priority = out.meta.priority;
-              }
-              const recurrence = out.meta.recurrence || null;
-              if (recurrence) {
-                if (!out.recurrence) out.recurrence = recurrence;
-                if (!out.repeatOption && recurrence.repeatOption) {
-                  out.repeatOption = recurrence.repeatOption;
-                }
-                if (!out.byDays && recurrence.byDays) {
-                  out.byDays = recurrence.byDays;
-                }
-                if (!out.interval && recurrence.intervalWeeks) {
-                  out.interval = recurrence.intervalWeeks;
-                }
-                if (!out.materializeCount && recurrence.materializeCount) {
-                  out.materializeCount = recurrence.materializeCount;
-                }
-                if (!out.materializeUntil && recurrence.materializeUntil) {
-                  out.materializeUntil = recurrence.materializeUntil;
-                }
-              } else if (out.meta.repeatOption && !out.repeatOption) {
-                out.repeatOption = out.meta.repeatOption;
-              }
-            }
-          } catch (e) {
-            // best-effort only
-          }
     try {
       // Add cache headers for performance
       res.setHeader('Cache-Control', 'private, s-maxage=10, stale-while-revalidate=30');
@@ -1354,3 +1324,5 @@ export default async function handler(req, res) {
   res.setHeader('Allow', 'GET,POST,OPTIONS');
   res.status(405).end();
 }
+
+export default withPrisma(handler);

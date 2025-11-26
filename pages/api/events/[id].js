@@ -826,6 +826,18 @@ export default async function handler(req, res) {
             try {
               const fallbackResult = { updatedActive: 0, updatedArchived: 0, updatedActiveIds: [], updatedArchivedIds: [] };
 
+              // Re-determine targetDateForFuture for the fallback (it was scoped inside the transaction)
+              let targetDateForFuture = null;
+              if (scope === 'future') {
+                if (updateData.date) targetDateForFuture = new Date(updateData.date);
+                else {
+                  try {
+                    const existing = await prisma.event.findUnique({ where: { id } }) || await prisma.archivedEvent.findFirst({ where: { original_event_id: id } });
+                    if (existing && existing.date) targetDateForFuture = new Date(existing.date);
+                  } catch (e) { }
+                }
+              }
+
               // If we discovered a template id do the template-based path first
               if (tplId) {
                 const whereActive = (scope === 'future' && targetDateForFuture) ? { template_id: String(tplId), date: { gte: targetDateForFuture } } : { template_id: String(tplId) };

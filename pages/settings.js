@@ -371,15 +371,15 @@ export default function Settings() {
 
   return (
     <HygraphSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-3 sm:p-6">
       <Head>
         <title>Settings — University Planner</title>
       </Head>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
-          <p className="text-gray-600 dark:text-gray-300">Manage your account preferences and application settings</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Manage your account preferences and application settings</p>
         </div>
 
         {/* Status Messages */}
@@ -408,26 +408,26 @@ export default function Settings() {
         )}
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <Card>
-              <CardContent className="pt-6">
-                <nav className="space-y-1">
+              <CardContent className="pt-4 sm:pt-6">
+                <nav className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
                   {sections.map((section) => {
                     const Icon = section.icon;
                     return (
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 ${
+                        className={`flex-shrink-0 lg:w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${
                           activeSection === section.id
                             ? 'bg-purple-50 dark:bg-purple-900 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-800'
                             : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-purple-50 dark:focus:bg-purple-900'
                         }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        {section.label}
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="whitespace-nowrap">{section.label}</span>
                       </button>
                     );
                   })}

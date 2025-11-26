@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../src/components/CustomSelect';
-import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download, AlertCircle, Calculator } from 'lucide-react';
+import { GraduationCap, TrendingUp, Award, BookOpen, Plus, Trash2, Edit2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, Tag, Scale, Check, BarChart3, Target, HelpCircle, MessageCircle, Microscope, MapPin, Download, AlertCircle, Calculator, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Head from 'next/head';
 import GradeCalculator from '../src/components/grades/GradeCalculator';
@@ -26,6 +26,7 @@ const GradesPage = () => {
     weight: '',
     type: 'assignment'
   });
+  const [categoryError, setCategoryError] = useState('');
 
   const [newItem, setNewItem] = useState({
     name: '',
@@ -141,28 +142,48 @@ const GradesPage = () => {
   ];
 
   const handleAddCategory = () => {
-    if (!newCategory.name || !newCategory.weight) return;
+    setCategoryError(''); // Clear previous error
+    
+    if (!newCategory.name || !newCategory.weight) {
+      setCategoryError('Please fill in both name and weight.');
+      return;
+    }
+    
+    // Parse weight - handle formats like "20", "20%", "-5", "-5%"
+    let weightStr = String(newCategory.weight).trim();
+    // Remove % sign if present
+    weightStr = weightStr.replace(/%$/, '');
+    const newWeight = parseFloat(weightStr);
+    
+    // Validate the weight is a valid number
+    if (isNaN(newWeight)) {
+      setCategoryError('Please enter a valid number for weight.');
+      return;
+    }
+    
+    // Convert negative to positive (user might enter -20% meaning 20%)
+    const absoluteWeight = Math.abs(newWeight);
     
     // Calculate current total weight including the new category
     const currentTotal = (selectedCourse.categories || []).reduce((sum, cat) => sum + (parseFloat(cat.weight) || 0), 0);
-    const newWeight = parseFloat(newCategory.weight);
-    const futureTotal = currentTotal + newWeight;
+    const futureTotal = currentTotal + absoluteWeight;
     
     // Prevent exceeding 100%
     if (futureTotal > 100) {
-      alert(`Cannot add category: Total weight would be ${futureTotal.toFixed(1)}%, which exceeds 100%.\n\nCurrent total: ${currentTotal.toFixed(1)}%\nNew category weight: ${newWeight.toFixed(1)}%\nAvailable weight: ${(100 - currentTotal).toFixed(1)}%`);
+      setCategoryError(`Total weight would be ${futureTotal.toFixed(1)}%, exceeding 100%. Available: ${(100 - currentTotal).toFixed(1)}%`);
       return;
     }
     
     // Prepare local category payload
     const categoryPayload = {
       name: newCategory.name,
-      weight: parseFloat(newCategory.weight),
+      weight: absoluteWeight,
       type: newCategory.type || 'assignment',
       items: []
     };
 
     setNewCategory({ name: '', weight: '', type: 'assignment' });
+    setCategoryError('');
     setShowCategoryModal(false);
 
     // Persist to server: call PUT /api/grades with action add_assessment
@@ -624,7 +645,7 @@ const GradesPage = () => {
 
   return (
     <HygraphSidebar>
-    <div className="min-h-screen relative z-10 text-slate-900 dark:text-slate-100 dark:bg-slate-900">
+    <div className="min-h-screen relative text-slate-900 dark:text-slate-100 dark:bg-slate-900">
       <Head>
         <title>Grade Calculator & Predictor — University Planner</title>
       </Head>
@@ -660,7 +681,7 @@ const GradesPage = () => {
         }
       `}} />
       {/* Navbar: consistent with Calendar/Overview styling */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Loading State */}
         {loading ? (
           <div className="min-h-[60vh] flex items-center justify-center">
@@ -693,23 +714,23 @@ const GradesPage = () => {
             {courses && courses.length > 0 && (
               <div className="mb-8">
                 {/* Main Calculator Display */}
-                <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-lg p-8 mb-6 border border-purple-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                      <Calculator className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-8 mb-6 border border-purple-200 dark:border-slate-700">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                      <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-300">Your Academic Calculator</h2>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Real-time grade analysis & prediction</p>
+                      <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-300">Your Academic Calculator</h2>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Real-time grade analysis & prediction</p>
                     </div>
                   </div>
                   
                   {/* Digital Display */}
-                  <div className="bg-white/60 dark:bg-slate-950/50 rounded-xl p-6 mb-6 border border-purple-200 dark:border-slate-800">
-                    <div className="grid grid-cols-3 gap-6">
+                  <div className="bg-white/60 dark:bg-slate-950/50 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-purple-200 dark:border-slate-800">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                       <div className="text-center">
-                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">CURRENT GPA</div>
-                        <div className="text-5xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
+                        <div className="text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">CURRENT GPA</div>
+                        <div className="text-3xl sm:text-5xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
                           {stats.gpa}
                         </div>
                         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -718,9 +739,9 @@ const GradesPage = () => {
                         </div>
                       </div>
                       
-                      <div className="text-center border-l border-r border-purple-200 dark:border-slate-800">
-                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">TOTAL CREDITS</div>
-                        <div className="text-5xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">
+                      <div className="text-center sm:border-l sm:border-r border-t sm:border-t-0 pt-4 sm:pt-0 border-purple-200 dark:border-slate-800">
+                        <div className="text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">TOTAL CREDITS</div>
+                        <div className="text-3xl sm:text-5xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">
                           {stats.credits}
                         </div>
                         <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
@@ -1158,7 +1179,7 @@ const GradesPage = () => {
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
               <button 
-                onClick={() => setShowCategoryModal(false)}
+                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
                 className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
               >
                 <X className="w-6 h-6" />
@@ -1206,16 +1227,23 @@ const GradesPage = () => {
                   Weight (%)
                 </label>
                 <input
-                  type="number"
-                  placeholder="20"
-                  min="0"
-                  max="100"
+                  type="text"
+                  placeholder="20 or 20%"
                   ref={weightRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
+                  className={`dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border ${categoryError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500`}
                   value={newCategory.weight}
-                  onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
+                  onChange={(e) => {
+                    setNewCategory({...newCategory, weight: e.target.value});
+                    setCategoryError('');
+                  }}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">How much this category counts toward the final grade</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Negative values like -20% will be converted to 20%</p>
+                {categoryError && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {categoryError}
+                  </p>
+                )}
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-500 dark:bg-opacity-10 border border-blue-200 dark:border-blue-500 dark:border-opacity-30 rounded-lg p-3">
@@ -1227,7 +1255,7 @@ const GradesPage = () => {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowCategoryModal(false)}
+                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
                 className="flex-1 px-4 py-3 bg-white dark:bg-[#2a2f3e] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#363b4d] transition-colors font-medium"
               >
                 Cancel
@@ -1251,7 +1279,7 @@ const GradesPage = () => {
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
               <button 
-                onClick={() => setShowCategoryModal(false)}
+                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
                 className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
               >
                 <X className="w-6 h-6" />
@@ -1299,16 +1327,23 @@ const GradesPage = () => {
                   Weight (%)
                 </label>
                 <input
-                  type="number"
-                  placeholder="20"
-                  min="0"
-                  max="100"
+                  type="text"
+                  placeholder="20 or 20%"
                   ref={weightRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
+                  className={`dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border ${categoryError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500`}
                   value={newCategory.weight}
-                  onChange={(e) => setNewCategory({...newCategory, weight: e.target.value})}
+                  onChange={(e) => {
+                    setNewCategory({...newCategory, weight: e.target.value});
+                    setCategoryError('');
+                  }}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">How much this category counts toward the final grade</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Negative values like -20% will be converted to 20%</p>
+                {categoryError && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {categoryError}
+                  </p>
+                )}
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-500 dark:bg-opacity-10 border border-blue-200 dark:border-blue-500 dark:border-opacity-30 rounded-lg p-3">
@@ -1320,7 +1355,7 @@ const GradesPage = () => {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowCategoryModal(false)}
+                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
                 className="flex-1 px-4 py-3 bg-white dark:bg-[#2a2f3e] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#363b4d] transition-colors font-medium"
               >
                 Cancel

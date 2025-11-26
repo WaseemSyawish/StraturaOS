@@ -1,28 +1,14 @@
 // Consolidated attendance API handler below.
 // Removed an earlier simplistic file-based handler to avoid duplicate default exports.
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../lib/prisma';
+import withPrisma from '../../lib/withPrisma';
 
 // Import the centralized resolveUser that checks all cookie types
 import { resolveUser } from '../../lib/resolveUser';
 
-let prisma;
-let prismaUsable = true;
-
-function initPrisma() {
-  if (prisma) return prisma;
-  try {
-    prisma = new PrismaClient();
-    return prisma;
-  } catch (err) {
-    console.error('Prisma init error:', err);
-    prismaUsable = false;
-    return null;
-  }
-}
-
+// Shared prisma instance - getPrisma just returns it
 function getPrisma() {
-  if (!prismaUsable) return null;
-  return prisma || initPrisma();
+  return prisma;
 }
 
 let attendanceFallback;
@@ -48,7 +34,7 @@ function isPrismaEngineError(err) {
   return msg.includes('Query Engine') || msg.includes('could not locate the Query Engine') || err.name === 'PrismaClientInitializationError';
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { method } = req;
 
   try {
@@ -81,6 +67,8 @@ export default async function handler(req, res) {
     // managed globally and should be disconnected only on process shutdown.
   }
 }
+
+export default withPrisma(handler);
 
 // GET /api/attendance - Fetch attendance sessions for a course
 async function handleGet(req, res) {

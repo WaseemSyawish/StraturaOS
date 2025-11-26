@@ -2,7 +2,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target, Archive, XCircle, Award, MapPin, User, FileText, Timer, BarChart3, Flame, ChevronRight, Lightbulb, ArrowRight, CalendarOff, CheckSquare, Navigation, MoreVertical, Edit2, Trash2, Bell, Beaker, Tag, ListTodo } from 'lucide-react';
+import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, AlertTriangle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target, Archive, XCircle, Award, MapPin, User, FileText, Timer, BarChart3, Flame, ChevronRight, Lightbulb, ArrowRight, CalendarOff, CheckSquare, Navigation, MoreVertical, Edit2, Trash2, Bell, Beaker, Tag, ListTodo } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
@@ -11,6 +11,7 @@ import HeroSection from '@/components/overview/HeroSection';
 import RecentTasks from '@/components/overview/RecentTasks';
 import TodaysSchedule from '@/components/overview/TodaysSchedule';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 
 // Course color palette (matches design doc)
 const DEFAULT_COURSE_COLORS = [
@@ -71,9 +72,80 @@ function getTimeUntilText(date) {
   return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const CalendarHeader = React.memo(function CalendarHeader({ userName, todayTasksCount, upcomingClassTime, completedList }) {
+// Quick Task Form component for the floating button
+const QuickTaskForm = ({ onSubmit, onClose }) => {
+  const [title, setTitle] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    if (!title.trim() || submitting) return;
+    setSubmitting(true);
+    await onSubmit(title.trim());
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-2">
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus-within:border-purple-400 focus-within:ring-2 focus-within:ring-purple-100 dark:focus-within:ring-purple-900/30 transition-all">
+          <Target className="w-5 h-5 text-purple-500" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="What do you need to do?"
+            className="flex-1 bg-transparent text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+          />
+        </div>
+        
+        <p className="text-xs text-slate-500 dark:text-slate-400 px-1">
+          💡 Task will be added to today's list. Edit details from the Tasks page.
+        </p>
+        
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!title.trim() || submitting}
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Add Task
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+};
+
+const CalendarHeader = React.memo(function CalendarHeader({ userName, todayTasksCount, upcomingClassTime, completedList, overdueList = [] }) {
   const router = useRouter();
   const [notifOpen, setNotifOpen] = React.useState(false);
+  
+  const hasOverdue = overdueList.length > 0;
+  const notifCount = overdueList.length + completedList.length;
   
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-40">
@@ -92,10 +164,10 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName, todayTasks
                 onClick={() => setNotifOpen(!notifOpen)}
                 className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 relative transition-colors"
               >
-                <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-                {completedList.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {completedList.length > 9 ? '9+' : completedList.length}
+                <Bell className={`w-5 h-5 ${hasOverdue ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`} />
+                {notifCount > 0 && (
+                  <span className={`absolute -top-1 -right-1 w-5 h-5 text-white text-xs font-bold rounded-full flex items-center justify-center ${hasOverdue ? 'bg-red-500' : 'bg-green-600'}`}>
+                    {notifCount > 9 ? '9+' : notifCount}
                   </span>
                 )}
               </button>
@@ -108,43 +180,90 @@ const CalendarHeader = React.memo(function CalendarHeader({ userName, todayTasks
                   />
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 z-50 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 dark:border-slate-700">
-                      <h3 className="font-bold text-gray-900 dark:text-white">Recent Activity</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Completed today</p>
+                      <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Overdue tasks & recent activity</p>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {completedList.length === 0 ? (
-                        <div className="p-8 text-center">
-                          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                          <p className="text-sm text-gray-500 dark:text-gray-400">No completed tasks yet</p>
-                        </div>
-                      ) : (
-                        <div className="divide-y divide-gray-100 dark:divide-slate-700">
-                          {completedList.slice(0, 10).map((item, idx) => (
-                            <div key={item.id || idx} className="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
-                              <div className="flex items-start gap-3">
-                                <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full mt-0.5">
-                                  <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                    {item.name || item.title || 'Task'}
-                                  </p>
-                                  {item.completedAt && (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                      {new Date(item.completedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                      {/* Overdue / Missed Tasks Section */}
+                      {overdueList.length > 0 && (
+                        <div className="border-b border-gray-100 dark:border-slate-700">
+                          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20">
+                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">
+                              ⚠️ Overdue ({overdueList.length})
+                            </p>
+                          </div>
+                          <div className="divide-y divide-gray-100 dark:divide-slate-700">
+                            {overdueList.slice(0, 5).map((item, idx) => (
+                              <div key={item.id || idx} className="p-3 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-full mt-0.5">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                      {item.name || item.title || 'Task'}
                                     </p>
-                                  )}
+                                    <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">
+                                      {Math.abs(item.daysLeft || 0)} day{Math.abs(item.daysLeft || 0) !== 1 ? 's' : ''} overdue
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Completed Tasks Section */}
+                      {completedList.length > 0 && (
+                        <div>
+                          <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20">
+                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">
+                              ✓ Completed Today ({completedList.length})
+                            </p>
+                          </div>
+                          <div className="divide-y divide-gray-100 dark:divide-slate-700">
+                            {completedList.slice(0, 5).map((item, idx) => (
+                              <div key={item.id || idx} className="p-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded-full mt-0.5">
+                                    <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                      {item.name || item.title || 'Task'}
+                                    </p>
+                                    {item.completedAt && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        {new Date(item.completedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Empty State */}
+                      {overdueList.length === 0 && completedList.length === 0 && (
+                        <div className="p-8 text-center">
+                          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">All caught up!</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">No overdue tasks or recent activity</p>
                         </div>
                       )}
                     </div>
-                    <div className="p-3 border-t border-gray-200 dark:border-slate-700">
-                      <Link href="/history" prefetch={true}>
+                    <div className="p-3 border-t border-gray-200 dark:border-slate-700 flex gap-2">
+                      <Link href="/tasks" prefetch={true} className="flex-1">
                         <button className="w-full text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                          View All History
+                          View Tasks
+                        </button>
+                      </Link>
+                      <Link href="/history" prefetch={true} className="flex-1">
+                        <button className="w-full text-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:underline">
+                          View History
                         </button>
                       </Link>
                     </div>
@@ -214,7 +333,7 @@ export default function UniversityOverview() {
   
   // Modal context for creating events
   const modalCtx = useModal();
-  const { setOpen, isOpen } = modalCtx;
+  const { setOpen, setClose, isOpen } = modalCtx;
   
   // Debug logs to detect whether this component mounts/unmounts on navigation
   useEffect(() => {
@@ -280,7 +399,6 @@ export default function UniversityOverview() {
 
   // UI state
   const [completedDeadlines, setCompletedDeadlines] = useState(new Set());
-  const [hiddenCompleted, setHiddenCompleted] = useState(new Set());
   const hideTimersRef = useRef({});
   const [completedAtMap, setCompletedAtMap] = useState({});
   const [showCompleted, setShowCompleted] = useState(false);
@@ -288,6 +406,9 @@ export default function UniversityOverview() {
   
   // Toast notification state
   const [toast, setToast] = useState(null);
+  // Recently completed items (temporary undo UI)
+  const [recentlyCompleted, setRecentlyCompleted] = useState([]); // { id, title }
+  const HIDE_GRACE_MS = 8 * 1000; // 8 seconds grace to undo
   
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type, id: Date.now() });
@@ -328,6 +449,65 @@ export default function UniversityOverview() {
       async () => ({ default: { date: new Date().toISOString().split('T')[0] } })
     );
   }, [setOpen]);
+
+  // Full task creation modal - uses TaskDetailPanel from tasks page
+  const openQuickTaskModal = useCallback(() => {
+    const handleCreate = async (data) => {
+      try {
+        // Build event payload matching tasks page format
+        const payload = {
+          title: data.title,
+          type: data.meta?.type || 'task',
+          status: data.meta?.status || 'todo',
+          priority: data.meta?.priority || 'not-urgent-not-important',
+          startDate: data.dueDate || null,
+          dueDate: data.dueDate || null,
+          meta: {
+            myDay: data.meta?.myDay || false,
+            course: data.meta?.course || null,
+            courseColor: data.meta?.courseColor || null,
+            priority: data.meta?.priority || 'not-urgent-not-important',
+            tags: data.meta?.tags || [],
+            status: data.meta?.status || 'todo',
+            type: data.meta?.type || 'task',
+          },
+        };
+        
+        const res = await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        
+        if (res.ok) {
+          showToast('Task added!', 'success');
+          // Refresh events to show the new task
+          const eventsRes = await fetch('/api/events');
+          if (eventsRes.ok) {
+            const eventsData = await eventsRes.json();
+            setEvents(eventsData.events || []);
+          }
+          return { success: true };
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          return { success: false, error: errData.message || 'Failed to create task' };
+        }
+      } catch (err) {
+        return { success: false, error: err.message || 'Failed to create task' };
+      }
+    };
+
+    setOpen(
+      <CustomModal title="Add Task">
+        <TaskDetailPanel 
+          mode="create"
+          modules={courses}
+          onCreate={handleCreate}
+          onClose={() => setClose()}
+        />
+      </CustomModal>
+    );
+  }, [setOpen, setClose, showToast, courses]);
 
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -598,18 +778,15 @@ export default function UniversityOverview() {
       try { console.time && console.time('overview:memo:visibleUpcomingDeadlines'); } catch (e) {}
       const out = (upcomingDeadlines || []).filter(d => {
         const id = String(d.id);
-        if (hiddenCompleted.has(id)) return false;
-        if (showCompleted) return true;
-        const ts = completedAtMap && completedAtMap[id] ? Date.parse(completedAtMap[id]) : null;
-        if (ts && !isNaN(ts)) {
-          if ((Date.now() - ts) >= AUTO_HIDE_MS) return false;
-        }
+        // If the deadline was marked completed, only show when `showCompleted` is true
+        if (completedDeadlines.has(id) && !showCompleted) return false;
+        // Otherwise show
         return true;
       });
       try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {}
       return out;
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:visibleUpcomingDeadlines'); } catch (e) {} return []; }
-  }, [upcomingDeadlines, hiddenCompleted, showCompleted, completedAtMap, completedDeadlines]);
+  }, [upcomingDeadlines, showCompleted, completedDeadlines]);
 
   // --- Data loading and actions ---
   const safeFetchJson = async (url, opts) => {
@@ -634,12 +811,22 @@ export default function UniversityOverview() {
     console.log('[Overview] loadAll start');
     try {
       // Use cached data with 2 minute TTL for much better performance
-      const [evJson, coursesJson, gradesJson, sessionsStatsJson] = await Promise.all([
+      // Use cache for large static endpoints, but fetch session stats fresh to avoid stale safe-defaults
+      const [evJson, coursesJson, gradesJson] = await Promise.all([
         fetchWithCache('/api/events', { credentials: 'same-origin' }, 120000),
         fetchWithCache('/api/courses', { credentials: 'same-origin' }, 120000),
         fetchWithCache('/api/grades', { credentials: 'same-origin' }, 120000),
-        fetchWithCache('/api/sessions/stats', { credentials: 'same-origin' }, 120000)
       ]);
+
+      let sessionsStatsJson = null;
+      try {
+        const resp = await fetch('/api/sessions/stats', { credentials: 'same-origin', cache: 'no-store' });
+        try { console.log('[Overview] /api/sessions/stats status=', resp.status); } catch (e) {}
+        sessionsStatsJson = resp.ok ? await resp.json() : null;
+      } catch (e) {
+        console.error('[Overview] Error fetching /api/sessions/stats:', e);
+        sessionsStatsJson = null;
+      }
 
       const fetchedEvents = Array.isArray(evJson.events) ? evJson.events : [];
       const fetchedCourses = coursesJson && coursesJson.success && Array.isArray(coursesJson.courses) ? coursesJson.courses : [];
@@ -652,9 +839,18 @@ export default function UniversityOverview() {
       
       // Calculate study hours from focus sessions (convert seconds to hours)
       if (sessionsStats && sessionsStats.week) {
-        const weekDuration = sessionsStats.week.total_duration || 0;
-        const studyHours = Math.floor(weekDuration / 3600);
-        setStudyHoursLogged(studyHours);
+        try {
+          console.log('[Overview] sessionsStats received:', sessionsStats);
+        } catch (e) {}
+
+        // Prefer total_duration (seconds), fall back to focus_duration or other likely keys
+        const weekDuration = Number(sessionsStats.week.total_duration || sessionsStats.week.focus_duration || sessionsStats.week.totalDuration || 0) || 0;
+        // Convert seconds to fractional hours with one decimal place
+        const studyHoursFloat = Number((weekDuration / 3600).toFixed(1));
+        setStudyHoursLogged(studyHoursFloat);
+      } else {
+        // If stats missing, ensure UI doesn't stay at undefined
+        setStudyHoursLogged(0);
       }
     } finally {
       setLoading(false);
@@ -1007,18 +1203,42 @@ export default function UniversityOverview() {
         }
       }
       
-      // Hide from upcoming list immediately
-      setHiddenCompleted(prev => { const n = new Set(prev); n.add(String(id)); return n; });
+      // Add to a recently-completed area with undo option, then finalize hide after grace
+      setRecentlyCompleted(prev => {
+        const title = event.title || event.name || 'Task';
+        // avoid duplicates
+        if (prev.some(p => String(p.id) === String(id))) return prev;
+        return [{ id: String(id), title, ts: Date.now() }, ...prev];
+      });
+      // schedule finalization
+      try {
+        if (hideTimersRef && hideTimersRef.current) {
+          if (hideTimersRef.current[String(id)]) clearTimeout(hideTimersRef.current[String(id)]);
+          hideTimersRef.current[String(id)] = setTimeout(() => {
+            // finalize: remove the recently-completed pill after the grace period
+            setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(id)));
+            // Auto-archive past-due events
+            const eventDate = event.startDate ? new Date(event.startDate) : (event.date ? new Date(event.date) : null);
+            if (eventDate && !isNaN(eventDate.getTime())) {
+              const eventMidnight = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+              const nowMidnight = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+              if (nowMidnight > eventMidnight) archiveDeadline(id);
+            }
+            delete hideTimersRef.current[String(id)];
+          }, HIDE_GRACE_MS);
+        }
+      } catch (e) {}
     } else if (!nextValue) {
-      // User is unchecking - remove from hidden so it appears in upcoming again
-      setHiddenCompleted(prev => { const n = new Set(prev); n.delete(String(id)); return n; });
+      // User is unchecking - nothing to hide; completed state drives visibility
     }
 
     const server = await toggleCompletedOnServer(id, nextValue);
     if (!server) {
       // revert local optimistic state on error
+      // clear any pending timer & remove from recentlyCompleted
+      try { if (hideTimersRef && hideTimersRef.current && hideTimersRef.current[String(id)]) { clearTimeout(hideTimersRef.current[String(id)]); delete hideTimersRef.current[String(id)]; } } catch (e) {}
+      setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(id)));
       setCompletedDeadlines(prev => { const n = new Set(prev); if (nextValue) n.delete(String(id)); else n.add(String(id)); return n; });
-      setHiddenCompleted(prev => { const n = new Set(prev); if (nextValue) n.delete(String(id)); else n.add(String(id)); return n; });
       setCompletedAtMap(prev => { const n = { ...prev }; if (nextValue) delete n[String(id)]; else n[String(id)] = (prev && prev[String(id)]) || null; return n; });
     } else {
       // persist any server-updated timestamps into events list
@@ -1026,6 +1246,18 @@ export default function UniversityOverview() {
       // Invalidate cache to ensure fresh data on next load
       invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
     }
+  };
+
+  const undoRecentlyCompleted = (id) => {
+    try { if (hideTimersRef && hideTimersRef.current && hideTimersRef.current[String(id)]) { clearTimeout(hideTimersRef.current[String(id)]); delete hideTimersRef.current[String(id)]; } } catch (e) {}
+    // Optimistically uncheck locally and persist
+    setCompletedDeadlines(prev => { const n = new Set(prev); n.delete(String(id)); return n; });
+    setCompletedAtMap(prev => { const n = { ...prev }; delete n[String(id)]; return n; });
+    setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(id)));
+    // Persist to server
+    (async () => {
+      try { await toggleCompletedOnServer(id, false); invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' })); } catch (e) {}
+    })();
   };
 
   const completedList = useMemo(() => {
@@ -1100,6 +1332,13 @@ export default function UniversityOverview() {
     } catch (e) { try { console.timeEnd && console.timeEnd('overview:memo:completedList'); } catch (e) {} return []; }
   }, [events, completedDeadlines, completedAtMap, currentDate]);
 
+  // Overdue / missed tasks (daysLeft < 0)
+  const overdueList = useMemo(() => {
+    try {
+      return upcomingDeadlines.filter(d => (d.daysLeft ?? 0) < 0);
+    } catch (e) { return []; }
+  }, [upcomingDeadlines]);
+
   // Calculate quick stats for header (must be before early return to avoid hook order issues)
   const todayTasksCount = useMemo(() => {
     return upcomingDeadlines.filter(d => {
@@ -1150,7 +1389,7 @@ export default function UniversityOverview() {
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       
       {/* Main container with max-width */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         
         {/* Hero Section */}
         <HeroSection 
@@ -1159,11 +1398,13 @@ export default function UniversityOverview() {
           onViewTasks={() => router.push('/tasks')}
         />
 
+
+
         {/* Academic Overview - Detailed */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm p-4 sm:p-6 mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Academic Overview</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Academic Overview</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your academic performance</p>
             </div>
             <Link href="/grades" prefetch={true}>
@@ -1174,7 +1415,7 @@ export default function UniversityOverview() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* GPA - Horizontal Layout */}
             <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-gray-200/60 dark:border-slate-700/60">
               <div className="flex items-center justify-between mb-3">
@@ -1247,7 +1488,7 @@ export default function UniversityOverview() {
         </div>
 
         {/* Main Content Grid: 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           
           {/* LEFT COLUMN: Today's Schedule + Tasks */}
           <div className="space-y-6">
@@ -1258,33 +1499,34 @@ export default function UniversityOverview() {
             />
           
             {/* TASKS CARD */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-              <div className="bg-purple-600 dark:bg-purple-700 px-6 py-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
+              {/* Consistent header styling */}
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/10 rounded-lg">
-                      <Target className="w-5 h-5 text-white" strokeWidth={2} />
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" strokeWidth={2} />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-white">Tasks</h2>
-                      <p className="text-xs text-purple-100 mt-0.5">
-                        {upcomingDeadlines.filter(d => !completedDeadlines.has(String(d.id))).length} {upcomingDeadlines.filter(d => !completedDeadlines.has(String(d.id))).length === 1 ? 'task' : 'tasks'} to complete
+                      <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Tasks</h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {visibleUpcomingDeadlines.length} pending
                       </p>
                     </div>
                   </div>
                   <Link href="/tasks" prefetch={true}>
-                    <button className="text-xs font-medium text-white hover:text-purple-100 px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors">
-                      View All
+                    <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                      View All →
                     </button>
                   </Link>
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4">
 
-              {upcomingDeadlines.length > 0 ? (
-                  <div className="space-y-3">
-                    {upcomingDeadlines.slice(0, 5).map((deadline, index) => {
+              {visibleUpcomingDeadlines.length > 0 ? (
+                  <div className="space-y-2">
+                    {visibleUpcomingDeadlines.slice(0, 4).map((deadline, index) => {
                       const course = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
                       const courseColor = getCourseColor(course, index);
                       const dueDate = new Date(deadline.due || deadline.date);
@@ -1467,14 +1709,15 @@ export default function UniversityOverview() {
                       return (
                         <div 
                           key={deadline.id} 
-                          className={`group relative rounded-xl border bg-white dark:bg-slate-800/50 transition-all duration-200 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-700 cursor-pointer ${
+                          className={`group relative rounded-lg border bg-white dark:bg-slate-800 transition-all duration-150 hover:shadow-sm cursor-pointer ${
                             isChecked 
-                              ? 'opacity-50 border-gray-200/60 dark:border-slate-700/60' 
-                              : 'border-gray-200 dark:border-slate-700 hover:-translate-y-0.5'
+                              ? 'opacity-50 border-gray-200 dark:border-slate-700' 
+                              : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
                           }`}
+                          style={{ borderLeftWidth: '3px', borderLeftColor: courseColor }}
                         >
-                          <div className="p-4">
-                            <div className="flex items-start gap-3.5">
+                          <div className="p-3">
+                            <div className="flex items-start gap-3">
                               {/* Custom Checkbox */}
                               <div className="flex-shrink-0 pt-0.5">
                                 <button
@@ -1500,59 +1743,53 @@ export default function UniversityOverview() {
                                   }}
                                 >
                                   {isChecked && (
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
                                   )}
                                 </button>
                               </div>
                               
-                              {/* Content */}
+                              {/* Content - Made more compact */}
                               <div className="flex-1 min-w-0">
-                                {/* Title */}
-                                <h4 className={`text-[15px] font-semibold text-gray-900 dark:text-white mb-2.5 leading-snug ${isChecked ? 'line-through' : ''}`}>
-                                  {deadline.title}
-                                </h4>
+                                {/* Title row with inline due time */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className={`text-sm font-semibold text-gray-900 dark:text-white leading-tight ${isChecked ? 'line-through opacity-60' : ''}`}>
+                                    {deadline.title}
+                                  </h4>
+                                  {/* Compact time badge */}
+                                  <div className="flex-shrink-0">
+                                    {urgencyBadge ? (
+                                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold uppercase">
+                                        <Clock className="w-3 h-3" strokeWidth={2.5} />
+                                        {isOverdue ? 'Late' : 'Today'}
+                                      </span>
+                                    ) : (
+                                      <span className={`text-[10px] font-medium ${timeColor}`}>{timeText}</span>
+                                    )}
+                                  </div>
+                                </div>
                                 
-                                {/* Meta info row */}
-                                <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
-                                  {/* Course badge */}
+                                {/* Compact meta row */}
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                  {/* Course pill */}
                                   {course && (
                                     <span 
-                                      className="px-2.5 py-1 rounded-md text-xs font-semibold text-white shadow-sm"
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
                                       style={{ backgroundColor: courseColor }}
                                     >
                                       {course.code || course.name}
                                     </span>
                                   )}
                                   
-                                  {/* Priority badge */}
-                                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${priority.color}`}>
-                                    <PriorityIcon className="w-3.5 h-3.5" strokeWidth={2.5} />
+                                  {/* Priority indicator - just icon + text */}
+                                  <span className={`flex items-center gap-1 text-[10px] font-medium ${priority.color.replace('bg-', '').replace('dark:bg-', '')}`}>
+                                    <PriorityIcon className="w-3 h-3" strokeWidth={2} />
                                     {priority.label}
                                   </span>
                                 </div>
-                                
-                                {/* Time info */}
-                                <div className="flex items-center gap-1.5 text-xs mb-2">
-                                  {urgencyBadge ? (
-                                    urgencyBadge
-                                  ) : (
-                                    <>
-                                      <Clock className={`w-3.5 h-3.5 ${timeColor}`} />
-                                      <span className={timeColor}>{timeText}</span>
-                                    </>
-                                  )}
-                                </div>
-                                
-                                {/* Description preview */}
-                                {deadline.description && (
-                                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                                    {deadline.description}
-                                  </p>
-                                )}
                               </div>
                               
-                              {/* Archive button */}
-                              <div className="flex-shrink-0">
+                              {/* Archive button - smaller */}
+                              <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
@@ -1560,10 +1797,10 @@ export default function UniversityOverview() {
                                       await archiveDeadline(deadline.id);
                                     }
                                   }}
-                                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                   title="Archive task"
                                 >
-                                  <Archive className="w-4 h-4" />
+                                  <Archive className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </div>
@@ -1571,43 +1808,42 @@ export default function UniversityOverview() {
                         </div>
                       );
                     })}
+                    
+                    {/* "More tasks" indicator if there are more */}
+                    {visibleUpcomingDeadlines.length > 4 && (
+                      <Link href="/tasks" prefetch={true}>
+                        <button className="w-full py-2 text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                          + {visibleUpcomingDeadlines.length - 4} more tasks
+                        </button>
+                      </Link>
+                    )}
                   </div>
                 ) : (
-                  <div className="py-12 text-center">
-                    <CheckCircle className="w-12 h-12 text-green-500 dark:text-green-400 mx-auto mb-3" />
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">All caught up</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">No pending deadlines</p>
+                  <div className="py-8 text-center">
+                    <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">All caught up!</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">No pending deadlines</p>
                     
                     {/* 2x2 Action Button Grid */}
                     <div className="max-w-md mx-auto">
                       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                         What to do next
                       </p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2">
                         <Link href="/timetable" prefetch={true}>
-                          <button className="w-full h-11 flex items-center justify-start px-4 gap-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left">
-                            <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">Review Schedule</span>
-                          </button>
-                        </Link>
-                        <Link href="/grades" prefetch={true}>
-                          <button className="w-full h-11 flex items-center justify-start px-4 gap-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:border-orange-500 dark:hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors text-left">
-                            <BarChart3 className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">Update Grades</span>
-                          </button>
-                        </Link>
-                        <Link href="/tasks" prefetch={true}>
-                          <button className="w-full h-11 flex items-center justify-start px-4 gap-2.5 border border-gray-300 dark:border-slate-600 rounded-lg hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-left">
-                            <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">Plan Study</span>
+                          <button className="w-full h-8 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-slate-700 rounded-lg hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-xs font-medium text-gray-700 dark:text-gray-300">
+                            <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                            Schedule
                           </button>
                         </Link>
                         <button 
                           onClick={openCreateEventModal}
-                          className="w-full h-11 flex items-center justify-start px-4 gap-2.5 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 rounded-lg transition-colors text-left shadow-sm"
+                          className="w-full h-8 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-xs font-medium text-white"
                         >
-                          <Plus className="w-4 h-4 text-white flex-shrink-0" />
-                          <span className="text-sm font-medium text-white">New Event</span>
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Task
                         </button>
                       </div>
                     </div>
@@ -1619,27 +1855,28 @@ export default function UniversityOverview() {
 
           {/* RIGHT COLUMN: This Week Navigator */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden">
-              <div className="bg-purple-600 dark:bg-purple-700 px-6 py-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
+              {/* Consistent header styling */}
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/10 rounded-lg">
-                      <Calendar className="w-5 h-5 text-white" strokeWidth={2} />
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
                     </div>
-                    <h3 className="text-lg font-semibold text-white">This Week</h3>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">This Week</h3>
                   </div>
-                  <Link href="/timetable" prefetch={true}>
-                    <button className="text-xs font-medium text-white hover:text-purple-100 px-3 py-1.5 hover:bg-white/10 rounded-lg transition-colors">
-                      View Calendar
+                  <Link href="/calendar" prefetch={true}>
+                    <button className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-3 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
+                      Calendar →
                     </button>
                   </Link>
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4">
           
             {/* Week Navigator */}
-            <div className="grid grid-cols-7 gap-2 mb-6">
+            <div className="grid grid-cols-7 gap-1.5 mb-4">
                   {weekDays.map((day, i) => {
                     const dayDate = new Date(startOfWeek);
                     dayDate.setDate(dayDate.getDate() + i);
@@ -1758,7 +1995,7 @@ export default function UniversityOverview() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700 dark:text-gray-300 font-medium">Study Hours</span>
-                      <span className="font-bold text-gray-900 dark:text-white">{studyHoursLogged}h / 20h</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{(Number(studyHoursLogged) || 0).toFixed(1)}h / 20h</span>
                     </div>
                     <div className="h-2.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
                       <div 
@@ -1784,20 +2021,32 @@ export default function UniversityOverview() {
 
       </div>
       
-      {/* Floating Action Button - Create Event */}
+      {/* Floating Action Button - Add Task */}
       <button
-        onClick={openCreateEventModal}
+        onClick={openQuickTaskModal}
         className="fixed bottom-8 right-8 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-40 group hover:scale-105"
-        title="Create Event"
-        aria-label="Create new event"
+        title="Add Task"
+        aria-label="Add new task"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
         <span className="absolute right-full mr-3 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg pointer-events-none">
-          Create Event
+          Add Task
         </span>
       </button>
       
       {/* Toast Notification */}
+      {/* Recently completed undo UI */}
+      {recentlyCompleted && recentlyCompleted.length > 0 && (
+        <div className="fixed bottom-20 right-6 z-50 flex flex-col gap-2 items-end">
+          {recentlyCompleted.slice(0, 6).map(item => (
+            <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-lg">
+              <div className="text-sm text-slate-700 dark:text-slate-200 max-w-[220px] truncate">{item.title}</div>
+              <button onClick={() => undoRecentlyCompleted(item.id)} className="text-sm font-semibold text-blue-600 dark:text-blue-400">Undo</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
           <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border ${

@@ -43,14 +43,26 @@ module.exports = {
       gradientColorStops: theme => theme('colors'),
     },
   },
-  plugins: [
-    require('daisyui')
-  ],
-  daisyui: {
-    themes: [
-      'light', // default light theme
-      'dark'   // include dark for future use
-    ],
-    darkTheme: 'dark'
-  }
+  // Make daisyui optional so dev doesn't fail if native deps aren't installed
+  plugins: (function () {
+    try {
+      const d = require('daisyui')
+      return [d]
+    } catch (err) {
+      console.warn('daisyui not installed; continuing without it')
+      return []
+    }
+  })(),
+  // Only export daisyui config if the package is present
+  daisyui: (function () {
+    try {
+      require.resolve('daisyui')
+      return {
+        themes: ['light', 'dark'],
+        darkTheme: 'dark'
+      }
+    } catch (err) {
+      return undefined
+    }
+  })()
 }

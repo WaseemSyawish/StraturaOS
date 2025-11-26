@@ -1350,7 +1350,7 @@ export default function AddEventModal({
                   />
                 ) : (
                   <>
-                    <Label htmlFor="title" className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                    <Label htmlFor="title" className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       Event Name
                     </Label>
                     <input 
@@ -1358,10 +1358,12 @@ export default function AddEventModal({
                       {...register("title")} 
                       placeholder="e.g., Team Meeting, Study Session" 
                       className={cn(
-                        "w-full h-9 px-3 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
-                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow",
-                        errors.title ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                        "w-full h-11 px-4 rounded-lg border bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm",
+                        "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all",
+                        errors.title ? "border-red-500" : "border-gray-200 dark:border-gray-700"
                       )} 
+                      autoFocus
                     />
                   </>
                 )}
@@ -1376,7 +1378,7 @@ export default function AddEventModal({
               </div>
 
               {/* Eisenhower Matrix Priority - For tasks only */}
-              {/* Eisenhower Matrix Priority - For both tasks and events */}
+              {isTaskMode && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1425,6 +1427,7 @@ export default function AddEventModal({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Date & Time - Hidden for new tasks, shown when editing tasks, full picker for events */}
               {isTaskMode ? (
@@ -1476,12 +1479,13 @@ export default function AddEventModal({
                   )
                 ) : null
               ) : (
-                <div className="space-y-2.5">
-                  {/* Date & Time - Only show in edit mode */}
-                  {eventData?.id && (
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-gray-900 dark:text-gray-100">Date</Label>
+                <div className="space-y-4">
+                  {/* Date & Time Section - Always show for events */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">Date & Time</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">Start Date</Label>
                         <input
                           type="date"
                           value={getValues('startDate') ? format(new Date(getValues('startDate')), 'yyyy-MM-dd') : ''}
@@ -1500,14 +1504,37 @@ export default function AddEventModal({
                             }
                           }}
                           className={cn(
-                            "w-full h-8 px-2 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs",
+                            "w-full h-11 px-4 rounded-lg border bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                            "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
                             "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                            "border-gray-300 dark:border-gray-700"
+                            "border-gray-200 dark:border-gray-700 transition-all"
                           )}
                         />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-gray-900 dark:text-gray-100">Time</Label>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">End Date</Label>
+                        <input
+                          type="date"
+                          value={getValues('endDate') ? format(new Date(getValues('endDate')), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const currentEnd = getValues('endDate') ? new Date(getValues('endDate')) : new Date();
+                              const [year, month, day] = e.target.value.split('-').map(Number);
+                              const newEnd = new Date(currentEnd);
+                              newEnd.setFullYear(year, month - 1, day);
+                              setValue('endDate', newEnd);
+                            }
+                          }}
+                          className={cn(
+                            "w-full h-11 px-4 rounded-lg border bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                            "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            "border-gray-200 dark:border-gray-700 transition-all"
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">Start Time</Label>
                         <input
                           type="time"
                           value={getValues('startDate') ? format(new Date(getValues('startDate')), 'HH:mm') : ''}
@@ -1518,21 +1545,40 @@ export default function AddEventModal({
                               const newStart = new Date(currentStart);
                               newStart.setHours(hours, minutes);
                               setValue('startDate', newStart);
-                              
-                              const newEnd = new Date(newStart);
-                              newEnd.setHours(hours + 1, minutes);
+                            }
+                          }}
+                          className={cn(
+                            "w-full h-11 px-4 rounded-lg border bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                            "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
+                            "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                            "border-gray-200 dark:border-gray-700"
+                          )}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 dark:text-gray-400">End Time</Label>
+                        <input
+                          type="time"
+                          value={getValues('endDate') ? format(new Date(getValues('endDate')), 'HH:mm') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const currentEnd = getValues('endDate') ? new Date(getValues('endDate')) : new Date();
+                              const newEnd = new Date(currentEnd);
+                              newEnd.setHours(hours, minutes);
                               setValue('endDate', newEnd);
                             }
                           }}
                           className={cn(
-                            "w-full h-8 px-2 rounded-md border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs",
+                            "w-full h-11 px-4 rounded-lg border bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                            "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
                             "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                            "border-gray-300 dark:border-gray-700"
+                            "border-gray-200 dark:border-gray-700 transition-all"
                           )}
                         />
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Reminders - Any.do Style */}
                   {!isSchedulePage && (
@@ -1632,36 +1678,6 @@ export default function AddEventModal({
                     )}
                   </div>
                   )}
-
-                  {/* Start and End Time - Only shown for schedule page */}
-                  {isSchedulePage && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Time
-                    </Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-gray-600 dark:text-gray-400">Start Time</Label>
-                        <input
-                          type="time"
-                          {...register('startTime')}
-                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-gray-600 dark:text-gray-400">End Time</Label>
-                        <input
-                          type="time"
-                          {...register('endTime')}
-                          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  )}
                 </div>
               )}
 
@@ -1739,36 +1755,71 @@ export default function AddEventModal({
                   </div>
                 </div>
 
-                {/* Color Selector - Minimal */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                    </svg>
-                    Color
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {COLORS.map((color) => (
-                      <button
-                        key={color.key}
-                        type="button"
-                        onClick={() => handleColorChange(color.key)}
-                        className={cn(
-                          "h-7 w-7 rounded-md transition-all duration-150 relative group",
-                          "hover:scale-110",
-                          "focus:outline-none",
-                          color.class,
-                          selectedColor === color.key ? "ring-2 ring-offset-1 ring-white dark:ring-gray-900 dark:ring-offset-gray-800 scale-105" : ""
-                        )}
-                        title={color.name}
+                {/* Color Selector - Dropdown Style */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">Color</Label>
+                  <div className="relative">
+                    <button 
+                      type="button" 
+                      onClick={() => setColorOpen(!colorOpen)}
+                      className={cn(
+                        "w-full h-11 px-4 rounded-lg border text-left text-sm",
+                        "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700",
+                        "text-gray-900 dark:text-white",
+                        "hover:bg-white dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                        "flex items-center justify-between gap-2",
+                        "transition-all"
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className={cn("w-5 h-5 rounded-md", COLORS.find(c => c.key === selectedColor)?.class)} />
+                        <span>{COLORS.find(c => c.key === selectedColor)?.name || 'Blue'}</span>
+                      </span>
+                      <svg 
+                        className={cn("w-4 h-4 text-gray-400 transition-transform duration-200", colorOpen && "rotate-180")} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
                       >
-                        {selectedColor === color.key && (
-                          <svg className="w-3.5 h-3.5 text-white mx-auto drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                    ))}
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {colorOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setColorOpen(false)}
+                        />
+                        <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl overflow-hidden">
+                          {COLORS.map((color) => (
+                            <button 
+                              key={color.key} 
+                              type="button" 
+                              onClick={() => {
+                                handleColorChange(color.key);
+                                setColorOpen(false);
+                              }}
+                              className={cn(
+                                "w-full text-left px-4 py-2.5 text-sm",
+                                "text-gray-900 dark:text-white flex items-center gap-3",
+                                "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+                                selectedColor === color.key && "bg-blue-50 dark:bg-blue-500/20"
+                              )}
+                            >
+                              <span className={cn("w-5 h-5 rounded-md", color.class)} />
+                              <span className="flex-1">{color.name}</span>
+                              {selectedColor === color.key && (
+                                <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

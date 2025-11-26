@@ -98,10 +98,10 @@ const ArchivedEventsPage = () => {
     loadData();
   }, []);
 
-  // Unarchive event
+  // Restore/Uncomplete event
   const handleUnarchive = async (eventId) => {
     const event = events.find(e => String(e.id) === String(eventId));
-    if (!window.confirm(`Unarchive "${event?.title || 'this event'}"?`)) return;
+    if (!window.confirm(`Restore "${event?.title || 'this event'}" to active tasks?`)) return;
 
     try {
       const res = await fetch(`/api/events/${encodeURIComponent(eventId)}`, {
@@ -117,13 +117,13 @@ const ArchivedEventsPage = () => {
         invalidateCache('/api/events?includeArchived=true' + JSON.stringify({ credentials: 'same-origin' }));
         invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }));
         // Show success message
-        alert(`"${event?.title || 'Event'}" has been unarchived successfully!`);
+        alert(`"${event?.title || 'Event'}" has been restored to active tasks!`);
       } else {
-        alert('Failed to unarchive event. Please try again.');
+        alert('Failed to restore event. Please try again.');
       }
     } catch (err) {
-      console.error('Unarchive error:', err);
-      alert('Network error. Could not unarchive event.');
+      console.error('Restore error:', err);
+      alert('Network error. Could not restore event.');
     }
   };
 
@@ -491,7 +491,7 @@ const ArchivedEventsPage = () => {
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                         >
                           <RotateCcw className="w-4 h-4" />
-                          Unarchive
+                          Restore / Uncomplete
                         </button>
                         <button
                           onClick={() => handleDelete(event.id)}

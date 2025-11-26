@@ -606,6 +606,8 @@ useEffect(() => {
       } catch (e) {
         console.warn('Failed to dispatch attendance:created event', e);
       }
+      // On success, return the created session (caller can use this to decide whether to close modal)
+      return data.session || null;
     } catch (err) {
       // Surface friendly notification but do not throw — keep modal open for correction
       const em = err && err.message ? err.message : 'Unknown error adding session';
@@ -615,9 +617,6 @@ useEffect(() => {
     } finally {
       setSaving(false);
     }
-
-    // On success, return the created session (caller can use this to decide whether to close modal)
-    return (typeof data !== 'undefined' && data.session) ? data.session : null;
   };
 
   const updateSession = async (id, field, value) => {
@@ -986,39 +985,39 @@ useEffect(() => {
       <div className="fixed top-6 right-6 z-50">
         <Notification type={notification?.type} message={notification?.message} onClose={() => setNotification(null)} />
       </div>
-  <div className="max-w-7xl mx-auto">
+  <div className="max-w-7xl mx-auto px-2 sm:px-0">
     {/* Header */}
   <header className="w-full">
-  <div className="max-w-7xl mx-auto px-6 py-5 bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg rounded-3xl">
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-          <Calendar className="w-6 h-6 text-white" strokeWidth={2.5} />
+  <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-5 bg-white/95 backdrop-blur-sm border border-slate-200 shadow-lg rounded-xl sm:rounded-3xl">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+          <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Attendance Tracker</h1>
-          <p className="text-sm text-slate-600">University Planner - Track your class attendance</p>
+          <h1 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">Attendance Tracker</h1>
+          <p className="text-xs sm:text-sm text-slate-600">Track your class attendance</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         <button 
           onClick={() => window.location.href = '/courses'}
-          className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+          className="px-3 sm:px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
         >
           <Settings className="w-4 h-4" />
           <span className="hidden sm:inline font-medium">Manage Courses</span>
         </button>
-        <button className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm">
+        <button className="px-3 sm:px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:shadow-sm">
           <Download className="w-4 h-4" />
           <span className="hidden sm:inline font-medium">Export</span>
         </button>
         <button 
           onClick={() => setShowAddSessionModal(true)}
-          className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
+          className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40"
         >
           <Plus className="w-4 h-4" />
-          <span className="font-semibold">Add Session</span>
+          <span className="font-semibold text-sm sm:text-base">Add Session</span>
         </button>
       </div>
     </div>
@@ -1162,197 +1161,154 @@ useEffect(() => {
 
             {/* Summary Panel */}
             <div className="lg:col-span-1">
-              <div className="cozy rounded-xl shadow-lg p-6 lg:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Summary</h2>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-gray-200/60 dark:border-slate-800 overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">Attendance Summary</h2>
+                </div>
                 
-                <div className="space-y-4">
-                    <div className="py-2 border-b border-gray-200">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-700 dark:text-slate-100">Projected Final %</span>
-                      <span className={`text-2xl font-bold ${stats.projectedFinalPercentage >= 80 ? 'text-green-600' : 'text-red-600'}`}>
-                        {stats.projectedFinalPercentage.toFixed(1)}%
-                      </span>
+                <div className="p-6 space-y-6">
+                  {/* SKIP CALCULATOR - Hero Section */}
+                  <div className={`p-5 rounded-xl border-2 ${
+                    stats.remainingAllowedTotal === 0 
+                      ? 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/30 dark:to-red-900/10 border-red-300 dark:border-red-700' 
+                      : stats.remainingAllowedTotal <= 2
+                      ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/30 dark:to-amber-900/10 border-amber-300 dark:border-amber-700'
+                      : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-900/10 border-emerald-300 dark:border-emerald-700'
+                  }`}>
+                    <div className="text-center">
+                      <div className="text-xs uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                        Absences Remaining
+                      </div>
+                      <div className={`text-5xl font-black ${
+                        stats.remainingAllowedTotal === 0 
+                          ? 'text-red-600 dark:text-red-400' 
+                          : stats.remainingAllowedTotal <= 2
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {stats.remainingAllowedTotal}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        (Absences only • Lates count as ½)
+                      </div>
+                      <div className="mt-3 flex items-center justify-center gap-4 text-sm">
+                        <div className="text-gray-600 dark:text-gray-300">
+                          <span className="text-gray-400 dark:text-gray-500">Absences:</span>{' '}
+                          <span className="font-bold">{stats.absent}</span>
+                        </div>
+                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                        <div className="text-gray-600 dark:text-gray-300">
+                          <span className="text-gray-400 dark:text-gray-500">Lates:</span>{' '}
+                          <span className="font-bold">{stats.late}</span>
+                        </div>
+                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                        <div className="text-gray-600 dark:text-gray-300">
+                          <span className="text-gray-400 dark:text-gray-500">Max:</span>{' '}
+                          <span className="font-bold">{stats.totalAllowedAbsences}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      (If you attend all remaining {stats.futureSessionsCount} sessions)
+                  </div>
+                
+                  {/* Attendance Percentage Stats */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                      <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">Current Rate</div>
+                      <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.attendancePercentage.toFixed(0)}%</div>
                     </div>
-                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-600 dark:text-slate-100">Current % (so far)</span>
-                      <span className="text-lg font-semibold text-gray-700">
-                        {stats.attendancePercentage.toFixed(1)}%
-                      </span>
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                      <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-1">Projected</div>
+                      <div className={`text-3xl font-bold ${stats.projectedFinalPercentage >= 80 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {stats.projectedFinalPercentage.toFixed(0)}%
+                      </div>
                     </div>
                   </div>
                   
-                    <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-100">Holidays:</span>
-                      <span className="font-medium text-blue-600">{stats.holidays}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-100">Present:</span>
-                      <span className="font-medium text-green-600">{stats.present}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-100">Absent:</span>
-                      <span className="font-medium text-red-600">{stats.absent}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-100">Excused:</span>
-                      <span className="font-medium text-yellow-600">{stats.excused}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-slate-100">Late:</span>
-                      <span className="font-medium text-orange-600">{stats.late}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Points Earned (so far):</span>
-                      <span className="font-medium">{stats.pointsEarnedSoFar}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Max Possible (so far):</span>
-                      <span className="font-medium">{stats.pointsPossibleSoFar}</span>
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      <span className="text-gray-600">Max Possible (final):</span>
-                      <span className="font-medium">{stats.totalPointsPossibleFinal}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-800">
-                        {stats.present}/{stats.eligibleSessions}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Present/Attendable Sessions
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        (Holidays excluded)
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Expected sessions (automatic) */}
-                  <div className="pt-4 border-t border-gray-200 mt-4">
-                    <div className="text-sm text-gray-600 mb-2">Expected sessions</div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-gray-700">Recorded: <span className="font-medium">{stats.eligibleSessions}</span></div>
-                        {scheduledClassCount !== null && (
-                          <div className="text-sm text-gray-700">Scheduled (class-type): <span className="font-medium">{scheduledClassCount}</span></div>
-                        )}
-                        {scheduledCount !== null && scheduledClassCount === null && (
-                          <div className="text-sm text-gray-700">Scheduled (all): <span className="font-medium">{scheduledCount}</span></div>
-                        )}
-                      </div>
-                    </div>
-                    {lastClassEvent && lastClassEvent.date && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-purple-500" />
-                          <span className="text-sm font-medium text-gray-700">Last Class:</span>
-                        </div>
-                        <div className="text-sm text-gray-900 font-semibold mt-1">
-                          {formatDate(lastClassEvent.date)}
-                        </div>
-                        {lastClassEvent.title && (
-                          <div className="text-xs text-gray-500 mt-1">{lastClassEvent.title}</div>
-                        )}
-                        <div className="text-xs text-gray-400 mt-2">
-                          System uses this as the semester endpoint for max possible points calculation
-                        </div>
-                      </div>
-                    )}
-                    <div className="text-right mt-2">
-                      <div className="text-xs text-gray-500">Using</div>
-                      <div className="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs bg-indigo-50 text-indigo-700">
-                        {stats.usedSource === 'scheduled-class' ? 'Scheduled (class)' : (stats.usedSource === 'scheduled-all' ? 'Scheduled (all)' : 'Recorded')}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">(Holidays excluded) — preferred source selected automatically</div>
-                  </div>
-
-                  {/* Capping system */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3">Capping system</h3>
-                    
-                    {/* Main Status */}
-                    <div className={`p-3 rounded-lg text-center mb-3 ${
-                      stats.isCapped 
-                        ? 'bg-red-50 text-red-800 border border-red-200' 
-                        : stats.isAtRisk
-                        ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                        : 'bg-green-50 text-green-800 border border-green-200'
+                  {/* Status Card */}
+                  <div className={`p-4 rounded-xl flex items-center gap-3 ${
+                    stats.isCapped 
+                      ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' 
+                      : stats.isAtRisk
+                      ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                      : 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+                  }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      stats.isCapped ? 'bg-red-100 dark:bg-red-900/40' : 
+                      stats.isAtRisk ? 'bg-amber-100 dark:bg-amber-900/40' : 
+                      'bg-emerald-100 dark:bg-emerald-900/40'
                     }`}>
-                      <div className="font-semibold text-lg">
-                        {stats.isCapped ? 'CAPPED — action required' :
-                         stats.isAtRisk ? 'At risk — pay attention' : 'Good — you meet the requirement'}
+                      {stats.isCapped ? (
+                        <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      ) : stats.isAtRisk ? (
+                        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <div className={`text-sm font-semibold ${
+                        stats.isCapped ? 'text-red-700 dark:text-red-400' : 
+                        stats.isAtRisk ? 'text-amber-700 dark:text-amber-400' : 
+                        'text-emerald-700 dark:text-emerald-400'
+                      }`}>
+                        {stats.isCapped ? 'Capped' : stats.isAtRisk ? 'At Risk' : 'On Track'}
                       </div>
-                      <div className="text-sm mt-1 text-gray-600">
-                        {stats.isCapped ? 'Attendance below 80%. Contact your instructor.' :
-                         stats.isAtRisk ? 'Approaching the maximum allowed absences. Aim to attend upcoming classes.' : 'Above 80% — keep it up.'}
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {stats.isCapped ? 'Contact your instructor' :
+                         stats.isAtRisk ? 'Attend upcoming classes' : 'Keep up the good work!'}
                       </div>
                     </div>
-
-                    {/* Detailed Numbers */}
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Required Attendance:</span>
-                        <span className="font-medium">≥80%</span>
+                  </div>
+                  
+                  {/* Breakdown Grid */}
+                  <div>
+                    <div className="text-xs uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mb-3">Breakdown</div>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 text-center">
+                        <div className="text-lg font-bold text-green-600 dark:text-green-400">{stats.present}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Present</div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Current Attendance:</span>
-                        <span className={`font-medium ${stats.attendancePercentage >= 80 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stats.attendancePercentage.toFixed(1)}%
-                        </span>
+                      <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-center">
+                        <div className="text-lg font-bold text-red-600 dark:text-red-400">{stats.absent}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Absent</div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Max Skippable (total):</span>
-                        <span className="font-medium">{stats.totalAllowedAbsences} lectures</span>
+                      <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-center">
+                        <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{stats.excused}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Excused</div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Skipped:</span>
-                        <span className={`font-medium ${stats.skippedSessions >= stats.totalAllowedAbsences ? 'text-red-600' : 'text-gray-800'}`}>
-                          {stats.skippedSessions} lectures
-                        </span>
+                      <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-center">
+                        <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{stats.late}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Late</div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Remaining Allowed (total):</span>
-                        <span className={`font-medium ${
-                          stats.remainingAllowedTotal === 0 ? 'text-red-600' : 
-                          stats.remainingAllowedTotal <= 1 ? 'text-yellow-600' : 'text-green-600'
-                        }`}>
-                          {stats.remainingAllowedTotal} lectures
-                        </span>
-                      </div>
-                      <div className="flex justify-between mt-2">
-                        <span className="text-gray-600">Remaining Skippable (future):</span>
-                        <span className={`font-medium ${
-                          stats.maxSkippableFuture === 0 ? 'text-red-600' : 
-                          stats.maxSkippableFuture <= 1 ? 'text-yellow-600' : 'text-green-600'
-                        }`}>
-                          {stats.maxSkippableFuture} lectures
-                        </span>
+                      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-center">
+                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{stats.holidays}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Holiday</div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Warning/Info Messages */}
-                    {stats.eligibleSessions > 0 && (
-                      <div className="mt-3 p-2 bg-blue-50 rounded-lg text-xs text-blue-800">
-                        <div className="font-medium mb-1">Guidance</div>
-                        <div>
-                          {stats.isCapped ? (
-                            "You've exceeded the allowed absences. Contact your instructor or admin immediately."
-                          ) : stats.isAtRisk ? (
-                            `You may miss ${stats.remainingSkippable} more session${stats.remainingSkippable !== 1 ? 's' : ''} before being capped. Prioritize attendance.`
-                          ) : (
-                            `You can miss up to ${stats.remainingSkippable} more session${stats.remainingSkippable !== 1 ? 's' : ''} and still meet the 80% requirement.`
-                          )}
-                        </div>
+                  {/* Session Progress */}
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sessions Attended</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">{stats.present} / {stats.eligibleSessions}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-500"
+                        style={{ width: `${stats.eligibleSessions > 0 ? (stats.present / stats.eligibleSessions) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {stats.futureSessionsCount > 0 && (
+                      <div className="mt-3 text-xs text-center text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">{stats.futureSessionsCount}</span> classes remaining this semester
                       </div>
                     )}
                   </div>

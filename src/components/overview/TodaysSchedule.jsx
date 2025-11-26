@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Video, Users, ExternalLink, CalendarOff, Clock } from 'lucide-react';
+import { Calendar, Video, Users, ExternalLink, CalendarOff, Clock, GraduationCap } from 'lucide-react';
 import { fadeIn, cardHover, staggerContainer, staggerItem } from '@/utils/animations';
 
 /**
@@ -8,10 +8,27 @@ import { fadeIn, cardHover, staggerContainer, staggerItem } from '@/utils/animat
  * Timeline view of today's events with time badges and platform icons
  */
 export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
-  const formatTime = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const formatTime = (dateOrTime, fallbackDate) => {
+    if (!dateOrTime) return '';
+    // If it's a HH:MM string
+    if (/^\d{1,2}:\d{2}$/.test(String(dateOrTime))) {
+      return String(dateOrTime);
+    }
+    // If it's a Date/ISO string
+    const d = new Date(dateOrTime);
+    if (!isNaN(d.getTime())) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    // Fallback: try building from fallbackDate + time string
+    if (fallbackDate && /^\d{1,2}:\d{2}$/.test(String(dateOrTime))) {
+      try {
+        const fd = new Date(fallbackDate);
+        const m = String(dateOrTime).match(/(\d{1,2}):(\d{2})/);
+        if (m) {
+          fd.setHours(Number(m[1]), Number(m[2]), 0, 0);
+          return fd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+      } catch (e) {}
+    }
+    return '';
   };
 
   const formatDateDisplay = (date) => {
@@ -44,30 +61,94 @@ export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
     return { name: 'Online', color: 'text-gray-500' };
   };
 
-  // Filter events for today
-  const todayEvents = events
-    .filter(event => {
-      if (!event.startTime) return false;
-      const eventDate = new Date(event.startTime);
+  const getCourseCode = (event) => {
+    try {
+      if (!event) return null;
+      if (event.meta && (event.meta.course || event.meta.courseCode)) return String(event.meta.course || event.meta.courseCode);
+      if (event.course) return String(event.course);
+      if (event.code) return String(event.code);
+      // try common fields
+      if (event.title) {
+        const m = String(event.title).match(/([A-Z]{2,4}\s?-?\d{3,4})/);
+        if (m) return m[1].replace(/\s+/, '');
+      }
+      if (event.name) {
+        const m = String(event.name).match(/([A-Z]{2,4}\s?-?\d{3,4})/);
+        if (m) return m[1].replace(/\s+/, '');
+      }
+      return null;
+    } catch (e) { return null; }
+  };
+
+  // Filter events for today (support multiple event time formats)
+  const todayEvents = (events || [])
+    .map((event) => {
+      // Determine a start timestamp for sorting and date comparison
+      let startTs = null;
+      let startRaw = null;
+      try {
+        if (event.startTime) {
+          startRaw = event.startTime;
+          const d = new Date(event.startTime);
+          if (!isNaN(d.getTime())) startTs = d.getTime();
+        } else if (event.startDate) {
+          startRaw = event.startDate;
+          const d = new Date(event.startDate);
+          if (!isNaN(d.getTime())) startTs = d.getTime();
+        } else if (event.date) {
+          startRaw = event.date;
+          const d = new Date(event.date);
+          if (!isNaN(d.getTime())) startTs = d.getTime();
+        } else if (event.time) {
+          // time like '08:30' - attach to currentDate for comparison
+          startRaw = event.time;
+          if (currentDate) {
+            const d = new Date(currentDate);
+            const m = String(event.time).match(/(\d{1,2}):(\d{2})/);
+            if (m) {
+              d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+              startTs = d.getTime();
+            }
+          } else {
+            // fallback to today
+            const d = new Date();
+            const m = String(event.time).match(/(\d{1,2}):(\d{2})/);
+            if (m) {
+              d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+              startTs = d.getTime();
+            }
+          }
+        }
+      } catch (e) {}
+
+      return { __raw: event, __startTs: startTs, __startRaw: startRaw };
+    })
+    .filter(item => {
+      const event = item.__raw;
+      const startTs = item.__startTs;
+      // If we couldn't determine a start timestamp, exclude
+      if (!startTs) return false;
+      const eventDate = new Date(startTs);
       const today = currentDate || new Date();
       return eventDate.toDateString() === today.toDateString();
     })
-    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    .sort((a, b) => (a.__startTs || 0) - (b.__startTs || 0))
+    .map(item => item.__raw);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="bg-purple-600 dark:bg-purple-700 px-6 py-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
+      {/* Consistent header styling */}
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg">
-              <Clock className="w-5 h-5 text-white" strokeWidth={2} />
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+              <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Today's Schedule
               </h3>
-              <p className="text-xs text-purple-100 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {formatDateDisplay(currentDate || new Date())}
               </p>
             </div>
@@ -75,17 +156,17 @@ export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4">
       {/* Event list */}
       {todayEvents.length === 0 ? (
         <motion.div
           initial="hidden"
           animate="visible"
           variants={fadeIn}
-          className="py-16 text-center"
+          className="py-12 text-center"
         >
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-            <CalendarOff className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+            <CalendarOff className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
             No classes today
@@ -99,69 +180,63 @@ export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="space-y-3"
+          className="space-y-2"
         >
           {todayEvents.map((event, index) => {
             const typeColor = getEventTypeColor(event.type);
             const platform = getPlatformIcon(event.platform || event.location);
+            const courseCode = getCourseCode(event);
 
             return (
-              <motion.div
-                key={event.id || index}
-                variants={staggerItem}
-                whileHover="hover"
-              >
+              <motion.div key={event.id || index} variants={staggerItem} whileHover="hover">
                 <motion.div
                   variants={cardHover}
-                  className="relative pl-16 pr-4 py-3 rounded-xl border border-gray-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-800/50 hover:shadow-sm transition-all duration-200 cursor-pointer"
+                  className="relative pr-3 py-2.5 rounded-xl border border-gray-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-800/50 hover:shadow-sm transition-all duration-200 cursor-pointer"
                   onClick={() => onViewDetails?.(event)}
                 >
-                  {/* Timeline dot and line */}
-                  <div className="absolute left-4 top-0 bottom-0 flex flex-col items-center">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-5 z-10"></div>
-                    {index < todayEvents.length - 1 && (
-                      <div className="flex-1 w-px bg-gray-200 dark:bg-slate-700 mt-1"></div>
-                    )}
-                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Left icon square */}
+                    <div className="ml-3 flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-600 dark:bg-indigo-500 text-white">
+                        <GraduationCap className="w-5 h-5" />
+                      </div>
+                    </div>
 
-                  {/* Time badge */}
-                  <div className="inline-block px-2.5 py-0.5 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-slate-700/50 mb-2">
-                    {formatTime(event.startTime)}
-                    {event.endTime && ` - ${formatTime(event.endTime)}`}
-                  </div>
+                    {/* Main content */}
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="flex items-center gap-3 mb-1">
+                        {courseCode && (
+                          <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold text-white bg-purple-600 dark:bg-purple-500">
+                            {courseCode}
+                          </span>
+                        )}
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {event.title || event.name || 'Untitled Event'}
+                        </h4>
+                      </div>
 
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0 mr-3">
-                      {/* Event title */}
-                      <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1 line-clamp-1">
-                        {event.title || event.name || 'Untitled Event'}
-                      </h4>
-                      
-                      {/* Location/Platform */}
-                      {(event.location || event.platform) && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                          {platform ? (
-                            <>
-                              <Video className="w-3.5 h-3.5" />
-                              <span>{platform.name}</span>
-                            </>
-                          ) : (
-                            <span>{event.location}</span>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <Clock className="w-4 h-4" />
+                        {(() => {
+                          const fallback = event.startDate || event.date || currentDate;
+                          const startVal = event.startTime || event.startDate || event.date || event.time;
+                          const endVal = event.endTime || event.endDate || null;
+                          const startDisplay = formatTime(startVal, fallback);
+                          const endDisplay = endVal ? formatTime(endVal, fallback) : null;
+                          return (<>{startDisplay}{endDisplay ? ` • ${endDisplay}` : ''}</>);
+                        })()}
+                      </div>
                     </div>
 
                     {/* View detail link */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDetails?.(event);
-                      }}
-                      className="group flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex-shrink-0"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-                    </button>
+                    <div className="flex-shrink-0 pr-3">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onViewDetails?.(event); }}
+                        className="group flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               </motion.div>

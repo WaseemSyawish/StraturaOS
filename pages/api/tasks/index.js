@@ -1,5 +1,6 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
+import withPrisma from '../../../lib/withPrisma';
 import {
   COURSE_FIELDS,
   TASK_EVENT_INCLUDE,
@@ -67,7 +68,7 @@ const createEvent = async (data) => {
   }
 };
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Allow', 'GET,POST,OPTIONS');
     return res.status(204).end();
@@ -109,3 +110,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Task operation failed' });
   }
 }
+
+export default withPrisma(handler);

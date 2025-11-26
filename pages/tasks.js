@@ -21,6 +21,7 @@ import {
   Loader2,
   GripVertical,
   LayoutGrid,
+  Layers,
   Lightbulb,
   List,
   MapPin,
@@ -55,7 +56,7 @@ const themePalette = {
   muted: '#94A3B8',
 };
 const statFontStyle = { letterSpacing: '-0.01em' };
-const insightWidgetOrder = ['timeline', 'reminder', 'time'];
+const insightWidgetOrder = ['timeline', 'time', 'reminder'];
 const fallbackTasks = [
   {
     id: 'local-1',
@@ -199,9 +200,10 @@ const rightRailReminder = {
 };
 
 const boardColumns = [
-  { id: 'todo', label: 'TO DO', Icon: ClipboardList, colorClass: 'text-slate-700', description: 'Not started' },
-  { id: 'doing', label: 'DOING', Icon: Target, colorClass: 'text-purple-600', description: 'In progress' },
-  { id: 'done', label: 'DONE', Icon: CheckCircle2, colorClass: 'text-emerald-600', description: 'Completed' },
+  { id: 'todo', label: 'To Do', Icon: ClipboardList, colorClass: 'text-slate-700', description: 'Not started', prominent: true },
+  { id: 'doing', label: 'Doing', Icon: Target, colorClass: 'text-purple-600', description: 'In progress', prominent: true },
+  { id: 'later', label: 'Later', Icon: Clock3, colorClass: 'text-amber-500', description: 'Will come back', prominent: true },
+  { id: 'done', label: 'Done', Icon: CheckCircle2, colorClass: 'text-emerald-600', description: 'Completed', prominent: false },
 ];
 
 const viewTabs = [
@@ -240,6 +242,7 @@ const normalizeStatus = (value, completed = false) => {
   if (completed) return 'done';
   const normalized = String(value || '').toLowerCase();
   if (normalized === 'doing' || normalized === 'in-progress' || normalized === 'review') return 'doing';
+  if (normalized === 'later' || normalized === 'undecided' || normalized === 'backlog') return 'later';
   if (normalized === 'done' || normalized === 'completed') return 'done';
   return 'todo';
 };
@@ -488,10 +491,10 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900">{viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
           <div className="flex gap-1">
-            <button onClick={prevMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+            <button type="button" onClick={prevMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
               <ChevronDown size={16} className="rotate-90 text-slate-600" />
             </button>
-            <button onClick={nextMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+            <button type="button" onClick={nextMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
               <ChevronDown size={16} className="-rotate-90 text-slate-600" />
             </button>
           </div>
@@ -517,6 +520,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
             return (
               <button
                 key={day}
+                type="button"
                 onClick={() => handleDateClick(day)}
                 className={`aspect-square rounded-lg text-xs font-semibold transition-all ${
                   isSelected
@@ -533,23 +537,23 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-3">
-          <button onClick={() => applyShortcut(0)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+          <button type="button" onClick={() => applyShortcut(0)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             Later today
           </button>
-          <button onClick={() => applyShortcut(1, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+          <button type="button" onClick={() => applyShortcut(1, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             Tomorrow
           </button>
-          <button onClick={() => applyShortcut(7, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+          <button type="button" onClick={() => applyShortcut(7, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             Next week
           </button>
-          <button onClick={() => applyShortcut(null)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+          <button type="button" onClick={() => applyShortcut(null)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
             Someday
           </button>
         </div>
       </div>
 
       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800">
-        <button onClick={() => { setDate(''); setTime('07:45'); onChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+        <button type="button" onClick={() => { setDate(''); setTime('07:45'); onChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
           Clear
         </button>
         <div className="flex gap-2">
@@ -595,6 +599,8 @@ const TaskDetailPanel = ({
   const [localStatus, setLocalStatus] = useState(initialStatus || task?.status || 'todo');
   const [localPriority, setLocalPriority] = useState(task?.priority || PRIORITY_DEFAULT);
   const [localEventType, setLocalEventType] = useState(task?.type || 'task');
+  const [localCourse, setLocalCourse] = useState(task?.course || null);
+  const [localCourseColor, setLocalCourseColor] = useState(task?.courseColor || null);
   const [localTags, setLocalTags] = useState([]);
   const [includeMyDay, setIncludeMyDay] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -628,25 +634,33 @@ const TaskDetailPanel = ({
     setLocalPriority(task?.priority || PRIORITY_DEFAULT);
   }, [task?.id, task?.dueDate, task?.status, task?.priority, task?.title, task?.description, task?.tags, isCreateMode, initialDueDate]);
 
+  // Helper to close all dropdowns except the one being opened
+  const closeAllDropdowns = (exceptId = null) => {
+    const dropdownTypes = ['status', 'eventtype', 'priority', 'module'];
+    const taskId = task?.id || 'new';
+    dropdownTypes.forEach(type => {
+      const id = `${type}-dropdown-${taskId}`;
+      if (id !== exceptId) {
+        document.getElementById(id)?.classList.add('hidden');
+      }
+    });
+  };
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const statusDropdown = document.getElementById(`status-dropdown-${task?.id || 'new'}`);
-      const priorityDropdown = document.getElementById(`priority-dropdown-${task?.id || 'new'}`);
+      const taskId = task?.id || 'new';
+      const dropdownTypes = ['status', 'eventtype', 'priority', 'module'];
       
-      if (statusDropdown && !statusDropdown.classList.contains('hidden')) {
-        const statusButton = statusDropdown.previousElementSibling;
-        if (!statusDropdown.contains(event.target) && !statusButton?.contains(event.target)) {
-          statusDropdown.classList.add('hidden');
+      dropdownTypes.forEach(type => {
+        const dropdown = document.getElementById(`${type}-dropdown-${taskId}`);
+        if (dropdown && !dropdown.classList.contains('hidden')) {
+          const button = dropdown.previousElementSibling;
+          if (!dropdown.contains(event.target) && !button?.contains(event.target)) {
+            dropdown.classList.add('hidden');
+          }
         }
-      }
-      
-      if (priorityDropdown && !priorityDropdown.classList.contains('hidden')) {
-        const priorityButton = priorityDropdown.previousElementSibling;
-        if (!priorityDropdown.contains(event.target) && !priorityButton?.contains(event.target)) {
-          priorityDropdown.classList.add('hidden');
-        }
-      }
+      });
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -663,7 +677,8 @@ const TaskDetailPanel = ({
   
   const statusOptions = [
     { value: 'todo', label: 'To Do', color: '#f59e0b' },
-    { value: 'doing', label: 'In Progress', color: '#f59e0b' },
+    { value: 'doing', label: 'In Progress', color: '#8b5cf6' },
+    { value: 'later', label: 'Later', color: '#f59e0b' },
     { value: 'done', label: 'Done', color: '#10b981' },
   ];
   
@@ -735,8 +750,8 @@ const TaskDetailPanel = ({
     const dueDate = dueStartInput ? new Date(dueStartInput) : null;
     const meta = {
       myDay: includeMyDay,
-      course: 'General',
-      courseColor: accentPurple,
+      course: localCourse || null,
+      courseColor: localCourseColor || null,
       priority: localPriority,
       tags: localTags,
       status: localStatus,
@@ -832,8 +847,10 @@ const TaskDetailPanel = ({
               <button
                 type="button"
                 onClick={() => {
-                  const dropdown = document.getElementById(`status-dropdown-${task?.id || 'new'}`);
+                  const dropdownId = `status-dropdown-${task?.id || 'new'}`;
+                  const dropdown = document.getElementById(dropdownId);
                   if (dropdown?.classList.contains('hidden')) {
+                    closeAllDropdowns(dropdownId);
                     dropdown.classList.remove('hidden');
                   } else {
                     dropdown?.classList.add('hidden');
@@ -879,8 +896,10 @@ const TaskDetailPanel = ({
               <button
                 type="button"
                 onClick={() => {
-                  const dropdown = document.getElementById(`eventtype-dropdown-${task?.id || 'new'}`);
+                  const dropdownId = `eventtype-dropdown-${task?.id || 'new'}`;
+                  const dropdown = document.getElementById(dropdownId);
                   if (dropdown?.classList.contains('hidden')) {
+                    closeAllDropdowns(dropdownId);
                     dropdown.classList.remove('hidden');
                   } else {
                     dropdown?.classList.add('hidden');
@@ -1017,8 +1036,10 @@ const TaskDetailPanel = ({
               <button
                 type="button"
                 onClick={() => {
-                  const dropdown = document.getElementById(`priority-dropdown-${task?.id || 'new'}`);
+                  const dropdownId = `priority-dropdown-${task?.id || 'new'}`;
+                  const dropdown = document.getElementById(dropdownId);
                   if (dropdown?.classList.contains('hidden')) {
+                    closeAllDropdowns(dropdownId);
                     dropdown.classList.remove('hidden');
                   } else {
                     dropdown?.classList.add('hidden');
@@ -1055,6 +1076,94 @@ const TaskDetailPanel = ({
               </div>
             </div>
           </div>
+
+          {/* Module/Course selector */}
+          {modules.length > 0 && (
+            <div className="flex items-center gap-3 text-[13px]">
+              <div className="flex items-center gap-2.5">
+                <Layers size={15} className="text-slate-400" />
+                <span className="min-w-[95px] text-slate-500">Module</span>
+              </div>
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const dropdownId = `module-dropdown-${task?.id || 'new'}`;
+                    const dropdown = document.getElementById(dropdownId);
+                    if (dropdown?.classList.contains('hidden')) {
+                      closeAllDropdowns(dropdownId);
+                      dropdown.classList.remove('hidden');
+                    } else {
+                      dropdown?.classList.add('hidden');
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                  style={{ 
+                    backgroundColor: localCourseColor ? `${localCourseColor}15` : 'rgba(148, 163, 184, 0.1)', 
+                    color: localCourseColor || '#64748b' 
+                  }}
+                >
+                  <span 
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ backgroundColor: localCourseColor || '#94a3b8' }}
+                  />
+                  {localCourse || 'Select module'}
+                  <ChevronDown size={14} className="ml-auto opacity-60" />
+                </button>
+                <div id={`module-dropdown-${task?.id || 'new'}`} className="absolute left-0 top-full z-50 mt-1 hidden w-64 max-h-60 overflow-y-auto overflow-x-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  {/* Clear selection option */}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setLocalCourse(null);
+                      setLocalCourseColor(null);
+                      if (!isCreateMode) {
+                        onUpdateFields?.(task.id, { course: null, courseColor: null });
+                      }
+                      document.getElementById(`module-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
+                    }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                  >
+                    <span className="inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    No module
+                    {!localCourse && <Check size={16} className="ml-auto text-purple-600" />}
+                  </button>
+                  {modules.map((mod) => {
+                    const moduleName = mod.name || mod.title || mod.code;
+                    const moduleColor = mod.color || accentPurple;
+                    return (
+                      <button
+                        key={mod.id || moduleName}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setLocalCourse(moduleName);
+                          setLocalCourseColor(moduleColor);
+                          if (!isCreateMode) {
+                            onUpdateFields?.(task.id, { course: moduleName, courseColor: moduleColor });
+                          }
+                          document.getElementById(`module-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
+                        style={{ 
+                          backgroundColor: localCourse === moduleName ? `${moduleColor}08` : 'transparent',
+                          color: moduleColor 
+                        }}
+                      >
+                        <span 
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: moduleColor }}
+                        />
+                        <span className="truncate">{moduleName}</span>
+                        {localCourse === moduleName && <Check size={16} className="ml-auto" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 text-[13px]">
             <CalendarIcon size={15} className="text-slate-400" />
@@ -1128,15 +1237,6 @@ const TaskDetailPanel = ({
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="flex items-start gap-3 text-[13px]">
-            <div className="mt-0.5 flex -space-x-1.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-[10px] font-bold text-white ring-2 ring-white">
-                ME
-              </div>
-            </div>
-            <span className="min-w-[110px] text-slate-500">Assignees</span>
           </div>
         </div>
 
@@ -1453,8 +1553,8 @@ const normalizeTask = (task) => {
     dueTime,
     courseId: task.courseId || task.course_id || task.courses?.id || null,
     courseCode: task.courseCode || task.course_code || task.courses?.code || null,
-    course: task.course || task.courseName || task.courses?.name || 'General',
-    courseColor: task.courseColor || task.course_color || task.courses?.color || '#94a3b8',
+    course: task.course || task.courseName || task.courses?.name || null,
+    courseColor: task.courseColor || task.course_color || task.courses?.color || null,
     type: task.type || 'task',
     priority,
     completed,
@@ -1498,9 +1598,9 @@ const eventRecordToTask = (event) => {
     dueDate: event.date || event.startDate || meta.dueDate || null,
     dueTime: event.time || meta.time || null,
     courseId: event.course_id || event.courseId || meta.courseId || null,
-    course: event.course || event.courseName || meta.course || 'General',
+    course: event.course || event.courseName || meta.course || null,
     courseCode: event.courseCode || event.courses?.code || meta.courseCode || null,
-    courseColor: event.courseColor || event.courses?.color || meta.courseColor || '#94a3b8',
+    courseColor: event.courseColor || event.courses?.color || meta.courseColor || null,
     type: event.type || meta.type || 'task',
     tags: Array.isArray(event.tags) ? event.tags : Array.isArray(meta.tags) ? meta.tags : [],
     reminder: event.reminder || meta.reminder || null,
@@ -1817,39 +1917,39 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
   const completedWeek = statMap['completed-week']?.value || 0;
   
   return (
-    <header className="mb-8" style={statFontStyle}>
+    <header className="mb-6 sm:mb-8" style={statFontStyle}>
       {/* Dashboard Container Box */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 md:p-8">
+      <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6 md:p-8">
         {/* Dashboard Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">Tasks</h1>
-            <p className="text-slate-500 dark:text-slate-400">Plan, prioritize, and accomplish your tasks with ease.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1">Tasks</h1>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Plan, prioritize, and accomplish your tasks with ease.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={onAdd}
-              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-2"
             >
               <Plus size={16} />
-              Task
+              <span className="hidden sm:inline">Task</span>
             </button>
           </div>
         </div>
         
         {/* Stats Cards Row - Real Data */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Total Tasks Card - Purple */}
           <button
             onClick={() => onFilterChange?.('today')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-gray-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                <Sun className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
+                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-right">
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{todayCount}</p>
+                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{todayCount}</p>
               </div>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Today's Focus</p>
@@ -1859,14 +1959,14 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
           {/* Completed This Week Card - Emerald */}
           <button
             onClick={() => onFilterChange?.('completed')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-gray-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
+                <Check className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="text-right">
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{completedWeek}</p>
+                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{completedWeek}</p>
               </div>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Completed (7d)</p>
@@ -1876,14 +1976,14 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
           {/* Overdue Tasks Card - Rose */}
           <button
             onClick={() => onFilterChange?.('overdue')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-5 border border-gray-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-rose-100 dark:bg-rose-900/30 rounded-xl group-hover:scale-110 transition-transform">
-                <AlarmClock className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 bg-rose-100 dark:bg-rose-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
+                <AlarmClock className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" />
               </div>
               <div className="text-right">
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{overdueCount}</p>
+                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{overdueCount}</p>
               </div>
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Overdue</p>
@@ -2064,20 +2164,25 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
 
   return (
     <section
-      className={`rounded-[28px] border border-gray-900/10 bg-gradient-to-br from-slate-900 via-purple-900 to-purple-900 text-white px-5 py-6 shadow-[0_30px_80px_rgba(15,23,42,0.5)] ${className}`}
+      className={`rounded-[28px] border border-gray-200 dark:border-gray-900/10 
+        bg-gradient-to-br from-purple-50 via-white to-purple-100 
+        dark:from-slate-900 dark:via-purple-900 dark:to-purple-900 
+        text-slate-900 dark:text-white 
+        px-5 py-6 shadow-[0_20px_60px_rgba(139,92,246,0.15)] dark:shadow-[0_30px_80px_rgba(15,23,42,0.5)] 
+        ${className}`}
       style={statFontStyle}
     >
       <div className="flex items-start justify-between">
         <div className="text-right">
-          <p className="text-xs text-white/50">Today</p>
-          <p className="text-sm font-bold">{formatTime(todayStats.total_duration || 0)}</p>
-          <p className="text-xs text-white/50">{todayStats.total_sessions || 0} sessions</p>
+          <p className="text-xs text-slate-500 dark:text-white/50">Today</p>
+          <p className="text-sm font-bold text-slate-900 dark:text-white">{formatTime(todayStats.total_duration || 0)}</p>
+          <p className="text-xs text-slate-500 dark:text-white/50">{todayStats.total_sessions || 0} sessions</p>
         </div>
       </div>
       
       {/* Timer Display */}
       <div className="mt-4 flex items-center justify-center">
-        <span className="text-6xl font-bold tabular-nums">{formatTime(elapsed)}</span>
+        <span className="text-6xl font-bold tabular-nums bg-gradient-to-r from-purple-600 to-purple-800 dark:from-white dark:to-purple-200 bg-clip-text text-transparent">{formatTime(elapsed)}</span>
       </div>
 
       {/* Session Type Toggle */}
@@ -2086,7 +2191,9 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
           onClick={() => !isRunning && setSessionType('focus')}
           disabled={isRunning}
           className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-            sessionType === 'focus' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+            sessionType === 'focus' 
+              ? 'bg-purple-600 text-white' 
+              : 'bg-purple-100 dark:bg-white/10 text-purple-600 dark:text-white/60 hover:bg-purple-200 dark:hover:bg-white/20'
           } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           Focus ({Math.floor((focusSettings.focus_duration || 1500) / 60)}min)
@@ -2095,7 +2202,9 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
           onClick={() => !isRunning && setSessionType('break')}
           disabled={isRunning}
           className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
-            sessionType === 'break' ? 'bg-emerald-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+            sessionType === 'break' 
+              ? 'bg-emerald-600 text-white' 
+              : 'bg-emerald-100 dark:bg-white/10 text-emerald-600 dark:text-white/60 hover:bg-emerald-200 dark:hover:bg-white/20'
           } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           Break ({Math.floor((focusSettings.short_break_duration || 300) / 60)}min)
@@ -2106,7 +2215,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
       <div className="mt-4 flex gap-2">
         <button
           onClick={handleStartStop}
-          className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 py-3 text-sm font-semibold transition-all"
+          className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 py-3 text-sm font-semibold text-white transition-all shadow-lg shadow-purple-600/30 hover:shadow-purple-600/40"
         >
           Open Focus Timer
         </button>
@@ -2114,7 +2223,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
 
       <button
         onClick={() => router?.push('/sessions')}
-        className="mt-4 w-full rounded-xl border border-white/20 py-2 text-xs font-semibold text-white/80 hover:bg-white/10 transition-all"
+        className="mt-4 w-full rounded-xl border border-purple-200 dark:border-white/20 py-2 text-xs font-semibold text-purple-600 dark:text-white/80 hover:bg-purple-50 dark:hover:bg-white/10 transition-all"
       >
         View Session History →
       </button>
@@ -2184,48 +2293,48 @@ const TaskCard = ({ task, onToggleComplete, onQuickAction, onOpenDetail }) => {
   return (
     <div
       onClick={() => onOpenDetail && onOpenDetail(task)}
-      className={`group relative overflow-hidden rounded-[22px] border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-4 shadow-[0_12px_35px_rgba(15,23,42,0.07)] dark:shadow-[0_12px_35px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_24px_50px_rgba(0,0,0,0.4)] ${
-        task.completed ? 'opacity-70' : ''
+      className={`group relative overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 ${
+        task.completed ? 'opacity-60' : ''
       }`}
     >
-      <span className="pointer-events-none absolute inset-y-3 left-3 w-[3px] rounded-full" style={{ background: task.borderColor }} />
-      <div className="flex gap-3 pl-4">
+      <span className="pointer-events-none absolute inset-y-2.5 left-2 w-[3px] rounded-full" style={{ background: task.borderColor }} />
+      <div className="flex gap-2.5 pl-3">
         <button
           aria-label="Toggle completion"
           onClick={(e) => {
             e.stopPropagation();
             onToggleComplete(task.id);
           }}
-          className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 transition-all duration-300 ${
-            task.completed ? 'scale-110 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shadow-inner shadow-purple-200/70 dark:shadow-purple-900/50' : 'hover:scale-110'
+          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 transition-all duration-200 ${
+            task.completed ? 'border-purple-400 dark:border-purple-600 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400' : 'hover:border-purple-300 dark:hover:border-purple-600'
           }`}
         >
-          <Check size={14} />
+          <Check size={12} />
         </button>
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: priorityInfo.color }} aria-hidden />
-              <p className={`text-base font-semibold leading-tight ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: priorityInfo.color }} aria-hidden />
+              <p className={`text-sm font-medium leading-tight ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
             </div>
-            {relative ? <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{relative}</span> : null}
+            {relative ? <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{relative}</span> : null}
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-            <span className="flex items-center gap-1 rounded-full px-3 py-1 font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-              {task.type === 'class' && <BookOpen size={12} />}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1 rounded px-2 py-0.5 font-medium bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300">
+              {task.type === 'class' && <BookOpen size={10} />}
               {task.type === 'lab' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 2h12M9 2v6l-4 8a4 4 0 003.6 6h6.8a4 4 0 003.6-6l-4-8V2" />
                 </svg>
               )}
               {task.type === 'tutorial' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               )}
-              {task.type === 'exam' && <AlertTriangle size={12} />}
+              {task.type === 'exam' && <AlertTriangle size={10} />}
               {task.type === 'quiz' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               )}
@@ -2426,15 +2535,17 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
 const TimelineCard = ({ entries, className = '' }) => {
   if (entries.length === 0) {
     return (
-      <section className={`rounded-[28px] border border-gray-100 bg-white px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] ${className}`}>
+      <section className={`rounded-[28px] border border-gray-100 dark:border-slate-700 bg-gradient-to-br from-white via-white to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-purple-900/20 px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] dark:shadow-[0_15px_45px_rgba(0,0,0,0.2)] ${className}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-slate-900">Day timeline</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Visual timeline from first to last task</p>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Day timeline</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visual timeline from first to last task</p>
           </div>
-          <CalendarDays size={18} className="text-slate-400" />
+          <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+            <CalendarDays size={18} className="text-purple-600 dark:text-purple-400" />
+          </div>
         </div>
-        <p className="mt-4 text-sm text-slate-500">No timed tasks today — use the board to plan a slot.</p>
+        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No timed tasks today — use the board to plan a slot.</p>
       </section>
     );
   }
@@ -2446,20 +2557,22 @@ const TimelineCard = ({ entries, className = '' }) => {
   const totalMinutes = (lastTime - firstTime) / 60000;
   
   return (
-    <section className={`rounded-[28px] border border-gray-100 bg-white px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] ${className}`}>
+    <section className={`rounded-[28px] border border-gray-100 dark:border-slate-700 bg-gradient-to-br from-white via-white to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-purple-900/20 px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] dark:shadow-[0_15px_45px_rgba(0,0,0,0.2)] ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-xl font-semibold text-slate-900">Day timeline</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Day timeline</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {firstTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} → {lastTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
           </p>
         </div>
-        <CalendarDays size={18} className="text-slate-400" />
+        <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+          <CalendarDays size={18} className="text-purple-600 dark:text-purple-400" />
+        </div>
       </div>
       
       <div className="mt-4 space-y-3 relative">
         {/* Vertical timeline line */}
-        <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-200" />
+        <div className="absolute left-[70px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-300 via-purple-400 to-purple-300 dark:from-purple-700 dark:via-purple-600 dark:to-purple-700 opacity-60" />
         
         {entries.map((entry, index) => {
           const startTime = entry.time;
@@ -2468,37 +2581,37 @@ const TimelineCard = ({ entries, className = '' }) => {
           const offsetMin = (startTime - firstTime) / 60000;
           
           return (
-            <div key={entry.id} className="flex items-start gap-3 relative">
+            <div key={entry.id} className="flex items-start gap-3 relative group">
               {/* Time marker */}
-              <div className="flex flex-col items-center w-10 shrink-0 z-10">
-                <div className="w-2 h-2 rounded-full bg-purple-500 ring-4 ring-white" />
-                <span className="text-xs font-semibold text-slate-600 mt-1">
+              <div className="flex items-center gap-2 shrink-0 z-10">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 w-14 text-right">
                   {startTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                 </span>
+                <div className="w-3 h-3 rounded-full bg-purple-500 ring-4 ring-white dark:ring-slate-800 shadow-lg shadow-purple-500/30 group-hover:scale-125 transition-transform" />
               </div>
               
               {/* Task bar */}
               <div className="flex-1 relative">
                 <div 
-                  className="rounded-lg border-l-4 bg-gradient-to-r from-white to-slate-50 px-3 py-2 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  className="rounded-xl border-l-4 bg-gradient-to-r from-white to-slate-50 dark:from-slate-700 dark:to-slate-800 px-4 py-3 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
                   style={{ borderLeftColor: entry.courseColor || '#8b5cf6' }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.title}</p>
+                      <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <span
                           className="rounded-full px-2 py-0.5 font-medium"
                           style={{ color: entry.courseColor, backgroundColor: `${entry.courseColor}15` }}
                         >
                           {entry.course}
                         </span>
-                        <span>•</span>
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
                         <Clock3 size={12} className="inline" />
                         <span>{Math.round(durationMin)} min</span>
                       </div>
                     </div>
-                    <div className="text-right text-xs text-slate-400">
+                    <div className="text-right text-xs font-medium text-slate-400 dark:text-slate-500">
                       {endTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </div>
                   </div>
@@ -2543,87 +2656,168 @@ const TaskBoard = ({
   onColumnDragOver,
   onQuickAdd,
   onOpenDetail,
-}) => (
-  <div className="grid gap-3 md:gap-4 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-3 md:px-4 py-3 md:py-4 shadow-sm hover:shadow-md transition-shadow grid-cols-1 md:grid-cols-3">
-    {columns.map((column) => {
-      const tasks = columnTasks[column.id] || [];
-      const isActiveDrop = dragOverColumn === column.id && draggingTaskId;
-      const ColumnIcon = column.Icon;
-      return (
+}) => {
+  const [doneExpanded, setDoneExpanded] = useState(false);
+  const prominentColumns = columns.filter(c => c.prominent !== false);
+  const doneColumn = columns.find(c => c.id === 'done');
+  const doneTasks = columnTasks['done'] || [];
+  
+  return (
+    <div className="space-y-4">
+      {/* Main columns grid */}
+      <div className="grid gap-3 md:gap-4 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-3 md:px-4 py-3 md:py-4 shadow-sm hover:shadow-md transition-shadow grid-cols-1 md:grid-cols-3">
+        {prominentColumns.map((column) => {
+          const tasks = columnTasks[column.id] || [];
+          const isActiveDrop = dragOverColumn === column.id && draggingTaskId;
+          const ColumnIcon = column.Icon;
+          return (
+            <div
+              key={column.id}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (draggingTaskId) onColumnDragOver(column.id);
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (draggingTaskId) onColumnDragOver(column.id);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                onDrop(column.id);
+              }}
+              className={`rounded-xl md:rounded-2xl border px-3 md:px-4 py-3 md:py-4 transition-all shadow-sm ${
+                isActiveDrop ? 'border-purple-300 dark:border-purple-600 bg-purple-50/60 dark:bg-purple-900/20 shadow-purple-200/50 scale-[1.02]' : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md'
+              }`}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className={`flex items-center gap-2 text-sm font-semibold ${column.colorClass || 'text-slate-700 dark:text-slate-300'}`}>
+                    {ColumnIcon ? <ColumnIcon size={16} /> : null}
+                    {column.label}
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">{column.description}</p>
+                </div>
+                <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">{tasks.length}</span>
+              </div>
+              <div className="space-y-2">
+                {tasks.length === 0 ? (
+                  <p className="rounded-[20px] border border-dashed border-slate-200 dark:border-slate-600 px-3 py-6 text-center text-xs text-slate-400 dark:text-slate-500" aria-live="polite">
+                    {draggingTaskId ? 'Release to move task here' : 'No cards yet · click below to add'}
+                  </p>
+                ) : (
+                  tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={() => onDragStart(task.id)}
+                      onDragEnd={onDragEnd}
+                      onClick={() => onOpenDetail(task)}
+                      className="cursor-grab rounded-xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-700 dark:text-slate-300 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-2">
+                        <GripVertical size={12} className="text-slate-300 dark:text-slate-600 flex-shrink-0" />
+                        <p className="flex-1 font-medium text-slate-900 dark:text-slate-100 text-xs leading-snug line-clamp-2">{task.title}</p>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        <span className="rounded-full px-1.5 py-0.5" style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}>
+                          {task.course}
+                        </span>
+                        {task.dueDate && (
+                          <span className="text-slate-400 dark:text-slate-500">{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => onQuickAdd && onQuickAdd(column.id)}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-600 px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+              >
+                <Plus size={12} />
+                Add task
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Done column - collapsed/compact by default */}
+      {doneColumn && (
         <div
-          key={column.id}
           onDragOver={(e) => {
             e.preventDefault();
-            if (draggingTaskId) onColumnDragOver(column.id);
+            if (draggingTaskId) onColumnDragOver('done');
           }}
           onDragEnter={(e) => {
             e.preventDefault();
-            if (draggingTaskId) onColumnDragOver(column.id);
+            if (draggingTaskId) onColumnDragOver('done');
           }}
           onDrop={(e) => {
             e.preventDefault();
-            onDrop(column.id);
+            onDrop('done');
           }}
-          className={`rounded-xl md:rounded-2xl border px-3 md:px-4 py-3 md:py-4 transition-all shadow-sm ${
-            isActiveDrop ? 'border-purple-300 dark:border-purple-600 bg-purple-50/60 dark:bg-purple-900/20 shadow-purple-200/50 scale-[1.02]' : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md'
+          className={`rounded-xl border px-4 py-3 transition-all ${
+            dragOverColumn === 'done' && draggingTaskId 
+              ? 'border-emerald-300 dark:border-emerald-600 bg-emerald-50/60 dark:bg-emerald-900/20' 
+              : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50'
           }`}
         >
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className={`flex items-center gap-2 text-sm font-semibold ${column.colorClass || 'text-slate-700 dark:text-slate-300'}`}>
-                {ColumnIcon ? <ColumnIcon size={16} /> : null}
-                {column.label}
-              </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">{column.description}</p>
+          <button
+            type="button"
+            onClick={() => setDoneExpanded(!doneExpanded)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+              <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                Completed Tasks
+              </span>
+              <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                {doneTasks.length}
+              </span>
             </div>
-            <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">{tasks.length}</span>
-          </div>
-          <div className="space-y-3">
-            {tasks.length === 0 ? (
-              <p className="rounded-[20px] border border-dashed border-slate-200 dark:border-slate-600 px-3 py-6 text-center text-xs text-slate-400 dark:text-slate-500" aria-live="polite">
-                {draggingTaskId ? 'Release to move task here' : 'No cards yet · click below to add'}
-              </p>
-            ) : (
-              tasks.map((task) => (
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span>{doneExpanded ? 'Collapse' : 'Expand'}</span>
+              <ChevronDown size={14} className={`transition-transform ${doneExpanded ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+          
+          {doneExpanded && doneTasks.length > 0 && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {doneTasks.map((task) => (
                 <div
                   key={task.id}
                   draggable
                   onDragStart={() => onDragStart(task.id)}
                   onDragEnd={onDragEnd}
                   onClick={() => onOpenDetail(task)}
-                  className="cursor-grab rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:shadow-lg"
+                  className="cursor-grab rounded-lg border border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-slate-800 px-3 py-2 transition hover:shadow-sm"
                 >
-                  <div className="flex items-center gap-2">
-                    <GripVertical size={14} className="text-slate-300 dark:text-slate-600" />
-                    <p className="flex-1 font-semibold text-slate-900 dark:text-slate-100">{task.title}</p>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="rounded-full px-2 py-0.5" style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}>
-                      {task.course}
-                    </span>
-                    {task.dueDate ? (
-                      <span>{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    ) : (
-                      <span>No date</span>
-                    )}
-                  </div>
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-400 line-through line-clamp-1">{task.title}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{task.course}</p>
                 </div>
-              ))
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => onQuickAdd && onQuickAdd(column.id)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-[18px] border border-dashed border-slate-200 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
-          >
-            <Plus size={14} />
-            Add task to {column.label}
-          </button>
+              ))}
+            </div>
+          )}
+          
+          {!doneExpanded && doneTasks.length > 0 && (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {draggingTaskId ? 'Drop here to mark as complete' : `${doneTasks.length} task${doneTasks.length === 1 ? '' : 's'} completed • Click to expand`}
+            </p>
+          )}
+          
+          {doneTasks.length === 0 && (
+            <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+              {draggingTaskId ? 'Drop here to mark as complete' : 'No completed tasks yet'}
+            </p>
+          )}
         </div>
-      );
-    })}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 const WeekPlanner = ({
   rangeLabel,
@@ -2643,7 +2837,7 @@ const WeekPlanner = ({
         key={task.id}
         role="button"
         tabIndex={0}
-        className="group flex items-start gap-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 shadow-sm transition hover:border-purple-200 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-200 dark:focus-visible:ring-purple-600"
+        className="group flex items-start gap-2 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 shadow-sm transition hover:border-purple-200 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-200 dark:focus-visible:ring-purple-600"
         onClick={() => onOpenDetail?.(task)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -2658,26 +2852,54 @@ const WeekPlanner = ({
             event.stopPropagation();
             onToggleComplete?.(task.id);
           }}
-          className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border text-xs transition-all ${
+          className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs transition-all ${
             task.completed
               ? 'border-purple-600 bg-purple-600 text-white'
               : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-purple-500 hover:text-purple-500'
           }`}
         >
-          {task.completed ? <Check size={12} /> : null}
+          {task.completed ? <Check size={10} /> : null}
         </button>
-        <div className="flex-1">
-          <p className={`text-sm font-semibold ${task.completed ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-semibold leading-snug ${task.completed ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
             <span>{dueLabel}</span>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-slate-300">•</span>
-            <span
-              className="rounded-full px-2 py-0.5"
-              style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}
-            >
-              {task.course || 'General'}
-            </span>
+            {task.course && (
+              <>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span
+                  className="rounded-full px-1.5 py-0.5"
+                  style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}
+                >
+                  {task.course}
+                </span>
+              </>
+            )}
+            {task.type && (
+              <>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 capitalize">
+                  {task.type}
+                </span>
+              </>
+            )}
           </div>
+          {task.tags && task.tags.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {task.tags.slice(0, 2).map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 text-[9px] font-medium text-purple-600 dark:text-purple-300"
+                >
+                  <Tag size={7} />
+                  {tag}
+                </span>
+              ))}
+              {task.tags.length > 2 && (
+                <span className="text-[9px] text-slate-400 dark:text-slate-500">+{task.tags.length - 2}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -2897,6 +3119,9 @@ const InsightsPanel = ({ insightSummary, widgetFactory, order }) => {
 };
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
+  const hideTimersRef = useRef({});
+  const [recentlyCompleted, setRecentlyCompleted] = useState([]); // { id, title, ts }
+  const HIDE_GRACE_MS = 8 * 1000;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [composerValue, setComposerValue] = useState('');
@@ -2913,7 +3138,7 @@ export default function TasksPage() {
   const [notificationPermission, setNotificationPermission] = useState('default');
   const composerInputRef = useRef(null);
   const { setOpen, setClose } = useModal();
-  const actionableTasks = useMemo(() => tasks.filter((task) => !isLectureTask(task)), [tasks]);
+  const actionableTasks = useMemo(() => tasks.filter((task) => !isLectureTask(task) && !task.completed), [tasks]);
 
   // Check notification permission on mount
   useEffect(() => {
@@ -2952,12 +3177,15 @@ export default function TasksPage() {
       const [taskPayload, eventsPayload, coursesPayload] = await Promise.all([
         fetch('/api/tasks?view=planner', { credentials: 'same-origin' })
           .then((res) => {
-            if (!res.ok) throw new Error('Failed to load tasks');
+            if (!res.ok) {
+              console.warn(`Tasks API returned ${res.status}: ${res.statusText}`);
+              return null; // Treat as no data instead of error
+            }
             return res.json();
           })
           .catch((err) => {
-            console.error('Failed to load tasks', err);
-            return null;
+            console.warn('Tasks API not available, using fallback data:', err.message);
+            return null; // Gracefully handle API unavailability
           }),
         fetchWithCache('/api/events?includeArchived=true', { credentials: 'same-origin' }, 120000).catch((err) => {
           console.error('Failed to load events', err);
@@ -3195,6 +3423,10 @@ export default function TasksPage() {
       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
   }, [actionableTasks]);
 
+  const completedTasks = useMemo(() => {
+    return tasks.filter((t) => t && t.completed).sort(sortByDueDate);
+  }, [tasks]);
+
   const taskTimelineEntries = useMemo(() => buildTimelineEntries(actionableTasks), [actionableTasks]);
   const scheduleTimelineEntries = useMemo(() => buildScheduleTimeline(scheduleEvents), [scheduleEvents]);
   const timelineEntries = useMemo(
@@ -3290,7 +3522,7 @@ export default function TasksPage() {
   const columnTasks = useMemo(() => {
     return boardColumns.reduce((acc, column) => {
       acc[column.id] = actionableTasks.filter((task) => {
-        const status = task.status || (task.completed ? 'done' : 'todo');
+        const status = normalizeStatus(task.status, task.completed);
         if (column.id === 'done') return status === 'done' || task.completed;
         if (task.completed) return false;
         return status === column.id;
@@ -3396,9 +3628,39 @@ export default function TasksPage() {
       const nextCompleted = current ? !current.completed : true;
       optimisticTaskUpdate(taskId, { completed: nextCompleted });
       persistTaskUpdate(taskId, { completed: nextCompleted });
+      // If marking completed, show recently completed with undo
+      if (nextCompleted) {
+        const title = current?.title || 'Task';
+        setRecentlyCompleted(prev => {
+          if (prev.some(p => String(p.id) === String(taskId))) return prev;
+          return [{ id: String(taskId), title, ts: Date.now() }, ...prev];
+        });
+        try {
+          if (hideTimersRef && hideTimersRef.current) {
+            if (hideTimersRef.current[String(taskId)]) clearTimeout(hideTimersRef.current[String(taskId)]);
+            hideTimersRef.current[String(taskId)] = setTimeout(() => {
+              // Remove the recently-completed pill after the grace period.
+              setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(taskId)));
+              // Do not toggle any hiddenCompleted state here — completed visibility is determined by the task's `completed` flag.
+            }, HIDE_GRACE_MS);
+          }
+        } catch (e) {}
+      } else {
+        // If unchecking, ensure any pending recentlyCompleted entries are cleared
+        try { if (hideTimersRef && hideTimersRef.current && hideTimersRef.current[String(taskId)]) { clearTimeout(hideTimersRef.current[String(taskId)]); delete hideTimersRef.current[String(taskId)]; } } catch (e) {}
+        setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(taskId)));
+      }
     },
     [optimisticTaskUpdate, persistTaskUpdate, tasks]
   );
+
+  const undoRecentlyCompleted = useCallback((taskId) => {
+    try { if (hideTimersRef && hideTimersRef.current && hideTimersRef.current[String(taskId)]) { clearTimeout(hideTimersRef.current[String(taskId)]); delete hideTimersRef.current[String(taskId)]; } } catch (e) {}
+    // Optimistically uncomplete and persist
+    optimisticTaskUpdate(taskId, { completed: false });
+    persistTaskUpdate(taskId, { completed: false });
+    setRecentlyCompleted(prev => prev.filter(p => String(p.id) !== String(taskId)));
+  }, [optimisticTaskUpdate, persistTaskUpdate]);
 
   const handleQuickAction = useCallback(
     (taskId, actionId) => {
@@ -3466,8 +3728,8 @@ export default function TasksPage() {
         id: optimisticId,
         title: trimmed,
         dueDate,
-        course: meta.course || 'General',
-        courseColor: meta.courseColor || accentPurple,
+        course: meta.course || null,
+        courseColor: meta.courseColor || null,
         type: meta.type || 'task',
         myDay: meta.myDay ?? true,
         addedToMyDay: meta.myDay ?? true,
@@ -3491,8 +3753,8 @@ export default function TasksPage() {
             addedToMyDay: meta.myDay ?? true,
             status: meta.status || 'todo',
             priority: meta.priority || PRIORITY_DEFAULT,
-            course: meta.course || 'General',
-            courseColor: meta.courseColor || accentPurple,
+            course: meta.course || null,
+            courseColor: meta.courseColor || null,
             type: meta.type || 'task',
             tags: meta.tags || [],
           }),
@@ -3753,8 +4015,8 @@ export default function TasksPage() {
       <Head>
         <title>Tasks | University Planner</title>
       </Head>
-      <div className="min-h-screen px-4 py-10 text-slate-900 dark:text-white dark:bg-slate-950" style={{ background: themePalette.background }}>
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 pb-16">
+      <div className="min-h-screen px-2 sm:px-4 py-6 sm:py-10 text-slate-900 dark:text-white dark:bg-slate-950" style={{ background: themePalette.background }}>
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 sm:gap-6 pb-16">
           <FloatingHeader
             onAdd={openComposerModal}
             onQuickFocus={() => composerInputRef.current?.focus()}
@@ -3861,12 +4123,29 @@ export default function TasksPage() {
               />
             ) : null}
             {viewMode === 'lectures' ? <LecturesTab groups={lectureGroups} syncing={loading} /> : null}
+            
             <InsightsPanel insightSummary={insightSummary} widgetFactory={widgetFactory} order={insightWidgetOrder} />
+            <RecentlyCompletedPills items={recentlyCompleted} onUndo={undoRecentlyCompleted} />
           </div>
         </div>
       </div>
     </>
     </HygraphSidebar>
+  );
+}
+
+// Small UI for recently completed undo (render at end so it appears above content)
+function RecentlyCompletedPills({ items, onUndo }) {
+  if (!items || !items.length) return null;
+  return (
+    <div className="fixed bottom-20 right-6 z-50 flex flex-col gap-2 items-end">
+      {items.slice(0, 6).map(item => (
+        <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-lg">
+          <div className="text-sm text-slate-700 dark:text-slate-200 max-w-[220px] truncate">{item.title}</div>
+          <button onClick={() => onUndo(item.id)} className="text-sm font-semibold text-blue-600 dark:text-blue-400">Undo</button>
+        </div>
+      ))}
+    </div>
   );
 }
 

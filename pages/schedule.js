@@ -793,7 +793,7 @@ export default function SchedulePage() {
         <title>Schedule — University Planner</title>
       </Head>
 
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <div className="flex flex-col items-center gap-4">
@@ -802,7 +802,7 @@ export default function SchedulePage() {
             </div>
           </div>
         ) : SchedulerProviderComp && SchedularViewComp ? (
-          <div className="mina-scheduler-root bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
+          <div className="mina-scheduler-root bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
             <SchedulerProviderComp
               initialState={events}
               weekStartsOn={appWeekStartsOn}
@@ -811,8 +811,8 @@ export default function SchedulePage() {
               onDeleteEvent={handleDeleteEvent}
               recurrenceOptions={recurrenceOptions}
             >
-              <div style={{ minHeight: 600 }} className="p-6">
-                <SchedularViewComp initialView={appDefaultView} events={events} views={{ views: ['day', 'week', 'month'], mobileViews: ['day'] }} />
+              <div style={{ minHeight: 600 }} className="p-2 sm:p-4 md:p-6">
+                <SchedularViewComp initialView={appDefaultView} events={events} views={{ views: ['day', 'week', 'month'], mobileViews: ['day', 'week', 'month'] }} />
               </div>
             </SchedulerProviderComp>
             {/* Scope modal used when deleting a recurring event from timetable */}

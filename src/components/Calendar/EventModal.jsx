@@ -210,7 +210,7 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
                   <button onClick={async () => {
                     if (!selectedEvent) return;
                     try {
-                      const ok = window.confirm('Unarchive this event? This will restore it to active events.');
+                      const ok = window.confirm('Restore this event? This will move it back to active events.');
                       if (!ok) return;
                       // Request server to unarchive this event (server will move row back to events table)
                       const res = await fetch(`/api/events/${encodeURIComponent(selectedEvent.id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: false }) });
@@ -220,10 +220,10 @@ export default function EventModal({ visible = true, selectedEvent, modalMode = 
                         onClose && onClose();
                       }
                     } catch (e) {
-                      console.warn('Unarchive request failed', e);
+                      console.warn('Restore request failed', e);
                     }
                   }} className="px-3 py-2 text-green-600 hover:bg-green-50 rounded-md flex items-center gap-2 mr-4">
-                    Unarchive
+                    Restore / Uncomplete
                   </button>
                 ) : (
                   <button onClick={async () => {

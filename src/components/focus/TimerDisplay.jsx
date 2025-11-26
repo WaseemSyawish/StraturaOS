@@ -23,8 +23,16 @@ export const TimerDisplay = ({ timeLeft, totalDuration, mode, isRunning, isLoadi
   if (isLoading) {
     return (
       <div className="relative w-80 h-80 flex items-center justify-center">
-        {/* Loading circle */}
-        <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+        {/* Loading circle with rotating animation */}
+        <svg className="absolute inset-0 w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+          <defs>
+            <linearGradient id="loadingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0" />
+              <stop offset="50%" stopColor="#6366f1" stopOpacity="1" />
+              <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.5" />
+            </linearGradient>
+          </defs>
+          {/* Background circle */}
           <circle
             cx="160"
             cy="160"
@@ -34,23 +42,30 @@ export const TimerDisplay = ({ timeLeft, totalDuration, mode, isRunning, isLoadi
             fill="none"
             className="text-gray-200 dark:text-gray-700"
           />
-          {/* Animated loading progress */}
+          {/* Animated loading arc that goes around the circle */}
           <circle
             cx="160"
             cy="160"
             r="140"
-            stroke="#6366f1"
+            stroke="url(#loadingGradient)"
             strokeWidth="8"
             fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * 0.7}
+            strokeDasharray={circumference * 0.25}
+            strokeDashoffset={0}
             strokeLinecap="round"
-            className="animate-spin"
             style={{
-              animation: 'spin 2s linear infinite',
+              transformOrigin: 'center',
+              animation: 'spinAround 1.5s linear infinite',
             }}
           />
         </svg>
+        
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes spinAround {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}} />
 
         {/* Loading text */}
         <div className="relative z-10 text-center">

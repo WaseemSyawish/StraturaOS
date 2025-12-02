@@ -1,5 +1,7 @@
 import { serialize } from 'cookie';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).send('Method not allowed');
@@ -18,7 +20,7 @@ export default function handler(req, res) {
     // also return OK so callers can continue to next-auth signOut
     res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('local-signout error', err);
+    if (isDev) console.error('local-signout error', err);
     res.status(500).json({ ok: false });
   }
 }

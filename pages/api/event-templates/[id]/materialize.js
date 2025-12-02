@@ -1,5 +1,7 @@
 import prisma from '../../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function isDateOnly(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
     const normalized = created.map(ev => ({ ...ev, date: localDateOnlyString(ev.date) }));
     return res.status(201).json({ events: normalized });
   } catch (err) {
-    console.error('POST /api/event-templates/[id]/materialize error', err);
+    if (isDev) console.error('POST /api/event-templates/[id]/materialize error', err);
     return res.status(500).json({ error: 'Failed to materialize template' });
   }
 }

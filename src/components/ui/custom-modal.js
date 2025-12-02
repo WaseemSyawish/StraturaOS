@@ -5,7 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useModal } from '@/providers/modal-context'
 import { X, MoreVertical, Clock, Star } from 'lucide-react'
 
-export default function CustomModal({ title, children, headerActions, showMinimalHeader = false }) {
+export default function CustomModal({ 
+  title, 
+  children, 
+  headerActions, 
+  showMinimalHeader = false,
+  onClockClick,
+  onStarClick,
+  isStarred = false,
+  hasReminder = false
+}) {
   const { setClose } = useModal();
 
   // Close on Escape key
@@ -47,27 +56,41 @@ export default function CustomModal({ title, children, headerActions, showMinima
           aria-modal="true"
         >
         {showMinimalHeader ? (
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-700">
             <button
               aria-label="Close"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               onClick={() => setClose()}
             >
               <X size={18} />
             </button>
             <div className="flex items-center gap-1">
-              <button
-                aria-label="Set reminder"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <Clock size={18} />
-              </button>
-              <button
-                aria-label="Add to favorites"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <Star size={18} />
-              </button>
+              {onClockClick && (
+                <button
+                  aria-label="Set reminder"
+                  onClick={onClockClick}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    hasReminder 
+                      ? 'text-blue-500 hover:text-blue-600 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Clock size={18} />
+                </button>
+              )}
+              {onStarClick && (
+                <button
+                  aria-label={isStarred ? "Remove from favorites" : "Add to favorites"}
+                  onClick={onStarClick}
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    isStarred 
+                      ? 'text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50' 
+                      : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Star size={18} fill={isStarred ? 'currentColor' : 'none'} />
+                </button>
+              )}
               {headerActions}
             </div>
           </div>

@@ -38,6 +38,43 @@ function getCourseColor(course, index = 0) {
   return DEFAULT_COURSE_COLORS[index % DEFAULT_COURSE_COLORS.length];
 }
 
+// Get type icon config for tasks
+const getTaskTypeConfig = (type) => {
+  const typeConfig = {
+    exam: { 
+      Icon: AlertTriangle, 
+      color: 'text-red-500 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-900/30'
+    },
+    quiz: { 
+      Icon: Beaker, 
+      color: 'text-orange-500 dark:text-orange-400',
+      bgColor: 'bg-orange-100 dark:bg-orange-900/30'
+    },
+    assignment: { 
+      Icon: FileText, 
+      color: 'text-blue-500 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+    },
+    project: { 
+      Icon: Target, 
+      color: 'text-purple-500 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/30'
+    },
+    study: { 
+      Icon: BookOpen, 
+      color: 'text-emerald-500 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-900/30'
+    },
+    default: { 
+      Icon: ListTodo, 
+      color: 'text-gray-500 dark:text-gray-400',
+      bgColor: 'bg-gray-100 dark:bg-gray-800/30'
+    }
+  };
+  return typeConfig[type?.toLowerCase()] || typeConfig.default;
+};
+
 // Calculate urgency level for a deadline
 function getUrgencyLevel(date) {
   if (!date) return 'normal';
@@ -513,11 +550,37 @@ export default function UniversityOverview() {
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState({ gpa: null, credits: null, attendanceRate: null });
   const [attendanceNeedsSignIn, setAttendanceNeedsSignIn] = useState(false);
+  const [showGpaTip, setShowGpaTip] = useState(false);
   const [attendanceError, setAttendanceError] = useState(null);
   const [attendanceDebug, setAttendanceDebug] = useState({ courses: null, attendance: [] });
   const [weekClassesCount, setWeekClassesCount] = useState(0);
   const [assignmentsDueCount, setAssignmentsDueCount] = useState(0);
   const [studyHoursLogged, setStudyHoursLogged] = useState(0);
+
+  // Check if GPA tip should be shown (only once per week)
+  useEffect(() => {
+    try {
+      const dismissed = localStorage.getItem('gpaTipDismissed');
+      if (dismissed) {
+        const dismissedDate = new Date(dismissed);
+        const now = new Date();
+        const daysSinceDismissed = (now - dismissedDate) / (1000 * 60 * 60 * 24);
+        // Show tip again after 7 days
+        setShowGpaTip(daysSinceDismissed > 7);
+      } else {
+        setShowGpaTip(true);
+      }
+    } catch (e) {
+      setShowGpaTip(true);
+    }
+  }, []);
+
+  const dismissGpaTip = useCallback(() => {
+    setShowGpaTip(false);
+    try {
+      localStorage.setItem('gpaTipDismissed', new Date().toISOString());
+    } catch (e) {}
+  }, []);
 
   // Memoize week calculations for performance - START ON MONDAY
   const weekDays = useMemo(() => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], []);
@@ -763,8 +826,12 @@ export default function UniversityOverview() {
           date: ev.startDate || ev.date,
           course: ev.course || ev.courseName || '',
           course_id: ev.course_id || ev.courseId,
+          courseName: ev.courses?.name || ev.course || ev.courseName || '',
+          courseCode: ev.courses?.code || '',
+          courseColor: ev.courses?.color || ev.color || '',
           description: ev.description || '',
-          priority: ev.meta?.priority || 'not-urgent-not-important'
+          priority: ev.meta?.priority || 'not-urgent-not-important',
+          tags: (Array.isArray(ev.tags) && ev.tags.length > 0) ? ev.tags : (Array.isArray(ev.meta?.tags) && ev.meta.tags.length > 0) ? ev.meta.tags : []
         });
       }
       list.sort((a, b) => (a.daysLeft || 9999) - (b.daysLeft || 9999));
@@ -1398,8 +1465,6 @@ export default function UniversityOverview() {
           onViewTasks={() => router.push('/tasks')}
         />
 
-
-
         {/* Academic Overview - Detailed */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -1477,12 +1542,19 @@ export default function UniversityOverview() {
             </div>
           </div>
           
-          {!loading && stats.gpa === null && (
+          {!loading && stats.gpa === null && showGpaTip && (
             <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
               <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-700 dark:text-amber-300">
+              <p className="text-sm text-amber-700 dark:text-amber-300 flex-1">
                 <strong>Tip:</strong> Add grades to your assessments to see your GPA here.
               </p>
+              <button 
+                onClick={dismissGpaTip}
+                className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                aria-label="Dismiss tip"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
@@ -1527,8 +1599,10 @@ export default function UniversityOverview() {
               {visibleUpcomingDeadlines.length > 0 ? (
                   <div className="space-y-2">
                     {visibleUpcomingDeadlines.slice(0, 4).map((deadline, index) => {
-                      const course = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
-                      const courseColor = getCourseColor(course, index);
+                      // Use embedded course data from the event, fallback to lookup
+                      const lookupCourse = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
+                      const displayCourseName = deadline.courseCode || deadline.courseName || lookupCourse?.code || lookupCourse?.name || '';
+                      const courseColor = deadline.courseColor || lookupCourse?.color || getCourseColor(lookupCourse, index);
                       const dueDate = new Date(deadline.due || deadline.date);
                       const now = new Date();
                       const isOverdue = dueDate < now;
@@ -1706,102 +1780,72 @@ export default function UniversityOverview() {
                         }
                       };
                       
+                      // Get type icon for visual distinction
+                      const typeConfig = getTaskTypeConfig(deadline.type);
+                      const TypeIcon = typeConfig.Icon;
+                      
                       return (
                         <div 
                           key={deadline.id} 
-                          className={`group relative rounded-lg border bg-white dark:bg-slate-800 transition-all duration-150 hover:shadow-sm cursor-pointer ${
-                            isChecked 
-                              ? 'opacity-50 border-gray-200 dark:border-slate-700' 
-                              : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                          onClick={() => router.push(`/tasks?openTask=${deadline.id}`)}
+                          className={`group relative cursor-pointer overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 ${
+                            isChecked ? 'opacity-60' : ''
                           }`}
-                          style={{ borderLeftWidth: '3px', borderLeftColor: courseColor }}
                         >
-                          <div className="p-3">
-                            <div className="flex items-start gap-3">
-                              {/* Custom Checkbox */}
-                              <div className="flex-shrink-0 pt-0.5">
-                                <button
-                                  onClick={handleCheckTask}
-                                  className="relative w-5 h-5 rounded-md border-2 cursor-pointer transition-all hover:scale-110 flex items-center justify-center shadow-sm"
-                                  style={isChecked ? { 
-                                    borderColor: courseColor,
-                                    backgroundColor: courseColor
-                                  } : {
-                                    borderColor: '#cbd5e1'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isChecked) {
-                                      e.currentTarget.style.borderColor = courseColor;
-                                      e.currentTarget.style.backgroundColor = courseColor + '20';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isChecked) {
-                                      e.currentTarget.style.borderColor = '#cbd5e1';
-                                      e.currentTarget.style.backgroundColor = 'transparent';
-                                    }
-                                  }}
-                                >
-                                  {isChecked && (
-                                    <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                  )}
-                                </button>
-                              </div>
-                              
-                              {/* Content - Made more compact */}
-                              <div className="flex-1 min-w-0">
-                                {/* Title row with inline due time */}
-                                <div className="flex items-start justify-between gap-2">
-                                  <h4 className={`text-sm font-semibold text-gray-900 dark:text-white leading-tight ${isChecked ? 'line-through opacity-60' : ''}`}>
+                          {/* Course color indicator */}
+                          <span 
+                            className="pointer-events-none absolute inset-y-2.5 left-2 w-[3px] rounded-full" 
+                            style={{ background: courseColor }} 
+                          />
+                          <div className="flex items-start gap-2.5 pl-3">
+                            {/* Checkbox */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleCheckTask(); }}
+                              className={`flex-shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-200 ${
+                                isChecked 
+                                  ? 'border-purple-400 dark:border-purple-600 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400' 
+                                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:border-purple-300 dark:hover:border-purple-600'
+                              }`}
+                            >
+                              <Check className="w-3 h-3" strokeWidth={2.5} />
+                            </button>
+                            
+                            {/* Content */}
+                            <div className="flex flex-1 flex-col gap-1.5">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full" style={{ background: courseColor }} aria-hidden />
+                                  <p className={`text-sm font-medium leading-tight ${isChecked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>
                                     {deadline.title}
-                                  </h4>
-                                  {/* Compact time badge */}
-                                  <div className="flex-shrink-0">
-                                    {urgencyBadge ? (
-                                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold uppercase">
-                                        <Clock className="w-3 h-3" strokeWidth={2.5} />
-                                        {isOverdue ? 'Late' : 'Today'}
-                                      </span>
-                                    ) : (
-                                      <span className={`text-[10px] font-medium ${timeColor}`}>{timeText}</span>
-                                    )}
-                                  </div>
+                                  </p>
                                 </div>
-                                
-                                {/* Compact meta row */}
-                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                  {/* Course pill */}
-                                  {course && (
-                                    <span 
-                                      className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
-                                      style={{ backgroundColor: courseColor }}
-                                    >
-                                      {course.code || course.name}
-                                    </span>
-                                  )}
-                                  
-                                  {/* Priority indicator - just icon + text */}
-                                  <span className={`flex items-center gap-1 text-[10px] font-medium ${priority.color.replace('bg-', '').replace('dark:bg-', '')}`}>
-                                    <PriorityIcon className="w-3 h-3" strokeWidth={2} />
-                                    {priority.label}
+                                {/* Time indicator */}
+                                {urgencyBadge ? (
+                                  <span className="px-1.5 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold uppercase">
+                                    {isOverdue ? 'Late' : 'Today'}
                                   </span>
-                                </div>
+                                ) : (
+                                  <span className={`text-[10px] font-medium uppercase tracking-wide ${timeColor}`}>{timeText}</span>
+                                )}
                               </div>
-                              
-                              {/* Archive button - smaller */}
-                              <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    // if (confirm('Archive this task? It will be moved to history.')) {
-                                      await archiveDeadline(deadline.id);
-                                    // }
-                                  }}
-                                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                  title="Archive task"
-                                >
-                                  <Archive className="w-3.5 h-3.5" />
-                                </button>
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                {/* Course pill */}
+                                {displayCourseName && (
+                                  <span 
+                                    className="flex items-center gap-1 rounded px-2 py-0.5 font-medium bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                                  >
+                                    {displayCourseName}
+                                  </span>
+                                )}
+                                {/* Tags */}
+                                {deadline.tags?.slice(0, 2).map((tag) => (
+                                  <span 
+                                    key={tag} 
+                                    className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                           </div>

@@ -8,7 +8,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', avatarColor: '' });
-  const [stats, setStats] = useState({ courses: 0, tasks: 0, lectures: 0, sessions: 0, gpa: null });
+  const [stats, setStats] = useState({ courses: 0, tasks: 0, lectures: 0, events: 0, sessions: 0, gpa: null });
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
@@ -28,25 +28,36 @@ export default function Profile() {
           if (res.ok) setProfile(await res.json());
           
           // Fetch stats
-          const [coursesRes, tasksRes, eventsRes] = await Promise.all([
+          const [coursesRes, eventsRes] = await Promise.all([
             fetch('/api/courses').catch(() => null),
-            fetch('/api/tasks').catch(() => null),
             fetch('/api/events').catch(() => null)
           ]);
           const coursesData = coursesRes?.ok ? await coursesRes.json() : { courses: [] };
-          const tasksData = tasksRes?.ok ? await tasksRes.json() : { tasks: [] };
-          const eventsData = eventsRes?.ok ? await eventsRes.json() : [];
+          const eventsData = eventsRes?.ok ? await eventsRes.json() : { events: [] };
           
-          // Count lectures (events with type 'class')
-          const lectureTypes = ['class', 'lab', 'tutorial', 'lecture'];
-          const lectures = Array.isArray(eventsData) 
-            ? eventsData.filter(e => lectureTypes.includes(e.type?.toLowerCase())).length 
-            : 0;
+          // Get events array from response
+          const eventsArray = eventsData.events || [];
+          
+          // Lecture/schedule types - these are NOT tasks
+          const lectureTypes = ['class', 'lab', 'tutorial', 'lecture', 'seminar', 'workshop'];
+          
+          // Task types - actual tasks/assignments
+          const taskTypes = ['assignment', 'deadline', 'project', 'quiz', 'exam', 'task'];
+          
+          // Count lectures (schedule items)
+          const lectures = eventsArray.filter(e => lectureTypes.includes(e.type?.toLowerCase())).length;
+          
+          // Count actual tasks (assignments, deadlines, etc.)
+          const actualTasks = eventsArray.filter(e => taskTypes.includes(e.type?.toLowerCase())).length;
+          
+          // Total events count = everything
+          const totalEvents = eventsArray.length;
           
           setStats({
             courses: coursesData.courses?.length || 0,
-            tasks: tasksData.tasks?.length || 0,
+            tasks: actualTasks,
             lectures,
+            events: totalEvents,
             sessions: 0,
             gpa: null
           });
@@ -146,12 +157,16 @@ export default function Profile() {
                       <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stats.courses} Courses</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                      <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stats.tasks} Tasks</span>
+                      <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stats.events} Events</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                       <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stats.lectures} Lectures</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                      <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{stats.tasks} Tasks</span>
                     </div>
                   </div>
                 </div>
@@ -325,7 +340,13 @@ export default function Profile() {
               </div>
               
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                <a href="/notifications" className="flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <button 
+                  onClick={() => {
+                    // TODO: Open notification settings modal or navigate to settings page
+                    alert('Notification settings coming soon! You can configure task reminders on the Tasks page.');
+                  }}
+                  className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+                >
                   <div className="flex items-center gap-4">
                     <div className="p-2.5 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
                       <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -336,7 +357,7 @@ export default function Profile() {
                     </div>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400" />
-                </a>
+                </button>
                 
                 <a href="/focus" className="flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className="flex items-center gap-4">

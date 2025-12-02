@@ -305,17 +305,26 @@ export default function CalendarPage() {
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
-                <button 
-                  onClick={() => { 
-                    const t = new Date(); 
-                    setCurrentDate(t); 
-                    setSelectedDate(toYMD(t)); 
-                  }} 
-                  className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
-                >
-                  <Calendar className="w-4 h-4" />
-                  <span>Today</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => openModal('create')}
+                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Add Event</span>
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      const t = new Date(); 
+                      setCurrentDate(t); 
+                      setSelectedDate(toYMD(t)); 
+                    }} 
+                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Today</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-3 sm:p-6 flex-1 flex flex-col min-h-0">

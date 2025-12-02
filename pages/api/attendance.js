@@ -6,6 +6,8 @@ import withPrisma from '../../lib/withPrisma';
 // Import the centralized resolveUser that checks all cookie types
 import { resolveUser } from '../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // Shared prisma instance - getPrisma just returns it
 function getPrisma() {
   return prisma;
@@ -55,7 +57,7 @@ async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('API Error:', error);
+    if (isDev) console.error('API Error:', error);
     return res.status(500).json({ 
       success: false,
       error: 'Internal server error',
@@ -82,7 +84,7 @@ async function handleGet(req, res) {
   
   // Debug: log resolved user for troubleshooting missing sessions
   try {
-    console.log('Attendance GET called - resolved user:', effectiveUserId, 'query:', req.query);
+    if (isDev) console.log('Attendance GET called - resolved user:', effectiveUserId, 'query:', req.query);
   } catch (e) {
     // ignore logging failures
   }
@@ -160,7 +162,7 @@ async function handleGet(req, res) {
         course = await p.course.findFirst({ where: { id: courseId, user_id: effectiveUserId } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during course find; using fallback');
+          if (isDev) console.warn('Prisma engine not available during course find; using fallback');
           const fb = await getCoursesFallback();
           course = fb.find(courseId);
         } else throw err;
@@ -189,7 +191,7 @@ async function handleGet(req, res) {
         });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during attendance findMany; using fallback');
+          if (isDev) console.warn('Prisma engine not available during attendance findMany; using fallback');
           const fb = await getAttendanceFallback();
           sessions = fb.list({ courseId, userId: effectiveUserId });
         } else throw err;
@@ -274,7 +276,7 @@ async function handleGet(req, res) {
       }
     } catch (e) {
       // Non-fatal: if we cannot compute scheduledCount, leave it null
-      console.warn('Failed to compute scheduledCount for attendance GET:', e && e.message ? e.message : e);
+      if (isDev) console.warn('Failed to compute scheduledCount for attendance GET:', e && e.message ? e.message : e);
       scheduledCount = null;
     }
 
@@ -297,12 +299,12 @@ async function handleGet(req, res) {
 
     // Debug: log counts to help diagnose missing-data reports
     try {
-      console.log('Attendance GET result - user:', effectiveUserId, 'courseId:', courseId, 'sessionsFound:', (formattedSessions || []).length);
+      if (isDev) console.log('Attendance GET result - user:', effectiveUserId, 'courseId:', courseId, 'sessionsFound:', (formattedSessions || []).length);
     } catch (e) {}
 
     return res.status(200).json({ success: true, sessions: formattedSessions, total: formattedSessions.length, course: { id: course.id, name: course.name, code: course.code, color: course.color }, scheduledCount, scheduledClassCount: typeof scheduledClassCount === 'number' ? scheduledClassCount : null, semester: semesterRange, lastClassEvent });
   } catch (error) {
-    console.error('Error fetching attendance sessions:', error);
+    if (isDev) console.error('Error fetching attendance sessions:', error);
     return res.status(500).json({ 
       success: false,
       error: 'Failed to fetch attendance sessions',
@@ -355,7 +357,7 @@ async function handlePost(req, res) {
         }
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during course find (POST); using fallback');
+          if (isDev) console.warn('Prisma engine not available during course find (POST); using fallback');
           const fb = await getCoursesFallback();
           course = fb.find(courseId);
           if (!course || course.user_id !== effectiveUserId) {
@@ -390,7 +392,7 @@ async function handlePost(req, res) {
         existingSession = await p2.attendanceSession.findFirst({ where: { date: sessionDate, course_id: courseId, user_id: effectiveUserId } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during duplicate check; using fallback');
+          if (isDev) console.warn('Prisma engine not available during duplicate check; using fallback');
           const fb = await getAttendanceFallback();
           existingSession = fb.list({ courseId, userId: effectiveUserId }).find(s => s.date.split('T')[0] === sessionDate.toISOString().split('T')[0]);
         } else throw err;
@@ -414,7 +416,7 @@ async function handlePost(req, res) {
         newSession = await p3.attendanceSession.create({ data: { date: sessionDate, status: status.toUpperCase(), points: sessionPoints, notes: notes?.trim() || null, user_id: effectiveUserId, course_id: courseId }, include: { courses: { select: { name: true, code: true, color: true } } } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during attendance.create; using fallback');
+          if (isDev) console.warn('Prisma engine not available during attendance.create; using fallback');
           const fb = await getAttendanceFallback();
           newSession = fb.create({ date: sessionDate.toISOString(), status, points: sessionPoints, notes, userId: effectiveUserId, courseId });
         } else throw err;
@@ -438,7 +440,7 @@ async function handlePost(req, res) {
       message: 'Attendance session created successfully'
     });
   } catch (error) {
-    console.error('Error creating attendance session:', error);
+    if (isDev) console.error('Error creating attendance session:', error);
     
     if (error.code === 'P2002') {
       return res.status(400).json({ 
@@ -485,7 +487,7 @@ async function handlePut(req, res) {
         existingSession = await p4.attendanceSession.findFirst({ where: { id: id, user_id: tokenUserId }, include: { courses: true } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during session find (PUT); using fallback');
+          if (isDev) console.warn('Prisma engine not available during session find (PUT); using fallback');
           const fb = await getAttendanceFallback();
           existingSession = fb.find(id);
           if (existingSession && existingSession.user_id !== tokenUserId) existingSession = null;
@@ -525,7 +527,7 @@ async function handlePut(req, res) {
             duplicateSession = await p5.attendanceSession.findFirst({ where: { date: sessionDate, course_id: existingSession.course_id, user_id: tokenUserId, id: { not: id } } });
           } catch (err) {
             if (isPrismaEngineError(err)) {
-              console.warn('Prisma engine not available during duplicate check (PUT); using fallback');
+              if (isDev) console.warn('Prisma engine not available during duplicate check (PUT); using fallback');
               const fb = await getAttendanceFallback();
               duplicateSession = fb.list({ courseId: existingSession.course_id, userId: tokenUserId }).find(s => s.date.split('T')[0] === sessionDate.toISOString().split('T')[0] && s.id !== id);
             } else throw err;
@@ -569,7 +571,7 @@ async function handlePut(req, res) {
         updatedSession = await p6.attendanceSession.update({ where: { id }, data: updateData, include: { courses: { select: { name: true, code: true, color: true } } } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during attendance.update; using fallback');
+          if (isDev) console.warn('Prisma engine not available during attendance.update; using fallback');
           const fb = await getAttendanceFallback();
           updatedSession = fb.update(id, updateData);
           if (updatedSession && !updatedSession.courses) updatedSession.courses = { name: updatedSession.course || null };
@@ -598,7 +600,7 @@ async function handlePut(req, res) {
       message: 'Attendance session updated successfully'
     });
   } catch (error) {
-    console.error('Error updating attendance session:', error);
+    if (isDev) console.error('Error updating attendance session:', error);
     
     if (error.code === 'P2002') {
       return res.status(400).json({ 
@@ -629,7 +631,7 @@ async function handleDelete(req, res) {
   // Resolve user using centralized auth function
   const tokenUserId = await resolveUser(req);
 
-  try { console.log('Attendance DELETE called - resolved user:', tokenUserId, 'body:', req.body); } catch (e) {}
+  try { if (isDev) console.log('Attendance DELETE called - resolved user:', tokenUserId, 'body:', req.body); } catch (e) {}
 
   if (!tokenUserId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
@@ -652,7 +654,7 @@ async function handleDelete(req, res) {
         return res.status(200).json({ success: true, message: `Attendance session for ${existingDelSession.courses.name} deleted successfully`, deletedSession: { id: existingDelSession.id, date: existingDelSession.date.toISOString().split('T')[0], course: existingDelSession.courses.name } });
       } catch (err) {
         if (isPrismaEngineError(err)) {
-          console.warn('Prisma engine not available during delete; using fallback');
+          if (isDev) console.warn('Prisma engine not available during delete; using fallback');
           const fb = await getAttendanceFallback();
           existingDelSession = fb.find(id);
           if (!existingDelSession || existingDelSession.user_id !== tokenUserId) return res.status(404).json({ success: false, error: 'Attendance session not found or you do not have permission to delete it' });
@@ -663,7 +665,7 @@ async function handleDelete(req, res) {
       }
     }
   } catch (error) {
-    console.error('Error deleting attendance session:', error);
+    if (isDev) console.error('Error deleting attendance session:', error);
     return res.status(500).json({ 
       success: false,
       error: 'Failed to delete attendance session',

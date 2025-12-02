@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
+const isDev = process.env.NODE_ENV === 'development';
 const CACHE_DIR = path.join(process.cwd(), 'data');
 
 // Safely fetch remote holidays and return an array or empty array on error.
@@ -9,12 +10,12 @@ async function fetchRemoteHolidays(year, country) {
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'university-planner' }, timeout: 8000 });
     if (!r.ok) {
-      console.warn('Remote holidays fetch returned non-OK status', r.status, url);
+      if (isDev) console.warn('Remote holidays fetch returned non-OK status', r.status, url);
       return [];
     }
     const txt = await r.text();
     if (!txt || !txt.trim()) {
-      console.info('Remote holidays fetch returned empty body for', `${year}-${country}`, url);
+      if (isDev) console.info('Remote holidays fetch returned empty body for', `${year}-${country}`, url);
       return [];
     }
     try {
@@ -23,12 +24,14 @@ async function fetchRemoteHolidays(year, country) {
       return [];
     } catch (parseErr) {
       const snippet = txt.length > 1000 ? txt.slice(0, 1000) + '...[truncated]' : txt;
-      console.warn('Failed parsing remote holidays JSON for', `${year}-${country}`, 'from', url, 'parseError:', parseErr.message);
-      console.debug('Remote holidays body snippet:', snippet);
+      if (isDev) {
+        console.warn('Failed parsing remote holidays JSON for', `${year}-${country}`, 'from', url, 'parseError:', parseErr.message);
+        console.debug('Remote holidays body snippet:', snippet);
+      }
       return [];
     }
   } catch (err) {
-    console.error('Failed fetching remote holidays for', `${year}-${country}`, err && err.message ? err.message : err);
+    if (isDev) console.error('Failed fetching remote holidays for', `${year}-${country}`, err && err.message ? err.message : err);
     return [];
   }
 }
@@ -74,7 +77,7 @@ export default async function handler(req, res) {
           holidays.push(...remote);
           try { fs.writeFileSync(cacheFile, JSON.stringify(remote, null, 2), 'utf8'); } catch(e){ /* non-fatal */ }
         } catch (e) {
-          console.error(`Failed fetching remote holidays for ${yyyy}-${cc}`, e);
+          if (isDev) console.error(`Failed fetching remote holidays for ${yyyy}-${cc}`, e);
         }
       }
     }
@@ -88,7 +91,7 @@ export default async function handler(req, res) {
         overrides = JSON.parse(raw || '[]');
       }
     } catch (e) {
-      console.error('Failed reading local holidays overrides', e);
+      if (isDev) console.error('Failed reading local holidays overrides', e);
     }
     // Filter overrides down to only the requested years to avoid unrelated entries
     const overrideFiltered = (overrides || []).filter(o => {
@@ -244,7 +247,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ source: 'combined', holidays: combined });
   } catch (err) {
-    console.error('Holidays API error', err);
+    if (isDev) console.error('Holidays API error', err);
     // If fetching failed, attempt to return any existing cache
     try {
       const cacheFile = path.join(CACHE_DIR, `holidays-${String(country || 'IQ').toUpperCase()}-${Number(year) || new Date().getFullYear()}.json`);
@@ -254,7 +257,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ source: 'cache-on-error', holidays: parsed });
       }
     } catch (e) {
-      console.error('Failed reading cache during error fallback', e);
+      if (isDev) console.error('Failed reading cache during error fallback', e);
     }
     return res.status(502).json({ error: 'Unable to fetch holidays' });
   }

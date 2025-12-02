@@ -1,57 +1,64 @@
-# dependencies
-/node_modules
+﻿# ===================
+# Dependencies
+# ===================
+node_modules/
 /.pnp
 .pnp.js
 
-# testing
-/coverage
-
-# next.js
+# ===================
+# Next.js
+# ===================
 /.next/
 /out/
+/build/
+next-env.d.ts
 
-# production
-/build
-
-# misc
-.DS_Store
+# ===================
+# Environment & Secrets
+# ===================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
 *.pem
 
-# debug
+# ===================
+# Logs & Debug
+# ===================
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# local env files
-.env*.local
-.env
-.env.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# logs
-*.log
 dev.log
 dev.err
+dev-server-output.log
+next-dev.log
+.next-dev.log
 
-# database
+# ===================
+# Build Artifacts
+# ===================
+*.tsbuildinfo
+/coverage/
+
+# ===================
+# Database
+# ===================
 prisma/*.db
 prisma/*.db-journal
 *.sqlite
 *.sqlite3
+prisma/schema.*.prisma
+prisma/prisma/
 
-# backup files
+# ===================
+# Data Files (sensitive)
+# ===================
 data/backup-*.json
 data/*-backup-*.json
 data/deleted-backups-*.txt
-
-# sensitive data files
 data/dev-user.json
 data/events.json
 data/events.json.bak
@@ -60,7 +67,9 @@ data/grades.json
 data/attendance.json
 data/timetable.json
 
-# sensitive scripts
+# ===================
+# Scripts (sensitive)
+# ===================
 scripts/add_end_date.sql
 scripts/add-meta-columns.js
 scripts/aggressive-clean.js
@@ -68,31 +77,48 @@ scripts/check-sqlite.js
 scripts/migrate-sqlite-to-postgres.js
 scripts/restore-backup.js
 
-# test files with sensitive data
+# ===================
+# Temp & Test Files
+# ===================
 test-*.js
 temp_*.js
 tmp_*.js
 *.corrupt.js
 *.bak.js
+*.bak
 
-# HTML response files
-*.html
-!public/*.html
-
-# SQL migration files
+# ===================
+# SQL Files
+# ===================
 *.sql
 !prisma/migrations/**/*.sql
 
-# Prisma backup files
-prisma/schema.*.prisma
-prisma/prisma/
-
-# macOS
+# ===================
+# OS Files
+# ===================
 .DS_Store
+Thumbs.db
+Desktop.ini
 
-# Editor
+# ===================
+# Editor & IDE
+# ===================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-*
+
+# ===================
+# Vercel
+# ===================
+.vercel/
+
+# ===================
+# Misc
+# ===================
+*.html
+!public/*.html
+*.gif
+!public/**/*.gif

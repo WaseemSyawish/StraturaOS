@@ -2,6 +2,8 @@ import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, subDays } from 'date-fns';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   const userId = await resolveUser(req);
 
@@ -45,37 +47,59 @@ export default async function handler(req, res) {
     const sessions = await prisma.focusSession.findMany({
       where: {
         user_id: userId,
-        completed: true,
         session_type: 'focus',
         started_at: {
           gte: startDate,
           lte: endDate,
         },
+        // Include both completed and interrupted sessions
+        OR: [
+          { completed: true },
+          { interrupted: true },
+        ],
       },
       orderBy: { started_at: 'desc' },
-      include: {
-        event: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-          },
-        },
-      },
+      // Note: event relation removed as FocusSession doesn't have it in the schema
     });
 
+    // Separate completed from interrupted for accurate metrics
+    const completedSessions = sessions.filter(s => s.completed === true);
+    const interruptedSessions = sessions.filter(s => s.interrupted === true && !s.completed);
+
     // Calculate statistics
-    const totalSessions = sessions.length;
-    const totalFocusTime = sessions.reduce((sum, s) => sum + s.duration, 0);
+    const totalSessions = completedSessions.length;
+    const totalInterrupted = interruptedSessions.length;
+    const totalAttempted = sessions.length;
+    
+    // Focus time from completed sessions
+    const totalFocusTime = completedSessions.reduce((sum, s) => sum + s.duration, 0);
+    
+    // Also calculate time spent on interrupted sessions (partial work)
+    const interruptedFocusTime = interruptedSessions.reduce((sum, s) => {
+      if (s.ended_at && s.started_at) {
+        // Calculate actual time spent before interruption
+        const actualTime = Math.floor((new Date(s.ended_at) - new Date(s.started_at)) / 1000);
+        return sum + actualTime;
+      }
+      return sum;
+    }, 0);
+    
+    // Total time including interrupted sessions
+    const totalTimeSpent = totalFocusTime + interruptedFocusTime;
+    
     const totalFocusMinutes = Math.floor(totalFocusTime / 60);
     const totalFocusHours = Math.floor(totalFocusMinutes / 60);
     const remainingMinutes = totalFocusMinutes % 60;
+    
+    const totalTimeMinutes = Math.floor(totalTimeSpent / 60);
+    const totalTimeHours = Math.floor(totalTimeMinutes / 60);
+    const remainingTimeMinutes = totalTimeMinutes % 60;
 
     // Group by task
     const taskStats = {};
     sessions.forEach(session => {
       const taskKey = session.task_id || session.task_name || 'Untitled';
-      const taskTitle = session.event?.title || session.task_name || 'Untitled Task';
+      const taskTitle = session.task_name || 'Untitled Task';
       
       if (!taskStats[taskKey]) {
         taskStats[taskKey] = {
@@ -153,11 +177,19 @@ export default async function handler(req, res) {
     const stats = {
       period,
       totalSessions,
+      totalInterrupted,
+      totalAttempted,
       totalFocusTime: {
         seconds: totalFocusTime,
         minutes: totalFocusMinutes,
         hours: totalFocusHours,
         formatted: `${totalFocusHours}h ${remainingMinutes}m`,
+      },
+      totalTimeSpent: {
+        seconds: totalTimeSpent,
+        minutes: totalTimeMinutes,
+        hours: totalTimeHours,
+        formatted: `${totalTimeHours}h ${remainingTimeMinutes}m`,
       },
       currentStreak,
       dailyGoal: focusSettings?.daily_goal_sessions || null,
@@ -172,14 +204,13 @@ export default async function handler(req, res) {
         duration: Math.floor(s.duration / 60),
         completedAt: s.ended_at || s.started_at,
         interrupted: s.interrupted,
+        completed: s.completed,
       })),
     };
 
     return res.status(200).json({ stats });
   } catch (error) {
-    console.error('Focus stats API error:', error);
+    if (isDev) console.error('Focus stats API error:', error);
     return res.status(500).json({ error: 'Internal server error', details: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 }

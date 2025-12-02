@@ -1,16 +1,25 @@
 // Focus Settings Modal
-import React, { useState, useEffect } from 'react';
-import { X, Volume2, VolumeX, Bell, BellOff, Sun, Moon, Monitor, Play } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Volume2, VolumeX, Bell, BellOff, Play, Check } from 'lucide-react';
 import { useFocusNotifications } from '@/lib/useFocusNotifications';
+import AudioManager from '@/lib/focus/AudioManager';
+
+// Get sound types from AudioManager
+const soundCategories = AudioManager.getSoundTypesByCategory();
 
 export const FocusSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
   const [localSettings, setLocalSettings] = useState(settings);
   const { playSound, showNotification } = useFocusNotifications();
+  const prevIsOpen = useRef(isOpen);
 
-  // Reset local settings when modal opens or settings prop changes
+  // Only reset local settings when modal opens (not on every settings change)
   useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings, isOpen]);
+    if (isOpen && !prevIsOpen.current) {
+      // Modal just opened - sync with prop
+      setLocalSettings(settings);
+    }
+    prevIsOpen.current = isOpen;
+  }, [isOpen, settings]);
 
   const handleSave = () => {
     onSave(localSettings);
@@ -155,33 +164,69 @@ export const FocusSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
               {localSettings.sound_enabled && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Sound Type
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Notification Sound
                     </label>
-                    <select
-                      value={localSettings.sound_type}
-                      onChange={(e) => updateSetting('sound_type', e.target.value)}
-                      className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white"
-                    >
-                      <option value="chime">Chime</option>
-                      <option value="bell">Bell</option>
-                      <option value="none">None</option>
-                    </select>
+                    <div className="space-y-4">
+                      {Object.entries(soundCategories).map(([categoryId, category]) => (
+                        <div key={categoryId}>
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                            {category.name}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {category.sounds.map((sound) => (
+                              <button
+                                key={sound.id}
+                                onClick={() => {
+                                  updateSetting('sound_type', sound.id);
+                                  playSound(sound.id, localSettings.sound_volume);
+                                }}
+                                className={`relative flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left ${
+                                  localSettings.sound_type === sound.id
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                }`}
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium truncate ${
+                                    localSettings.sound_type === sound.id
+                                      ? 'text-indigo-700 dark:text-indigo-300'
+                                      : 'text-gray-900 dark:text-white'
+                                  }`}>
+                                    {sound.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                    {sound.description}
+                                  </p>
+                                </div>
+                                {localSettings.sound_type === sound.id && (
+                                  <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
+                  <div className="pt-3">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Volume: {localSettings.sound_volume}%
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      step="5"
-                      value={localSettings.sound_volume}
-                      onChange={(e) => updateSetting('sound_volume', parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-                    />
+                    <div className="flex items-center gap-3">
+                      <VolumeX className="w-4 h-4 text-gray-400" />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={localSettings.sound_volume}
+                        onChange={(e) => updateSetting('sound_volume', parseInt(e.target.value))}
+                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-indigo-600"
+                      />
+                      <Volume2 className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
 
                   <div>
@@ -190,7 +235,7 @@ export const FocusSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
                       className="w-full px-4 py-2.5 bg-indigo-100 dark:bg-indigo-900/30 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Play className="w-4 h-4" />
-                      Test Sound
+                      Preview Selected Sound
                     </button>
                   </div>
                 </>

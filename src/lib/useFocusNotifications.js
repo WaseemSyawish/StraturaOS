@@ -1,57 +1,31 @@
 // Focus Session Notifications & Audio
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { getAudioManager } from '@/lib/focus/AudioManager';
 
 export const useFocusNotifications = () => {
-  const audioRef = useRef(null);
+  const audioManagerRef = useRef(null);
 
   useEffect(() => {
     // Request notification permission on mount
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+    
+    // Initialize audio manager
+    audioManagerRef.current = getAudioManager();
   }, []);
 
-  const playSound = (soundType = 'chime', volume = 50) => {
+  const playSound = useCallback(async (soundType = 'chime', volume = 50) => {
     try {
-      // Create audio context for web audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Set volume (0-1)
-      gainNode.gain.value = volume / 100;
-
-      // Different sound patterns
-      switch (soundType) {
-        case 'chime':
-          oscillator.frequency.value = 523.25; // C5
-          oscillator.type = 'sine';
-          break;
-        case 'bell':
-          oscillator.frequency.value = 659.25; // E5
-          oscillator.type = 'triangle';
-          break;
-        default:
-          oscillator.frequency.value = 440; // A4
-          oscillator.type = 'sine';
-      }
-
-      oscillator.start();
-      oscillator.stop(audioContext.currentTime + 0.3);
-
-      // Cleanup
-      setTimeout(() => {
-        audioContext.close();
-      }, 500);
+      const audioManager = audioManagerRef.current || getAudioManager();
+      audioManager.setVolume(volume / 100);
+      await audioManager.play(soundType);
     } catch (error) {
       console.error('Error playing sound:', error);
     }
-  };
+  }, []);
 
-  const showNotification = (title, options = {}) => {
+  const showNotification = useCallback((title, options = {}) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
         const notification = new Notification(title, {
@@ -71,10 +45,10 @@ export const useFocusNotifications = () => {
       }
     }
     return null;
-  };
+  }, []);
 
-  const notifySessionComplete = (sessionType, nextAction) => {
-    let title, body, icon;
+  const notifySessionComplete = useCallback((sessionType, nextAction) => {
+    let title, body;
 
     switch (sessionType) {
       case 'focus':
@@ -95,7 +69,7 @@ export const useFocusNotifications = () => {
     }
 
     showNotification(title, { body });
-  };
+  }, [showNotification]);
 
   return {
     playSound,

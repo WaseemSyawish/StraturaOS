@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
+const isDev = process.env.NODE_ENV === 'development';
 const filePath = path.join(process.cwd(), 'data', 'templates.json');
 
 const ensureData = () => {
@@ -16,7 +17,7 @@ const readTemplates = () => {
     }
     return {};
   } catch (e) {
-    console.error('readTemplates error', e);
+    if (isDev) console.error('readTemplates error', e);
     return {};
   }
 };
@@ -27,7 +28,7 @@ const writeTemplates = (data) => {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     return true;
   } catch (e) {
-    console.error('writeTemplates error', e);
+    if (isDev) console.error('writeTemplates error', e);
     return false;
   }
 };
@@ -49,7 +50,7 @@ export default function handler(req, res) {
       if (writeTemplates(current)) return res.status(201).json({ success: true, data: current });
       return res.status(500).json({ success: false, error: 'Failed to save template' });
     } catch (e) {
-      console.error(e);
+      if (isDev) console.error(e);
       return res.status(500).json({ success: false, error: 'Server error' });
     }
   }
@@ -64,7 +65,7 @@ export default function handler(req, res) {
       if (writeTemplates(current)) return res.status(200).json({ success: true, data: current });
       return res.status(500).json({ success: false, error: 'Failed to delete template' });
     } catch (e) {
-      console.error(e);
+      if (isDev) console.error(e);
       return res.status(500).json({ success: false, error: 'Server error' });
     }
   }

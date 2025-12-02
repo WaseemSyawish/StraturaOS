@@ -1,6 +1,8 @@
 import { resolveUser } from '../../../lib/resolveUser';
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
     const userId = await resolveUser(req);
@@ -20,7 +22,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    console.error('/api/users/settings error', err);
+    if (isDev) console.error('/api/users/settings error', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

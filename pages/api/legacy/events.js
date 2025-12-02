@@ -3,13 +3,15 @@ import prisma from '../../../lib/prisma';
 const fallback = require('../../../lib/eventsFallback');
 const { MIN_SCHEDULE_OFFSET_MS, MIN_SCHEDULE_OFFSET_LABEL } = require('../../../lib/config');
 
-console.log('DEBUG: process.env.DATABASE_URL =', process.env.DATABASE_URL);
+const isDev = process.env.NODE_ENV === 'development';
 
 export default async function handler(req, res) {
   const { method } = req;
   
-  console.log('Events API (legacy) called with method:', method);
-  console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  if (isDev) {
+    console.log('Events API (legacy) called with method:', method);
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  }
   
   try {
     switch (method) {
@@ -114,7 +116,7 @@ export default async function handler(req, res) {
           });
           return res.status(201).json({ success: true, event: created });
         } catch (errCreate) {
-          console.error('Prisma create failed, attempting fallback. Error:', errCreate && errCreate.message ? errCreate.message : errCreate);
+          if (isDev) console.error('Prisma create failed, attempting fallback. Error:', errCreate && errCreate.message ? errCreate.message : errCreate);
           // Treat any Prisma-related failure as a signal to use fallback storage
           try {
             const payload = {
@@ -130,7 +132,7 @@ export default async function handler(req, res) {
             const created = fallback.create(payload);
             return res.status(201).json({ success: true, event: created, fallback: true });
           } catch (fbErr) {
-            console.error('Fallback create also failed:', fbErr);
+            if (isDev) console.error('Fallback create also failed:', fbErr);
             // fall through to outer catch below
             throw fbErr;
           }
@@ -145,11 +147,11 @@ export default async function handler(req, res) {
         });
     }
   } catch (error) {
-    console.error('Events API (legacy) error:', error);
+    if (isDev) console.error('Events API (legacy) error:', error);
     
   // If Prisma can't reach DB, fallback to file-based storage
   if (error.code === 'P1001' || error.message?.includes("Can't reach database")) {
-      console.log('Using fallback storage for events');
+      if (isDev) console.log('Using fallback storage for events');
       
       if (method === 'GET') {
         const events = fallback.list();

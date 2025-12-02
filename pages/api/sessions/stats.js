@@ -3,6 +3,8 @@ import { resolveUser } from "../../../lib/resolveUser";
 import fs from 'fs';
 import path from 'path';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -41,7 +43,7 @@ export default async function handler(req, res) {
     const todayCompleted = todaySessions.filter((s) => s.completed).length;
     const weekCompleted = weekSessions.filter((s) => s.completed).length;
 
-    console.log('[api/sessions/stats] Prisma result - todaySessions=', todaySessions.length, 'weekSessions=', weekSessions.length, 'weekDuration=', weekDuration);
+    if (isDev) console.log('[api/sessions/stats] Prisma result - todaySessions=', todaySessions.length, 'weekSessions=', weekSessions.length, 'weekDuration=', weekDuration);
 
     return res.status(200).json({
       success: true,
@@ -65,9 +67,9 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-    console.error('[api/sessions/stats] Prisma error:', err && err.message ? err.message : err);
+    if (isDev) console.error('[api/sessions/stats] Prisma error:', err && err.message ? err.message : err);
     // Dev fallback: when Prisma engine unavailable, read local dev file
-    if (process.env.NODE_ENV !== 'production' && err && String(err.message || '').includes('Engine is not yet connected')) {
+    if (isDev && err && String(err.message || '').includes('Engine is not yet connected')) {
       try {
         const devFile = path.join(process.cwd(), 'data', 'dev-focus-sessions.json');
         let list = [];
@@ -86,7 +88,7 @@ export default async function handler(req, res) {
         const todayCompleted = todaySessions.filter((s) => s.completed).length;
         const weekCompleted = weekSessions.filter((s) => s.completed).length;
 
-        console.log('[api/sessions/stats] Dev-file fallback - todaySessions=', todaySessions.length, 'weekSessions=', weekSessions.length, 'weekDuration=', weekDuration);
+        if (isDev) console.log('[api/sessions/stats] Dev-file fallback - todaySessions=', todaySessions.length, 'weekSessions=', weekSessions.length, 'weekDuration=', weekDuration);
 
         return res.status(200).json({
           success: true,
@@ -107,13 +109,11 @@ export default async function handler(req, res) {
           fallback: 'dev-file'
         });
       } catch (fsErr) {
-        console.error('[api/sessions/stats] dev fallback read failed:', fsErr);
+        if (isDev) console.error('[api/sessions/stats] dev fallback read failed:', fsErr);
         return res.status(500).json({ error: 'Failed to fetch stats (dev fallback failed)' });
       }
     }
 
     return res.status(500).json({ error: 'Failed to fetch stats' });
-  } finally {
-    try { await prisma.$disconnect(); } catch (e) { /* ignore */ }
   }
 }

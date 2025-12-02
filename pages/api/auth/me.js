@@ -2,37 +2,39 @@ import { getToken } from 'next-auth/jwt';
 import prisma from '../../../lib/prisma';
 import jwt from 'jsonwebtoken';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // Returns 200 + user when authenticated, otherwise 401
 export default async function handler(req, res) {
   try {
-    console.log('[/api/auth/me] All cookies received:', JSON.stringify(req.cookies || {}, null, 2));
+    if (isDev) console.log('[/api/auth/me] All cookies received:', JSON.stringify(req.cookies || {}, null, 2));
     
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
     // Resolve user id from token or (development) local cookies set by local-signin.
     let userId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
     
     if (userId) {
-      console.log('[/api/auth/me] ✅ Found userId from NextAuth token:', userId);
+      if (isDev) console.log('[/api/auth/me] ✅ Found userId from NextAuth token:', userId);
     }
     
     // ALSO check for custom session cookie from /api/auth/signin
     if (!userId && req.cookies && req.cookies.session) {
-      console.log('[/api/auth/me] Found session cookie, attempting to decode...');
+      if (isDev) console.log('[/api/auth/me] Found session cookie, attempting to decode...');
       try {
         const secret = process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret';
         const decoded = jwt.verify(req.cookies.session, secret);
-        console.log('[/api/auth/me] Decoded session cookie:', JSON.stringify(decoded, null, 2));
+        if (isDev) console.log('[/api/auth/me] Decoded session cookie:', JSON.stringify(decoded, null, 2));
         if (decoded && decoded.userId) {
           userId = decoded.userId;
-          console.log('[/api/auth/me] ✅ Found userId from custom session cookie:', userId);
+          if (isDev) console.log('[/api/auth/me] ✅ Found userId from custom session cookie:', userId);
         } else {
-          console.error('[/api/auth/me] ❌ Session cookie decoded but no userId field');
+          if (isDev) console.error('[/api/auth/me] ❌ Session cookie decoded but no userId field');
         }
       } catch (e) {
-        console.error('[/api/auth/me] ❌ Failed to decode custom session cookie:', e.message);
+        if (isDev) console.error('[/api/auth/me] ❌ Failed to decode custom session cookie:', e.message);
       }
     } else if (!userId) {
-      console.log('[/api/auth/me] ❌ No session cookie found');
+      if (isDev) console.log('[/api/auth/me] ❌ No session cookie found');
     }
     
     if (!userId) {
@@ -72,7 +74,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ authenticated: true, id: user.id, name: user.name, email: user.email });
   } catch (err) {
-    console.error('/api/auth/me error', err);
+    if (isDev) console.error('/api/auth/me error', err);
     return res.status(500).json({ error: 'Failed to read auth' });
   }
 }

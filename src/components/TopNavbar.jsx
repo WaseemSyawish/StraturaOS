@@ -117,7 +117,7 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
         )}
       </div>
 
-      {/* Right: Page Actions, Notifications, User, Settings, Sign Out */}
+      {/* Right: Page Actions, Notifications, Settings, User, Sign Out */}
       <div className="flex items-center gap-1 sm:gap-2">
         {/* Page-specific actions */}
         {pageActions && (
@@ -281,15 +281,6 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
           )}
         </div>
 
-        {/* User Profile - Keep avatar but make non-clickable */}
-        <div
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm border border-white/20"
-          style={{ backgroundColor: avatarColor }}
-          title={userName || 'User'}
-        >
-          {(userName || 'U').charAt(0).toUpperCase()}
-        </div>
-
         {/* Settings Button */}
         <button
           onClick={() => router.push('/settings')}
@@ -301,6 +292,18 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
+
+        {/* Separator between tools and account */}
+        <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+        {/* User Profile Avatar */}
+        <div
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm border border-white/20 cursor-default"
+          style={{ backgroundColor: avatarColor }}
+          title={userName || 'User'}
+        >
+          {(userName || 'U').charAt(0).toUpperCase()}
+        </div>
 
         {/* Sign Out Button */}
         <button

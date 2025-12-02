@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { resolveUser } from '../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
 const dataFilePath = path.join(process.cwd(), 'data', 'grades.json');
 
 // Ensure data directory exists
@@ -23,7 +24,7 @@ const readGradesData = () => {
     }
     return {};
   } catch (error) {
-    console.error('Error reading grades data:', error);
+    if (isDev) console.error('Error reading grades data:', error);
     return {};
   }
 };
@@ -35,7 +36,7 @@ const writeGradesData = (data) => {
     fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
     return true;
   } catch (error) {
-    console.error('Error writing grades data:', error);
+    if (isDev) console.error('Error writing grades data:', error);
     return false;
   }
 };
@@ -48,9 +49,8 @@ try {
   // eslint-disable-next-line global-require, import/no-extraneous-dependencies
   const prismaModule = require('../../lib/prisma');
   prismaClient = prismaModule.default || prismaModule;
-  console.log('[api/grades] Prisma client loaded:', !!prismaClient);
 } catch (e) {
-  console.error('[api/grades] Failed to load Prisma client:', e.message);
+  if (isDev) console.error('[api/grades] Failed to load Prisma client:', e.message);
   prismaClient = null;
 }
 
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         if (!userId) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
         // Dev-only: quick inspect single course by id for debugging
-        if (process.env.NODE_ENV === 'development' && req.query && req.query.devInspectCourse) {
+        if (isDev && req.query && req.query.devInspectCourse) {
           const inspectId = req.query.devInspectCourse;
           if (prismaClient) {
             try {
@@ -84,9 +84,9 @@ export default async function handler(req, res) {
 
         if (prismaClient) {
           try {
-            console.log('[api/grades] Prisma GET for user:', userId);
+            if (isDev) console.log('[api/grades] Prisma GET for user:', userId);
             const courses = await prismaClient.course.findMany({ where: { user_id: userId }, include: { assessments: true } });
-            console.log(`[api/grades] Found ${courses.length} courses (user=${userId})`);
+            if (isDev) console.log(`[api/grades] Found ${courses.length} courses (user=${userId})`);
             // normalize to previous shape: assessments is array with items parsed from JSON
             const normalized = courses.map(c => ({
               id: c.id,
@@ -109,14 +109,14 @@ export default async function handler(req, res) {
             }));
             return res.status(200).json({ success: true, data: normalized });
           } catch (e) {
-            console.error('Prisma GET /api/grades error', e);
+            if (isDev) console.error('Prisma GET /api/grades error', e);
             // fallback to file
           }
         }
 
         const db = readGradesData();
         const courses = db[userId] || [];
-        console.log('[api/grades] File-fallback GET for user', userId, 'courses:', courses.length);
+        if (isDev) console.log('[api/grades] File-fallback GET for user', userId, 'courses:', courses.length);
         res.status(200).json({ success: true, data: courses });
       } catch (error) {
         res.status(500).json({ success: false, error: 'Failed to fetch courses' });
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
             const out = { id: created.id, name: created.name, code: created.code || '', semester: created.semester || '', assessments: [] };
             return res.status(201).json({ success: true, data: out });
           } catch (e) {
-            console.error('Prisma POST /api/grades error', e);
+            if (isDev) console.error('Prisma POST /api/grades error', e);
             // fallback to file mode
           }
         }
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
         db[userId] = userCourses;
 
         const ok = writeGradesData(db);
-        console.log('[api/grades] File-fallback POST for user', userId, 'createdCourseId=', newCourse.id, 'writeOk=', ok);
+        if (isDev) console.log('[api/grades] File-fallback POST for user', userId, 'createdCourseId=', newCourse.id, 'writeOk=', ok);
         if (ok) {
           res.status(201).json({ success: true, data: newCourse });
         } else {
@@ -180,11 +180,11 @@ export default async function handler(req, res) {
 
         if (prismaClient) {
           try {
-            console.log('[api/grades] Prisma PUT for user:', userId, 'courseId:', courseId, 'action:', action ? action : 'replace');
+            if (isDev) console.log('[api/grades] Prisma PUT for user:', userId, 'courseId:', courseId, 'action:', action ? action : 'replace');
             // If a full course object was provided, replace course fields and assessments
             if (course) {
               const existing = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId } });
-              console.log('[api/grades] Found existing course?', !!existing);
+              if (isDev) console.log('[api/grades] Found existing course?', !!existing);
               if (!existing) return res.status(404).json({ success: false, error: 'Course not found' });
 
               await prismaClient.course.update({ where: { id: courseId }, data: { name: course.name || existing.name, code: course.code || existing.code, semester: course.semester || existing.semester, description: course.description || existing.description } });
@@ -192,14 +192,14 @@ export default async function handler(req, res) {
               // replace assessments: delete existing and recreate
               await prismaClient.assessment.deleteMany({ where: { course_id: courseId, user_id: userId } });
               const toCreate = Array.isArray(course.assessments) ? course.assessments.map(a => ({ name: a.name || 'Assessment', type: a.type || 'assignment', weight: a.weight !== undefined ? Number(a.weight) : undefined, items: a.items || [], course_id: courseId, user_id: userId })) : [];
-              console.log('[api/grades] Recreating assessments count=', toCreate.length);
+              if (isDev) console.log('[api/grades] Recreating assessments count=', toCreate.length);
               for (const a of toCreate) {
                 await prismaClient.assessment.create({ data: a });
               }
 
               // Fetch the canonical course with assessments and return the full object
               const canonical = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
-              console.log('[api/grades] After replace, returning canonical course (assessments):', (canonical && canonical.assessments ? canonical.assessments.length : 0));
+              if (isDev) console.log('[api/grades] After replace, returning canonical course (assessments):', (canonical && canonical.assessments ? canonical.assessments.length : 0));
               return res.status(200).json({ success: true, data: canonical });
             }
 
@@ -207,23 +207,23 @@ export default async function handler(req, res) {
             switch (action) {
               case 'add_assessment':
                 if (!assessment || !assessment.name) return res.status(400).json({ success: false, error: 'Missing assessment name' });
-                  console.log('[api/grades] Prisma add_assessment for course', courseId, 'user', userId);
+                  if (isDev) console.log('[api/grades] Prisma add_assessment for course', courseId, 'user', userId);
                   await prismaClient.assessment.create({ data: { name: assessment.name, type: assessment.type || 'assignment', weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || [], course_id: courseId, user_id: userId } });
                   // return canonical course
                   const afterAdd = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
-                  console.log('[api/grades] Prisma returned course with', afterAdd?.assessments?.length || 0, 'assessments');
+                  if (isDev) console.log('[api/grades] Prisma returned course with', afterAdd?.assessments?.length || 0, 'assessments');
                   return res.status(200).json({ success: true, data: afterAdd });
 
               case 'update_assessment':
                 if (!assessment || !assessment.id) return res.status(400).json({ success: false, error: 'Missing assessment id or data' });
-                  console.log('[api/grades] update_assessment', assessment.id);
+                  if (isDev) console.log('[api/grades] update_assessment', assessment.id);
                   await prismaClient.assessment.updateMany({ where: { id: assessment.id, course_id: courseId, user_id: userId }, data: { name: assessment.name || undefined, type: assessment.type || undefined, weight: assessment.weight !== undefined ? Number(assessment.weight) : undefined, items: assessment.items || undefined } });
                   const afterUpdate = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
                   return res.status(200).json({ success: true, data: afterUpdate });
 
               case 'delete_assessment':
                 if (!assessment || !assessment.id) return res.status(400).json({ success: false, error: 'Missing assessment id' });
-                  console.log('[api/grades] delete_assessment', assessment.id);
+                  if (isDev) console.log('[api/grades] delete_assessment', assessment.id);
                   await prismaClient.assessment.deleteMany({ where: { id: assessment.id, course_id: courseId, user_id: userId } });
                   const afterDelete = await prismaClient.course.findFirst({ where: { id: courseId, user_id: userId }, include: { assessments: true } });
                   return res.status(200).json({ success: true, data: afterDelete });
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'Invalid action' });
             }
           } catch (e) {
-            console.error('Prisma PUT /api/grades error', e);
+            if (isDev) console.error('Prisma PUT /api/grades error', e);
             // fallback to file mode
           }
         }
@@ -244,11 +244,11 @@ export default async function handler(req, res) {
         const courseIndex = userCourses.findIndex(course => course.id === courseId);
         if (courseIndex === -1) return res.status(404).json({ success: false, error: 'Course not found' });
 
-          console.log('[api/grades] File-fallback PUT user=', userId, 'courseIndex=', courseIndex, 'action=', legacyAction || 'replace');
+          if (isDev) console.log('[api/grades] File-fallback PUT user=', userId, 'courseIndex=', courseIndex, 'action=', legacyAction || 'replace');
 
         switch (legacyAction) {
           case 'add_assessment':
-            console.log('[api/grades] File-based add_assessment for course', courseId);
+            if (isDev) console.log('[api/grades] File-based add_assessment for course', courseId);
             if (!legacyAssessment || !legacyAssessment.name || legacyAssessment.weight === undefined) {
               return res.status(400).json({ success: false, error: 'Missing assessment name or weight' });
             }
@@ -258,7 +258,7 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Total assessment weights cannot exceed 100%.' });
             }
             userCourses[courseIndex].assessments.push({ name: legacyAssessment.name, type: legacyAssessment.type || 'assignment', weight: newWeight, items: [] });
-            console.log('[api/grades] File-based: Added assessment, now has', userCourses[courseIndex].assessments.length, 'assessments');
+            if (isDev) console.log('[api/grades] File-based: Added assessment, now has', userCourses[courseIndex].assessments.length, 'assessments');
             break;
 
           case 'update_assessment':
@@ -290,7 +290,7 @@ export default async function handler(req, res) {
 
         db[userId] = userCourses;
         const ok = writeGradesData(db);
-        console.log('[api/grades] File-fallback PUT writeOk=', ok, 'user=', userId, 'courseId=', courseId);
+        if (isDev) console.log('[api/grades] File-fallback PUT writeOk=', ok, 'user=', userId, 'courseId=', courseId);
         if (ok) {
           res.status(200).json({ success: true, data: userCourses[courseIndex] });
         } else {
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
             if (del.count === 0) return res.status(404).json({ success: false, error: 'Course not found' });
             return res.status(200).json({ success: true, message: 'Course deleted successfully' });
           } catch (e) {
-            console.error('Prisma DELETE /api/grades error', e);
+            if (isDev) console.error('Prisma DELETE /api/grades error', e);
             // fallback to file mode
           }
         }

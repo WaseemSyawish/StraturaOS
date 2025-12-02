@@ -3,6 +3,8 @@ import { resolveUser } from '../../../../lib/resolveUser';
 import withPrisma from '../../../../lib/withPrisma';
 import { TASK_EVENT_INCLUDE, buildTaskUpdatePayload, eventToTask } from '../../../../lib/task-helpers';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const requireTaskId = (taskId) => {
   if (!taskId || Array.isArray(taskId)) {
     throw new Error('Task id required');
@@ -62,7 +64,7 @@ async function handler(req, res) {
     if (error.message === 'Task id required') {
       return res.status(400).json({ success: false, error: error.message });
     }
-    console.error(`[api/tasks/${req.query.taskId}] Error`, error);
+    if (isDev) console.error(`[api/tasks/${req.query.taskId}] Error`, error);
     return res.status(500).json({ success: false, error: 'Task update failed' });
   }
 }

@@ -30,6 +30,7 @@ const navigationSections = [
       { id: 'grades', label: 'Grades', icon: BarChart3, path: '/grades' },
       { id: 'attendance', label: 'Attendance', icon: Users, path: '/attendance' },
       { id: 'modules', label: 'Modules', icon: BookOpen, path: '/modules' },
+      { id: 'separator-before-tools', type: 'separator' },
     ]
   },
   {
@@ -192,7 +193,7 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
         `}
       >
         {isExpanded && (
-          <div className="w-64 h-full flex flex-col overflow-y-auto">
+          <div className="w-64 h-full flex flex-col overflow-y-auto pb-20 md:pb-0">
             {/* Header */}
             <div className="px-4 pt-6 pb-4">
               <div className="flex items-center gap-3 mb-1">
@@ -318,14 +319,14 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto pb-16 md:pb-0">
+      <div className="flex-1 overflow-auto pb-20 md:pb-0">
         {children}
       </div>
       </div>
       
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 safe-area-inset-bottom">
-        <div className="flex items-center justify-around h-16">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 pb-safe">
+        <div className="flex items-center justify-around h-16 px-2">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.path && isActivePath(item.path);

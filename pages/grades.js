@@ -714,9 +714,9 @@ const GradesPage = () => {
             {courses && courses.length > 0 && (
               <div className="mb-8">
                 {/* Main Calculator Display */}
-                <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-8 mb-6 border border-purple-200 dark:border-slate-700">
+                <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-8 mb-6 border-2 border-purple-200 dark:border-slate-700">
                   <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
                       <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
@@ -885,12 +885,12 @@ const GradesPage = () => {
               <div className="min-h-[50vh] flex items-center justify-center">
                 <div className="max-w-2xl w-full mx-auto text-center px-6">
                   {/* Hero Card */}
-                  <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-8 mb-8">
-                    <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <GraduationCap className="w-10 h-10 text-white" strokeWidth={2} />
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 mb-8 border border-gray-200 dark:border-slate-700 shadow-sm">
+                    <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <GraduationCap className="w-10 h-10 text-purple-600 dark:text-purple-400" strokeWidth={2} />
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">No Courses Yet</h2>
-                    <p className="text-purple-100 text-lg">Let's get you set up</p>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">No Courses Yet</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-lg">Let's get you set up</p>
                   </div>
 
                   {/* Instructions */}
@@ -1174,108 +1174,11 @@ const GradesPage = () => {
 
       {/* Add Category Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
-              <button 
-                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Add a new category to track your grades</p>
-
-            <div className="space-y-5">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  id="grades-cat-name"
-                  placeholder="e.g., Team Meeting, Study Session"
-                  ref={catNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Tag className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  Type
-                </label>
-                <div id="grades-cat-type">
-                  <CustomSelect
-                    options={categoryTypeOptions}
-                    value={newCategory.type}
-                    onChange={(v) => setNewCategory({...newCategory, type: v})}
-                    placeholder="Select type"
-                    className="w-full"
-                    id="grades-cat-type"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Scale className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  Weight (%)
-                </label>
-                <input
-                  type="text"
-                  placeholder="20 or 20%"
-                  ref={weightRef}
-                  className={`dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border ${categoryError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white font-semibold placeholder-gray-400 dark:placeholder-gray-500`}
-                  value={newCategory.weight}
-                  onChange={(e) => {
-                    setNewCategory({...newCategory, weight: e.target.value});
-                    setCategoryError('');
-                  }}
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Negative values like -20% will be converted to 20%</p>
-                {categoryError && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    {categoryError}
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-500 dark:bg-opacity-10 border border-blue-200 dark:border-blue-500 dark:border-opacity-30 rounded-lg p-3">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <span className="font-medium text-gray-900 dark:text-white">Course:</span> {selectedCourse.code} - {selectedCourse.name}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
-                className="flex-1 px-4 py-3 bg-white dark:bg-[#2a2f3e] border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#363b4d] transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddCategory}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Add Category
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    {/* Add Category Modal */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-200"
+          onClick={(e) => e.target === e.currentTarget && (setShowCategoryModal(false), setCategoryError(''))}
+        >
+          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all duration-300 ease-out scale-100">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
               <button 
@@ -1374,8 +1277,11 @@ const GradesPage = () => {
 
       {/* Add Item Modal */}
       {showItemModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-200"
+          onClick={(e) => e.target === e.currentTarget && setShowItemModal(false)}
+        >
+          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all duration-300 ease-out scale-100">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Item</h3>
               <button 

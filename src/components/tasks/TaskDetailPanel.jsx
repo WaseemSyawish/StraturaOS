@@ -268,6 +268,8 @@ const TaskDetailPanel = ({
   const [localCourse, setLocalCourse] = useState(task?.course || null);
   const [localCourseColor, setLocalCourseColor] = useState(task?.courseColor || null);
   const [localTags, setLocalTags] = useState([]);
+  const [localSubtasks, setLocalSubtasks] = useState([]);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [includeMyDay, setIncludeMyDay] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -285,6 +287,7 @@ const TaskDetailPanel = ({
     setLocalTitle(task?.title || '');
     setLocalDescription(task?.description || '');
     setLocalTags(Array.isArray(task?.tags) ? task.tags : []);
+    setLocalSubtasks(Array.isArray(task?.subtasks) ? task.subtasks : []);
     setLocalDueDate(task?.dueDate || '');
     if (task?.dueDate) {
       const date = new Date(task.dueDate);
@@ -351,6 +354,50 @@ const TaskDetailPanel = ({
   const currentStatus = statusOptions.find(s => s.value === localStatus) || statusOptions[0];
   
   const courseModuleTags = modules.map(m => m.name || m.title || m.code).filter(Boolean);
+
+  // Subtask handlers
+  const handleAddSubtask = () => {
+    const trimmed = newSubtaskTitle.trim();
+    if (!trimmed) return;
+    
+    const newSubtask = {
+      id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: trimmed,
+      completed: false,
+    };
+    
+    setLocalSubtasks(prev => {
+      const newSubtasks = [...prev, newSubtask];
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+    
+    setNewSubtaskTitle('');
+  };
+
+  const handleToggleSubtask = (subtaskId) => {
+    setLocalSubtasks(prev => {
+      const newSubtasks = prev.map(st => 
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      );
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
+
+  const handleDeleteSubtask = (subtaskId) => {
+    setLocalSubtasks(prev => {
+      const newSubtasks = prev.filter(st => st.id !== subtaskId);
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
 
   const handleAddTag = () => {
     const trimmed = tagDraft.trim();
@@ -420,6 +467,7 @@ const TaskDetailPanel = ({
       courseColor: localCourseColor || null,
       priority: localPriority,
       tags: localTags,
+      subtasks: localSubtasks,
       status: localStatus,
       type: localEventType,
     };
@@ -493,17 +541,6 @@ const TaskDetailPanel = ({
         />
 
         <div className="space-y-3.5">
-          {!isCreateMode && (
-            <div className="flex items-center gap-3 text-[13px]">
-              <Clock3 size={15} className="text-slate-400" />
-              <span className="min-w-[110px] text-slate-500">Created time</span>
-              <span className="text-slate-700 dark:text-slate-300">
-                {createdDate ? new Date(createdDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
-                {createdDate ? `  ${new Date(createdDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}
-              </span>
-            </div>
-          )}
-
           <div className="flex items-center gap-3 text-[13px]">
             <div className="flex items-center gap-2.5">
               <Circle size={15} className="text-slate-400" />
@@ -904,26 +941,87 @@ const TaskDetailPanel = ({
           </div>
         </div>
 
+        {/* Subtasks Section */}
         <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <FileText size={15} className="text-slate-400" />
-            <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Description</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={15} className="text-slate-400" />
+              <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Subtasks</p>
+              {localSubtasks.length > 0 && (
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {localSubtasks.filter(st => st.completed).length}/{localSubtasks.length} done
+                </span>
+              )}
+            </div>
           </div>
-          <div className="rounded-lg bg-slate-50 dark:bg-slate-700 p-3.5">
-            <textarea
-              value={localDescription}
-              onChange={(e) => setLocalDescription(e.target.value)}
-              onBlur={(e) => {
-                if (isCreateMode) return;
-                const newDesc = e.target.value.trim();
-                if (newDesc !== (task?.description || '')) {
-                  onUpdateFields?.(task.id, { description: newDesc });
-                }
-              }}
-              placeholder="Add a description for this task..."
-              rows={3}
-              className="w-full resize-none border-0 bg-transparent text-[13px] leading-relaxed text-slate-600 dark:text-slate-300 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
-            />
+          
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3">
+            {/* Subtask List */}
+            {localSubtasks.length > 0 && (
+              <div className="space-y-1.5 mb-3">
+                {localSubtasks.map((subtask) => (
+                  <div 
+                    key={subtask.id}
+                    className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white dark:hover:bg-slate-600/50 transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSubtask(subtask.id)}
+                      className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                        subtask.completed 
+                          ? 'bg-purple-600 border-purple-600' 
+                          : 'border-slate-300 dark:border-slate-500 hover:border-purple-400'
+                      }`}
+                    >
+                      {subtask.completed && <Check size={10} className="text-white" strokeWidth={3} />}
+                    </button>
+                    <span 
+                      className={`flex-1 text-[13px] ${
+                        subtask.completed 
+                          ? 'text-slate-400 dark:text-slate-500 line-through' 
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {subtask.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(subtask.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add Subtask Input */}
+            <div className="flex items-center gap-2">
+              <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-dashed border-slate-300 dark:border-slate-500" />
+              <input
+                type="text"
+                value={newSubtaskTitle}
+                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubtask();
+                  }
+                }}
+                placeholder="Add a subtask..."
+                className="flex-1 text-[13px] bg-transparent border-0 outline-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+              {newSubtaskTitle.trim() && (
+                <button
+                  type="button"
+                  onClick={handleAddSubtask}
+                  className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                >
+                  <Plus size={12} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

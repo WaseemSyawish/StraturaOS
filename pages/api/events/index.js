@@ -1,6 +1,8 @@
 import prisma from '../../../lib/prisma';
 import withPrisma from '../../../lib/withPrisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // Helper: treat date-only strings (YYYY-MM-DD) as a date without local-midnight
 // to avoid timezone shifts when parsed by `new Date(string)`.
 function isDateOnly(value) {
@@ -73,13 +75,15 @@ async function createEventWithFallback(client, data) {
   while (attempts < 4) {
     try {
       // Log the final payload we're about to send to Prisma (hide large `meta` if present)
-      try {
-        const preview = { ...current };
-        if (preview && preview.meta) preview.meta = undefined;
-        const s = JSON.stringify(preview).slice(0, 2000);
-        console.info('[api/events] createEventWithFallback - create payload (meta hidden):', s);
-      } catch (le) {
-        try { console.info('[api/events] createEventWithFallback - create payload keys:', Object.keys(current)); } catch (ke) { /* ignore */ }
+      if (isDev) {
+        try {
+          const preview = { ...current };
+          if (preview && preview.meta) preview.meta = undefined;
+          const s = JSON.stringify(preview).slice(0, 2000);
+          console.info('[api/events] createEventWithFallback - create payload (meta hidden):', s);
+        } catch (le) {
+          try { console.info('[api/events] createEventWithFallback - create payload keys:', Object.keys(current)); } catch (ke) { /* ignore */ }
+        }
       }
       return await client.event.create({ data: current });
     } catch (e) {
@@ -108,7 +112,7 @@ async function createEventWithFallback(client, data) {
           if (Object.prototype.hasOwnProperty.call(current, f)) {
             removedAny = true;
             try { delete current[f]; } catch (er) { current[f] = undefined; }
-            console.warn('[api/events] removed unsupported field for retry:', f);
+            if (isDev) console.warn('[api/events] removed unsupported field for retry:', f);
           }
         }
         if (removedAny) {
@@ -150,12 +154,14 @@ async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      console.time('[api/events] GET total time');
-      console.time('[api/events] GET database query');
+      if (isDev) {
+        console.time('[api/events] GET total time');
+        console.time('[api/events] GET database query');
+      }
       
       // Check if client wants to include archived events
       const includeArchived = req.query.includeArchived === 'true';
-      console.log('[api/events] includeArchived requested:', includeArchived);
+      if (isDev) console.log('[api/events] includeArchived requested:', includeArchived);
 
       // Some local databases may not have the `meta` column (older schema).
       // Attempt the normal query, but if Prisma complains about a missing column,
@@ -181,7 +187,7 @@ async function handler(req, res) {
         // If includeArchived is requested, also fetch from archived_events table
         if (includeArchived) {
           try {
-            console.log('[api/events] Fetching archived events for userId:', userId);
+            if (isDev) console.log('[api/events] Fetching archived events for userId:', userId);
             archivedEvents = await prisma.archivedEvent.findMany({
               where: { user_id: userId },
               orderBy: { date: 'desc' },
@@ -195,12 +201,12 @@ async function handler(req, res) {
                 }
               }
             });
-            console.log('[api/events] Found archived events:', archivedEvents.length);
+            if (isDev) console.log('[api/events] Found archived events:', archivedEvents.length);
             // Mark these as archived for the client
             archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
-            console.log('[api/events] After mapping archived flag, count:', archivedEvents.length);
+            if (isDev) console.log('[api/events] After mapping archived flag, count:', archivedEvents.length);
           } catch (archiveErr) {
-            console.error('[api/events] Could not fetch archived events:', archiveErr);
+            if (isDev) console.error('[api/events] Could not fetch archived events:', archiveErr);
             // Continue without archived events if table doesn't exist
           }
         }
@@ -209,7 +215,7 @@ async function handler(req, res) {
         // with an explicit select that does not reference meta.
         const msg = e && e.message ? String(e.message) : '';
         if (isPrismaMetaError(msg)) {
-          console.warn('[api/events] retrying findMany without `meta` due to DB schema mismatch');
+          if (isDev) console.warn('[api/events] retrying findMany without `meta` due to DB schema mismatch');
           // Explicitly select fields we know exist (mirror Event model without meta)
           events = await prisma.event.findMany({
             where: { user_id: userId },
@@ -274,7 +280,7 @@ async function handler(req, res) {
               });
               archivedEvents = archivedEvents.map(ev => ({ ...ev, archived: true }));
             } catch (archiveErr) {
-              console.warn('[api/events] Could not fetch archived events (no meta):', archiveErr.message);
+              if (isDev) console.warn('[api/events] Could not fetch archived events (no meta):', archiveErr.message);
             }
           }
         } else {
@@ -284,9 +290,11 @@ async function handler(req, res) {
       
       // Merge active and archived events
       events = [...events, ...archivedEvents];
-      console.log('[api/events] Total events after merge:', events.length, '(active:', events.length - archivedEvents.length, ', archived:', archivedEvents.length, ')');
-      console.timeEnd('[api/events] GET database query');
-      console.time('[api/events] GET normalization');
+      if (isDev) {
+        console.log('[api/events] Total events after merge:', events.length, '(active:', events.length - archivedEvents.length, ', archived:', archivedEvents.length, ')');
+        console.timeEnd('[api/events] GET database query');
+        console.time('[api/events] GET normalization');
+      }
       
       // If the DB/schema doesn't support `meta` we may have embedded a JSON
       // blob into the description as a fallback (prefix `__META__:`). Detect
@@ -535,12 +543,14 @@ async function handler(req, res) {
         return out;
       });
       
-      console.timeEnd('[api/events] GET normalization');
+      if (isDev) console.timeEnd('[api/events] GET normalization');
       
       // Log final response details
       const archivedCount = normalized.filter(e => e.archived === true).length;
-      console.log('[api/events] Returning normalized events:', normalized.length, '(archived:', archivedCount, ')');
-      console.timeEnd('[api/events] GET total time');
+      if (isDev) {
+        console.log('[api/events] Returning normalized events:', normalized.length, '(archived:', archivedCount, ')');
+        console.timeEnd('[api/events] GET total time');
+      }
       
       return res.status(200).json({ events: normalized });
     } catch (err) {
@@ -552,24 +562,28 @@ async function handler(req, res) {
     try {
   const { title, type, courseId, date, time, description, notes, subtasks, attachments, durationMinutes, repeatOption } = req.body;
   // Debug: log truncated incoming body to help diagnose missing materialize/template flags
-  try {
-    const safeBody = JSON.stringify(req.body, Object.keys(req.body).slice(0, 30)).slice(0, 2000);
-    console.info('[api/events] incoming POST body (truncated):', safeBody);
-  } catch (e) {
-    // ignore stringify errors
+  if (isDev) {
+    try {
+      const safeBody = JSON.stringify(req.body, Object.keys(req.body).slice(0, 30)).slice(0, 2000);
+      console.info('[api/events] incoming POST body (truncated):', safeBody);
+    } catch (e) {
+      // ignore stringify errors
+    }
   }
       // Use shared auth resolver (accepts next-auth token or dev cookies)
       const { resolveUser } = await import('../../../lib/resolveUser');
       const tokenUserId = await resolveUser(req);
       const suppliedUserId = req.body && req.body.userId ? String(req.body.userId) : null;
   const incomingLocation = req.body && (req.body.location || req.body.room) ? (req.body.location || req.body.room) : null;
-  console.info('[api/events] POST payload:', JSON.stringify({ title, type, courseId, date, time, description, durationMinutes, location: incomingLocation }));
+  if (isDev) console.info('[api/events] POST payload:', JSON.stringify({ title, type, courseId, date, time, description, durationMinutes, location: incomingLocation }));
   const dt = parseDateForStorage(date);
   // Additional debug: log the parsed start and any provided end/duration so we can
   // determine whether the server is computing a 1-hour end or receiving one.
-  try {
-    console.info('[api/events] parsed times -> start:', dt && dt.toISOString ? dt.toISOString() : String(dt), 'provided endDate:', req.body && req.body.endDate ? String(req.body.endDate) : null, 'durationMinutes:', typeof durationMinutes !== 'undefined' ? String(durationMinutes) : null);
-  } catch (e) {}
+  if (isDev) {
+    try {
+      console.info('[api/events] parsed times -> start:', dt && dt.toISOString ? dt.toISOString() : String(dt), 'provided endDate:', req.body && req.body.endDate ? String(req.body.endDate) : null, 'durationMinutes:', typeof durationMinutes !== 'undefined' ? String(durationMinutes) : null);
+    } catch (e) {}
+  }
   // If client provided an explicit ISO `startDate`, prefer that when
   // persisting. This lets clients compute the correct instant (with their
   // local timezone) and avoid server-side timezone assumptions.
@@ -599,12 +613,12 @@ async function handler(req, res) {
       } else if (process.env.NODE_ENV === 'development' && suppliedUserId) {
         const u = await prisma.user.findUnique({ where: { id: suppliedUserId } });
         if (u) resolvedUserId = u.id;
-        else console.warn('[api/events] POST supplied userId not found in development');
+        else if (isDev) console.warn('[api/events] POST supplied userId not found in development');
       }
       if (!resolvedUserId) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      console.info('[api/events] resolvedUserId:', resolvedUserId);
+      if (isDev) console.info('[api/events] resolvedUserId:', resolvedUserId);
 
       // Persist notes/subtasks/attachments by serializing into description when provided
       let finalDescription = description || null;
@@ -839,7 +853,7 @@ async function handler(req, res) {
                 createdEvents.push(mainEvent);
               } catch (e) {
                 // If creating main fails, fall back to continuing with per-occurrence creates
-                console.warn('[api/events] failed to create main event for series materialization:', e && e.message ? e.message : e);
+                if (isDev) console.warn('[api/events] failed to create main event for series materialization:', e && e.message ? e.message : e);
                 mainEvent = null;
               }
 
@@ -925,7 +939,9 @@ async function handler(req, res) {
 
                   if (mainEvent && mainEvent.id) createData.template_id = mainEvent.id;
 
-                  try { console.info('[api/events] creating materialized event (no template) with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+                  if (isDev) {
+                    try { console.info('[api/events] creating materialized event (no template) with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+                  }
                   const ev = await createEventWithFallback(tx, createData);
                   if (!mainEvent) {
                     mainEvent = ev;
@@ -986,7 +1002,7 @@ async function handler(req, res) {
                 try { await tx.event.update({ where: { id: mainEvent.id }, data: { template_id: mainEvent.id } }); } catch (e) {}
                 createdEvents.push(mainEvent);
               } catch (e) {
-                console.warn('[api/events] failed to create main event for template path:', e && e.message ? e.message : e);
+                if (isDev) console.warn('[api/events] failed to create main event for template path:', e && e.message ? e.message : e);
                 mainEvent = null;
               }
               for (const d of occDates) {
@@ -1051,9 +1067,11 @@ async function handler(req, res) {
                     } catch (e) { /* ignore */ }
                   }
                   // Debug: log server-side computed occStart and end_date for each materialized occurrence (template path)
-                  try {
-                    console.info('[api/events] materialize (template) occStart:', occStart && occStart.toISOString ? occStart.toISOString() : String(occStart), 'computed end_date:', createData.end_date && createData.end_date.toISOString ? createData.end_date.toISOString() : String(createData.end_date));
-                  } catch (e) {}
+                  if (isDev) {
+                    try {
+                      console.info('[api/events] materialize (template) occStart:', occStart && occStart.toISOString ? occStart.toISOString() : String(occStart), 'computed end_date:', createData.end_date && createData.end_date.toISOString ? createData.end_date.toISOString() : String(createData.end_date));
+                    } catch (e) {}
+                  }
                   if (metaToStore !== null) {
                     try {
                       const m = { ...metaToStore };
@@ -1068,7 +1086,9 @@ async function handler(req, res) {
                   if (mainEvent && mainEvent.date && new Date(mainEvent.date).getTime() === new Date(d).getTime()) {
                     continue;
                   }
-                  try { console.info('[api/events] creating materialized event for template with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+                  if (isDev) {
+                    try { console.info('[api/events] creating materialized event for template with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+                  }
                   const ev = await createEventWithFallback(tx, createData);
                   if (!mainEvent) {
                     mainEvent = ev;
@@ -1127,7 +1147,9 @@ async function handler(req, res) {
         } else if (typeof durationMinutes !== 'undefined' && durationMinutes !== null) {
           endDateToStore = new Date((parseDateForStorage(date)).getTime() + Number(durationMinutes) * 60000);
         }
-        try { console.info('[api/events] computed endDateToStore:', endDateToStore && endDateToStore.toISOString ? endDateToStore.toISOString() : String(endDateToStore)); } catch (e) {}
+        if (isDev) {
+          try { console.info('[api/events] computed endDateToStore:', endDateToStore && endDateToStore.toISOString ? endDateToStore.toISOString() : String(endDateToStore)); } catch (e) {}
+        }
 
         // Try to include end_date when possible. If Prisma complains about unknown
         // argument end_date, fall back to storing durationMinutes in meta as before.
@@ -1152,14 +1174,16 @@ async function handler(req, res) {
           } else if (typeof durationMinutes !== 'undefined' && durationMinutes !== null) {
             createData.meta = { durationMinutes: Number(durationMinutes) };
           }
-          try { console.info('[api/events] creating single event with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+          if (isDev) {
+            try { console.info('[api/events] creating single event with data:', JSON.stringify({ ...createData, meta: undefined }).slice(0,2000)); } catch(e) {}
+          }
           created = await createEventWithFallback(prisma, createData);
         } catch (ee) {
           const mmsg = ee && ee.message ? String(ee.message) : '';
           const isEndDateErr = /unknown (argument|arg).*end_date/i.test(mmsg) || /Unknown argument `end_date`/.test(mmsg) || /end_date/.test(mmsg);
           const isMetaErr = isPrismaMetaError(mmsg);
           if (isMetaErr || isEndDateErr) {
-            console.warn('[api/events] retrying create without unsupported fields due to DB schema mismatch', mmsg);
+            if (isDev) console.warn('[api/events] retrying create without unsupported fields due to DB schema mismatch', mmsg);
             // First try: create without the unsupported fields (meta and/or end_date)
             try {
               const fallbackData = {
@@ -1181,7 +1205,9 @@ async function handler(req, res) {
                 fallbackData.meta = { durationMinutes: Number(durationMinutes) };
               }
               created = await prisma.event.create({ data: fallbackData });
-                  try { console.info('[api/events] fallback create (no meta/end_date) payload keys:', Object.keys(fallbackData)); } catch (le) {}
+              if (isDev) {
+                try { console.info('[api/events] fallback create (no meta/end_date) payload keys:', Object.keys(fallbackData)); } catch (le) {}
+              }
               // If we removed meta but we have it in request, attach it to response object
               if (!created.meta && metaToStore) {
                 try { created.meta = metaToStore; } catch (a) {}
@@ -1205,7 +1231,9 @@ async function handler(req, res) {
                   color: req.body && req.body.color ? String(req.body.color) : null,
                   user_id: resolvedUserId ? String(resolvedUserId) : null
                 }});
+                if (isDev) {
                   try { console.info('[api/events] fallback embed-meta create payload keys:', Object.keys({ title, type, date: dt, time: time || null, description: descriptionWithMeta, color: req.body && req.body.color ? String(req.body.color) : null, user_id: resolvedUserId ? String(resolvedUserId) : null })); } catch (le) {}
+                }
                 try { created.meta = metaToStore; } catch (a) {}
               } catch (ee3) {
                 // If everything failed, rethrow the original error for visibility
@@ -1231,9 +1259,9 @@ async function handler(req, res) {
                 size: a.size || null,
                 event_id: created.id
               }});
-            } catch (e) { console.warn('attachment meta create failed', e); }
+            } catch (e) { if (isDev) console.warn('attachment meta create failed', e); }
           }
-        } catch (e) { console.warn('attachments handling failed', e); }
+        } catch (e) { if (isDev) console.warn('attachments handling failed', e); }
       }
   // If DB/schema removed end_date or meta, embed the relevant info into description
   // so the client can recover it later. This is a safe, non-destructive fallback.
@@ -1309,10 +1337,14 @@ async function handler(req, res) {
   }
     } catch (err) {
       // Log full error with stack and payload for debugging
-      try {
-        console.error('[api/events] POST error:', err && err.stack ? err.stack : err);
-        console.error('[api/events] POST body:', JSON.stringify(req.body, null, 2));
-      } catch (e) { console.error('[api/events] POST error (failed to stringify):', err); }
+      // Log error - always log message, full details only in dev
+      console.error('[api/events] POST error:', err && err.message ? err.message : err);
+      if (isDev) {
+        try {
+          console.error('[api/events] POST error stack:', err && err.stack ? err.stack : '');
+          console.error('[api/events] POST body:', JSON.stringify(req.body, null, 2));
+        } catch (e) { console.error('[api/events] POST error (failed to stringify):', err); }
+      }
       // In development, return error details to help debug client-side
       if (process.env.NODE_ENV === 'development') {
         const details = err && (err.message || err.toString()) ? (err.message || String(err)) : 'unknown error';

@@ -199,6 +199,33 @@ export default function AddEventModal({
   const [customReminderDate, setCustomReminderDate] = useState('');
   const [customReminderTime, setCustomReminderTime] = useState('');
   const [priority, setPriority] = useState<string>('urgent-important');
+  
+  // Subtasks state for task mode
+  const [subtasks, setSubtasks] = useState<Array<{ id: string; title: string; completed: boolean }>>([]);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+  // Subtask handlers
+  const handleAddSubtask = () => {
+    const trimmed = newSubtaskTitle.trim();
+    if (!trimmed) return;
+    const newSubtask = {
+      id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: trimmed,
+      completed: false,
+    };
+    setSubtasks(prev => [...prev, newSubtask]);
+    setNewSubtaskTitle('');
+  };
+
+  const handleToggleSubtask = (subtaskId: string) => {
+    setSubtasks(prev => prev.map(st => 
+      st.id === subtaskId ? { ...st, completed: !st.completed } : st
+    ));
+  };
+
+  const handleDeleteSubtask = (subtaskId: string) => {
+    setSubtasks(prev => prev.filter(st => st.id !== subtaskId));
+  };
 
   // Safe default variant: ensure it matches the Variant union
   const defaultVariant: Variant = (eventData && typeof eventData.variant === 'string' && (VARIANTS as readonly string[]).includes(eventData.variant)) ? (eventData.variant as Variant) : 'primary';
@@ -240,6 +267,12 @@ export default function AddEventModal({
       } else {
         // Default priority based on type: classes are urgent-important, assignments keep user choice
         setPriority(type === 'class' ? 'urgent-important' : priority);
+      }
+      
+      // Load subtasks if present
+      const loadedSubtasks = srcAny?.subtasks || srcAny?.meta?.subtasks || srcAny?.raw?.subtasks || [];
+      if (Array.isArray(loadedSubtasks) && loadedSubtasks.length > 0) {
+        setSubtasks(loadedSubtasks);
       }
       
       // Parse dates properly
@@ -749,6 +782,10 @@ export default function AddEventModal({
         type: selectedType || (isTaskMode ? "assignment" : "class"),
         color: selectedColor || "blue",
         reminders: selectedReminders,
+        // Include subtasks for tasks
+        ...(isTaskMode && subtasks.length > 0 && { subtasks }),
+        // Include priority for tasks
+        ...(isTaskMode && { priority }),
       };
 
       // Only include date/time fields if they exist
@@ -1429,55 +1466,159 @@ export default function AddEventModal({
               </div>
               )}
 
-              {/* Date & Time - Hidden for new tasks, shown when editing tasks, full picker for events */}
-              {isTaskMode ? (
-                eventData?.id ? (
-                  !showDateTime ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowDateTime(true)}
-                      className="w-full py-2.5 px-3 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              {/* Subtasks Section - For tasks only */}
+              {isTaskMode && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
-                      Add due date (optional)
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium text-gray-900 dark:text-gray-100">Due Date</Label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowDateTime(false);
-                            setValue('startDate', undefined);
-                            setValue('endDate', undefined);
-                          }}
-                          className="text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
-                        >
-                          Remove
-                        </button>
+                      Subtasks
+                      {subtasks.length > 0 && (
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 ml-1">
+                          {subtasks.filter(st => st.completed).length}/{subtasks.length} done
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                  
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-3">
+                    {/* Subtask List */}
+                    {subtasks.length > 0 && (
+                      <div className="space-y-1.5 mb-3">
+                        {subtasks.map((subtask) => (
+                          <div 
+                            key={subtask.id}
+                            className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white dark:hover:bg-gray-700/50 transition-colors"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSubtask(subtask.id)}
+                              className={cn(
+                                "flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all",
+                                subtask.completed 
+                                  ? "bg-purple-600 border-purple-600" 
+                                  : "border-gray-300 dark:border-gray-500 hover:border-purple-400"
+                              )}
+                            >
+                              {subtask.completed && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                            <span 
+                              className={cn(
+                                "flex-1 text-xs",
+                                subtask.completed 
+                                  ? "text-gray-400 dark:text-gray-500 line-through" 
+                                  : "text-gray-700 dark:text-gray-300"
+                              )}
+                            >
+                              {subtask.title}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubtask(subtask.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
                       </div>
+                    )}
+                    
+                    {/* Add Subtask Input */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-dashed border-gray-300 dark:border-gray-500" />
                       <input
-                        type="date"
-                        value={getValues('startDate') ? format(new Date(getValues('startDate')), 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const date = new Date(e.target.value);
-                            setValue('startDate', date);
-                            setValue('endDate', date);
+                        type="text"
+                        value={newSubtaskTitle}
+                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSubtask();
                           }
                         }}
-                        className={cn(
-                          "w-full h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
-                          "focus:outline-none focus:ring-2 focus:ring-blue-500",
-                          "border-gray-300 dark:border-gray-700"
-                        )}
+                        placeholder="Add a subtask..."
+                        className="flex-1 text-xs bg-transparent border-0 outline-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                       />
+                      {newSubtaskTitle.trim() && (
+                        <button
+                          type="button"
+                          onClick={handleAddSubtask}
+                          className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
-                  )
-                ) : null
+                  </div>
+                </div>
+              )}
+
+              {/* Date & Time - Optional for tasks, required for events */}
+              {isTaskMode ? (
+                !showDateTime ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDateTime(true)}
+                    className="w-full py-2.5 px-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Add due date (optional)
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Due Date
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDateTime(false);
+                          setValue('startDate', undefined);
+                          setValue('endDate', undefined);
+                        }}
+                        className="text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 flex items-center gap-1"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                    <input
+                      type="date"
+                      value={getValues('startDate') ? format(new Date(getValues('startDate')), 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const date = new Date(e.target.value);
+                          setValue('startDate', date);
+                          setValue('endDate', date);
+                        }
+                      }}
+                      className={cn(
+                        "w-full h-10 px-3 rounded-lg border bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                        "border-gray-300 dark:border-gray-700"
+                      )}
+                    />
+                  </div>
+                )
               ) : (
                 <div className="space-y-4">
                   {/* Date & Time Section - Always show for events */}
@@ -1968,8 +2109,36 @@ export default function AddEventModal({
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-red-300 font-semibold">Error</p>
-                      <p className="text-xs text-red-200 mt-0.5">{saveError}</p>
+                      <p className="text-xs text-red-400 dark:text-red-300 font-semibold">Failed to save</p>
+                      <p className="text-xs text-red-500/80 dark:text-red-200 mt-0.5">{saveError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSaveError(null)}
+                      className="text-red-400 hover:text-red-300 p-0.5"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Form Validation Summary */}
+              {Object.keys(errors).length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800/50">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-amber-500 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold">Please fix the following:</p>
+                      <ul className="text-xs text-amber-600 dark:text-amber-400 mt-1 space-y-0.5">
+                        {errors.title && <li>• {errors.title.message as string}</li>}
+                        {errors.color && <li>• {errors.color.message as string}</li>}
+                        {errors.variant && <li>• Please select a valid variant</li>}
+                      </ul>
                     </div>
                   </div>
                 </div>

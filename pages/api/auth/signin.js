@@ -3,17 +3,19 @@ import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function setSessionCookie(res, payload) {
-  console.log('[signin] Setting session cookie with payload:', JSON.stringify(payload, null, 2));
+  if (isDev) console.log('[signin] Setting session cookie with payload:', JSON.stringify(payload, null, 2));
   const maxAge = 60 * 60 * 24 * 7; // 7 days in seconds
   const secret = process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret';
   const token = jwt.sign(payload, secret, { expiresIn: maxAge });
-  console.log('[signin] Generated JWT token (first 50 chars):', token.substring(0, 50));
+  if (isDev) console.log('[signin] Generated JWT token (first 50 chars):', token.substring(0, 50));
   // Use a single cookie name 'session' for simplicity
   const secureFlag = process.env.NODE_ENV === 'production' ? 'Secure; ' : '';
   // HttpOnly, Path=/, SameSite=Lax and Max-Age (in seconds)
   const cookieValue = `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; ${secureFlag}`;
-  console.log('[signin] Setting cookie:', cookieValue.substring(0, 100) + '...');
+  if (isDev) console.log('[signin] Setting cookie:', cookieValue.substring(0, 100) + '...');
   res.setHeader(
     'Set-Cookie',
     cookieValue
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
   } catch (err) {
     // Detect common Prisma connection error message and return 503 with helpful details
     const msg = err && err.message ? String(err.message) : '';
-    console.error('POST /api/auth/signin error', msg || err);
+    if (isDev) console.error('POST /api/auth/signin error', msg || err);
     if (msg.includes("Can't reach database server") || msg.includes('P1001') || msg.includes('Connection refused') || msg.includes('connect ECONNREFUSED')) {
       // DB unreachable — if DEV_FALLBACK is enabled, try local dev-user fallback; otherwise return 503
       if (devFallbackEnabled) {

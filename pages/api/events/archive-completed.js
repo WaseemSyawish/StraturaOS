@@ -1,5 +1,7 @@
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // POST /api/events/archive-completed?hours=24&dry=true
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
             archivedIds.push(ev.id);
           } catch (e) {
             // ignore per-row delete failures to continue with others
-            console.warn('[archive-completed] failed to delete already-archived event', ev.id, e && e.message ? e.message : e);
+            if (isDev) console.warn('[archive-completed] failed to delete already-archived event', ev.id, e && e.message ? e.message : e);
           }
           continue;
         }
@@ -137,7 +139,7 @@ export default async function handler(req, res) {
             await tx.event.delete({ where: { id: ev.id } });
             archivedIds.push(ev.id);
           } catch (ee) {
-            console.error('[archive-completed] failed to archive event', ev.id, ee && ee.message ? ee.message : ee);
+            if (isDev) console.error('[archive-completed] failed to archive event', ev.id, ee && ee.message ? ee.message : ee);
             // do not throw to allow other rows to be processed
           }
         }
@@ -146,7 +148,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ preview: false, archived: archivedIds.length, ids: archivedIds });
   } catch (err) {
-    console.error('[api/events/archive-completed] error', err && err.message ? err.message : err);
+    if (isDev) console.error('[api/events/archive-completed] error', err && err.message ? err.message : err);
     return res.status(500).json({ error: 'Failed to archive completed events' });
   }
 }

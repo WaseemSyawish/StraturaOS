@@ -2,6 +2,8 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 // Resolve user id helper (uses shared resolver with token + dev cookie fallback)
 async function resolveUserId(req) {
   const userId = await resolveUser(req);
@@ -52,7 +54,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['GET','PUT','DELETE']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   } catch (err) {
-    console.error('Prisma /api/timetable/[id] error', err);
+    if (isDev) console.error('Prisma /api/timetable/[id] error', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

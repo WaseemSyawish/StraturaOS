@@ -28,7 +28,7 @@ export default function HeroSection({ userName, tasksInProgress, onViewTasks }) 
       initial="hidden"
       animate="visible"
       variants={fadeIn}
-      className="relative overflow-hidden rounded-2xl bg-purple-600 dark:bg-purple-700 p-8 shadow-sm mb-6"
+      className="relative overflow-hidden rounded-2xl bg-purple-600 dark:bg-purple-700 p-4 sm:p-8 shadow-sm mb-6"
     >
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-5">
@@ -36,13 +36,13 @@ export default function HeroSection({ userName, tasksInProgress, onViewTasks }) 
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-white rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
       </div>
 
-      <div className="relative z-10 flex items-center justify-between">
+      <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Left: Greeting */}
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-white mb-1.5">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-1.5 truncate">
             {getGreeting()}, {userName}
           </h1>
-          <p className="text-white/80 text-base">
+          <p className="text-white/80 text-sm sm:text-base">
             {getMotivationalMessage()}
           </p>
         </div>
@@ -51,13 +51,13 @@ export default function HeroSection({ userName, tasksInProgress, onViewTasks }) 
         {tasksInProgress > 0 && (
           <button
             onClick={onViewTasks}
-            className="group flex items-center gap-4 px-6 py-3.5 bg-white/95 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="group flex items-center gap-2 sm:gap-4 px-4 sm:px-6 py-2.5 sm:py-3.5 bg-white/95 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl flex-shrink-0 w-full sm:w-auto justify-between sm:justify-start"
           >
             <div className="text-left">
-              <p className="text-xs font-semibold text-blue-600/70 uppercase tracking-wide">
+              <p className="text-[10px] sm:text-xs font-semibold text-blue-600/70 uppercase tracking-wide">
                 Tasks in Progress
               </p>
-              <p className="text-2xl font-bold text-slate-900 mt-0.5">
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">
                 {tasksInProgress}
               </p>
             </div>

@@ -1,5 +1,7 @@
 import { getToken } from 'next-auth/jwt';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
     const secret = process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret';
@@ -19,7 +21,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, token: token || null, resolvedUserId: resolvedUserId || null, cookies: req && req.cookies ? req.cookies : {} });
   } catch (err) {
-    console.error('debug/whoami error', err);
+    if (isDev) console.error('debug/whoami error', err);
     return res.status(500).json({ ok: false, error: String(err) });
   }
 }

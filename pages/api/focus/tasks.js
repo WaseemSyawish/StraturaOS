@@ -2,6 +2,8 @@ import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
 import { subDays, addDays } from 'date-fns';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   const userId = await resolveUser(req);
 
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     const { search = '', limit = 20 } = req.query;
-    console.log('[tasks API] User:', userId, 'Search:', search);
+    if (isDev) console.log('[tasks API] User:', userId, 'Search:', search);
     const sevenDaysAgo = subDays(new Date(), 7);
 
     // Get tasks that were worked on recently via focus sessions
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
 
     // Get unique task IDs from recent sessions
     const recentTaskIds = [...new Set(recentFocusSessions.map(s => s.task_id))];
-    console.log('[tasks API] Recent task IDs:', recentTaskIds.length);
+    if (isDev) console.log('[tasks API] Recent task IDs:', recentTaskIds.length);
 
     // Build where clause - exclude "class" type events (those are schedule items, not tasks)
     const where = {
@@ -50,7 +52,7 @@ export default async function handler(req, res) {
       }),
     };
 
-    console.log('[tasks API] Where clause:', JSON.stringify(where, null, 2));
+    if (isDev) console.log('[tasks API] Where clause:', JSON.stringify(where, null, 2));
 
     // If no search, apply date/recency filters
     if (!search) {
@@ -101,9 +103,11 @@ export default async function handler(req, res) {
       },
     });
 
-    console.log('[tasks API] Found tasks:', tasks.length);
-    if (tasks.length > 0) {
-      console.log('[tasks API] Sample task:', JSON.stringify(tasks[0], null, 2));
+    if (isDev) {
+      console.log('[tasks API] Found tasks:', tasks.length);
+      if (tasks.length > 0) {
+        console.log('[tasks API] Sample task:', JSON.stringify(tasks[0], null, 2));
+      }
     }
 
     // Format tasks for response
@@ -122,14 +126,12 @@ export default async function handler(req, res) {
       isRecent: recentTaskIds.includes(task.id),
     }));
 
-    console.log('[tasks API] Returning enriched tasks:', enrichedTasks.length);
+    if (isDev) console.log('[tasks API] Returning enriched tasks:', enrichedTasks.length);
     return res.status(200).json({
       tasks: enrichedTasks,
     });
   } catch (error) {
-    console.error('Focus tasks API error:', error);
+    if (isDev) console.error('Focus tasks API error:', error);
     return res.status(500).json({ error: 'Internal server error', details: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 }

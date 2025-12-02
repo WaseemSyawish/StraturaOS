@@ -10,6 +10,8 @@ import {
   filterTasksForMyDay,
 } from '../../../lib/task-helpers';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const META_ERROR_HINTS = ['does not exist', 'no such column', 'unknown argument', 'unknown arg'];
 
 const isMetaSchemaError = (error) => {
@@ -106,7 +108,7 @@ async function handler(req, res) {
     res.setHeader('Allow', 'GET,POST,OPTIONS');
     return res.status(405).end();
   } catch (error) {
-    console.error('[api/tasks] Error handling request', error);
+    if (isDev) console.error('[api/tasks] Error handling request', error);
     return res.status(500).json({ success: false, error: 'Task operation failed' });
   }
 }

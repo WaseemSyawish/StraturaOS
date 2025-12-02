@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Circle,
   ClipboardList,
+  Clock,
   Clock3,
   FileText,
   Flag,
@@ -44,6 +45,7 @@ import { fetchWithCache } from '../lib/cache';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import { initializeNotifications, scheduleNotification, requestNotificationPermission } from '../lib/notifications';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import { useToast } from '@/providers/toast-provider';
 
 const accentPurple = '#8b5cf6';
 const themePalette = {
@@ -56,7 +58,7 @@ const themePalette = {
   muted: '#94A3B8',
 };
 const statFontStyle = { letterSpacing: '-0.01em' };
-const insightWidgetOrder = ['timeline', 'time', 'reminder'];
+const insightWidgetOrder = ['timeline', 'time'];
 const fallbackTasks = [
   {
     id: 'local-1',
@@ -584,7 +586,8 @@ const TaskDetailPanel = ({
   initialStatus,
   initialDueDate,
   setOpen,
-  setClose
+  setClose,
+  toast
 }) => {
   const isCreateMode = mode === 'create';
   
@@ -602,6 +605,8 @@ const TaskDetailPanel = ({
   const [localCourse, setLocalCourse] = useState(task?.course || null);
   const [localCourseColor, setLocalCourseColor] = useState(task?.courseColor || null);
   const [localTags, setLocalTags] = useState([]);
+  const [localSubtasks, setLocalSubtasks] = useState([]);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [includeMyDay, setIncludeMyDay] = useState(true);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -619,6 +624,7 @@ const TaskDetailPanel = ({
     setLocalTitle(task?.title || '');
     setLocalDescription(task?.description || '');
     setLocalTags(Array.isArray(task?.tags) ? task.tags : []);
+    setLocalSubtasks(Array.isArray(task?.subtasks) ? task.subtasks : []);
     setLocalDueDate(task?.dueDate || '');
     if (task?.dueDate) {
       const date = new Date(task.dueDate);
@@ -676,7 +682,7 @@ const TaskDetailPanel = ({
   const priorityInfo = getPriorityMeta(localPriority);
   
   const statusOptions = [
-    { value: 'todo', label: 'To Do', color: '#f59e0b' },
+    { value: 'todo', label: 'To Do', color: '#e01a1aff' },
     { value: 'doing', label: 'In Progress', color: '#8b5cf6' },
     { value: 'later', label: 'Later', color: '#f59e0b' },
     { value: 'done', label: 'Done', color: '#10b981' },
@@ -719,6 +725,80 @@ const TaskDetailPanel = ({
     });
   };
 
+  // Subtask handlers
+  const handleAddSubtask = () => {
+    const trimmed = newSubtaskTitle.trim();
+    if (!trimmed) return;
+    
+    const newSubtask = {
+      id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: trimmed,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    };
+    
+    setLocalSubtasks(prev => {
+      const newSubtasks = [...prev, newSubtask];
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+    
+    setNewSubtaskTitle('');
+  };
+
+  const handleUpdateSubtaskTitle = (subtaskId, newTitle) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    
+    setLocalSubtasks(prev => {
+      const newSubtasks = prev.map(st => 
+        st.id === subtaskId ? { ...st, title: trimmed } : st
+      );
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
+
+  const handleReorderSubtasks = (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+    
+    setLocalSubtasks(prev => {
+      const newSubtasks = [...prev];
+      const [removed] = newSubtasks.splice(fromIndex, 1);
+      newSubtasks.splice(toIndex, 0, removed);
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
+
+  const handleToggleSubtask = (subtaskId) => {
+    setLocalSubtasks(prev => {
+      const newSubtasks = prev.map(st => 
+        st.id === subtaskId ? { ...st, completed: !st.completed } : st
+      );
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
+
+  const handleDeleteSubtask = (subtaskId) => {
+    setLocalSubtasks(prev => {
+      const newSubtasks = prev.filter(st => st.id !== subtaskId);
+      if (!isCreateMode) {
+        onUpdateFields?.(task.id, { subtasks: newSubtasks });
+      }
+      return newSubtasks;
+    });
+  };
+
   const handleDueStartChange = (newDate) => {
     setDueStartInput(newDate);
     if (!isCreateMode) {
@@ -743,7 +823,11 @@ const TaskDetailPanel = ({
     event?.preventDefault();
     if (busy || !isCreateMode) return;
     if (!localTitle.trim()) {
-      setError('Title is required');
+      if (toast) {
+        toast.showToast('Title is required', 'error');
+      } else {
+        setError('Title is required');
+      }
       return;
     }
     setBusy(true);
@@ -754,6 +838,7 @@ const TaskDetailPanel = ({
       courseColor: localCourseColor || null,
       priority: localPriority,
       tags: localTags,
+      subtasks: localSubtasks,
       status: localStatus,
       type: localEventType,
     };
@@ -765,9 +850,16 @@ const TaskDetailPanel = ({
     setBusy(false);
     if (result?.success) {
       setError(null);
+      if (toast) {
+        toast.showToast('Task created', 'success');
+      }
       onClose?.();
     } else {
-      setError(result?.error || 'Unable to create task');
+      if (toast) {
+        toast.showToast(result?.error || 'Unable to create task', 'error');
+      } else {
+        setError(result?.error || 'Unable to create task');
+      }
     }
   };
 
@@ -827,17 +919,6 @@ const TaskDetailPanel = ({
         />
 
         <div className="space-y-3.5">
-          {!isCreateMode && (
-            <div className="flex items-center gap-3 text-[13px]">
-              <Clock3 size={15} className="text-slate-400" />
-              <span className="min-w-[110px] text-slate-500">Created time</span>
-              <span className="text-slate-700">
-                {createdDate ? new Date(createdDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently'}
-                {createdDate ? `  ${new Date(createdDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}
-              </span>
-            </div>
-          )}
-
           <div className="flex items-center gap-3 text-[13px]">
             <div className="flex items-center gap-2.5">
               <Circle size={15} className="text-slate-400" />
@@ -1170,6 +1251,7 @@ const TaskDetailPanel = ({
             <span className="min-w-[110px] text-slate-500">Due & Reminder</span>
             <button
               type="button"
+              data-reminder-trigger
               onClick={() => {
                 const currentDate = isCreateMode ? dueStartInput : localDueDate;
                 setTempDueDate(currentDate || null);
@@ -1240,26 +1322,138 @@ const TaskDetailPanel = ({
           </div>
         </div>
 
+        {/* Subtasks Section */}
         <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <FileText size={15} className="text-slate-400" />
-            <p className="text-[13px] font-semibold text-slate-700">Description</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers size={15} className="text-slate-400" />
+              <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Subtasks</p>
+              {localSubtasks.length > 0 && (
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {localSubtasks.filter(st => st.completed).length}/{localSubtasks.length} done
+                </span>
+              )}
+            </div>
           </div>
-          <div className="rounded-lg bg-slate-50 p-3.5">
-            <textarea
-              value={localDescription}
-              onChange={(e) => setLocalDescription(e.target.value)}
-              onBlur={(e) => {
-                if (isCreateMode) return;
-                const newDesc = e.target.value.trim();
-                if (newDesc !== (task?.description || '')) {
-                  onUpdateFields?.(task.id, { description: newDesc });
-                }
-              }}
-              placeholder="Add a description for this task..."
-              rows={3}
-              className="w-full resize-none border-0 bg-transparent text-[13px] leading-relaxed text-slate-600 outline-none placeholder:text-slate-400"
-            />
+          
+          {/* Progress Bar */}
+          {localSubtasks.length > 0 && (
+            <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-600 overflow-hidden">
+              <div 
+                className="h-full rounded-full bg-purple-600 transition-all duration-300"
+                style={{ 
+                  width: `${(localSubtasks.filter(st => st.completed).length / localSubtasks.length) * 100}%` 
+                }}
+              />
+            </div>
+          )}
+          
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3">
+            {/* Subtask List */}
+            {localSubtasks.length > 0 && (
+              <div className="space-y-1 mb-3">
+                {localSubtasks.map((subtask, index) => (
+                  <div 
+                    key={subtask.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('subtaskIndex', index.toString());
+                      e.currentTarget.classList.add('opacity-50');
+                    }}
+                    onDragEnd={(e) => {
+                      e.currentTarget.classList.remove('opacity-50');
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('bg-purple-50', 'dark:bg-purple-900/20');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('bg-purple-50', 'dark:bg-purple-900/20');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('bg-purple-50', 'dark:bg-purple-900/20');
+                      const fromIndex = parseInt(e.dataTransfer.getData('subtaskIndex'), 10);
+                      handleReorderSubtasks(fromIndex, index);
+                    }}
+                    className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white dark:hover:bg-slate-600/50 transition-colors cursor-grab active:cursor-grabbing"
+                  >
+                    <GripVertical size={12} className="flex-shrink-0 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSubtask(subtask.id)}
+                      className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                        subtask.completed 
+                          ? 'bg-purple-600 border-purple-600' 
+                          : 'border-slate-300 dark:border-slate-500 hover:border-purple-400'
+                      }`}
+                    >
+                      {subtask.completed && <Check size={10} className="text-white" strokeWidth={3} />}
+                    </button>
+                    <input
+                      type="text"
+                      defaultValue={subtask.title}
+                      onBlur={(e) => {
+                        const newTitle = e.target.value.trim();
+                        if (newTitle && newTitle !== subtask.title) {
+                          handleUpdateSubtaskTitle(subtask.id, newTitle);
+                        } else if (!newTitle) {
+                          e.target.value = subtask.title;
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        } else if (e.key === 'Escape') {
+                          e.currentTarget.value = subtask.title;
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      className={`flex-1 text-[13px] bg-transparent border-0 outline-none focus:bg-white dark:focus:bg-slate-700 focus:px-2 focus:py-0.5 focus:-mx-2 focus:-my-0.5 focus:rounded transition-all ${
+                        subtask.completed 
+                          ? 'text-slate-400 dark:text-slate-500 line-through' 
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSubtask(subtask.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Add Subtask Input */}
+            <div className="flex items-center gap-2">
+              <div className="w-3 flex-shrink-0" /> {/* Spacer for alignment with drag handle */}
+              <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-dashed border-slate-300 dark:border-slate-500" />
+              <input
+                type="text"
+                value={newSubtaskTitle}
+                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubtask();
+                  }
+                }}
+                placeholder="Add a subtask..."
+                className="flex-1 text-[13px] bg-transparent border-0 outline-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              />
+              {newSubtaskTitle.trim() && (
+                <button
+                  type="button"
+                  onClick={handleAddSubtask}
+                  className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                >
+                  <Plus size={12} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -2004,7 +2198,7 @@ const ReminderWidget = ({ tasks = [], className = '' }) => {
 
   if (tasksWithReminders.length === 0) {
     return (
-      <section className={`rounded-[28px] border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_15px_40px_rgba(15,23,42,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.2)] ${className}`}>
+      <section className={`rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-4 py-4 shadow-sm ${className}`}>
         <div className="flex items-center gap-2 mb-2">
           <Bell size={18} className="text-slate-400" />
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Upcoming Reminders</h3>
@@ -2015,8 +2209,8 @@ const ReminderWidget = ({ tasks = [], className = '' }) => {
   }
 
   return (
-    <section className={`rounded-[28px] border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_15px_40px_rgba(15,23,42,0.06)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.2)] ${className}`}>
-      <div className="flex items-center gap-2 mb-4">
+    <section className={`rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 px-4 py-4 shadow-sm ${className}`}>
+      <div className="flex items-center gap-2 mb-3">
         <Bell size={18} className="text-purple-600 dark:text-purple-400" />
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Upcoming Reminders</h3>
       </div>
@@ -2164,11 +2358,11 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
 
   return (
     <section
-      className={`rounded-[28px] border border-gray-200 dark:border-gray-900/10 
+      className={`rounded-2xl border border-gray-200 dark:border-gray-900/10 
         bg-gradient-to-br from-purple-50 via-white to-purple-100 
         dark:from-slate-900 dark:via-purple-900 dark:to-purple-900 
         text-slate-900 dark:text-white 
-        px-5 py-6 shadow-[0_20px_60px_rgba(139,92,246,0.15)] dark:shadow-[0_30px_80px_rgba(15,23,42,0.5)] 
+        px-4 py-4 shadow-sm 
         ${className}`}
       style={statFontStyle}
     >
@@ -2181,16 +2375,16 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
       </div>
       
       {/* Timer Display */}
-      <div className="mt-4 flex items-center justify-center">
-        <span className="text-6xl font-bold tabular-nums bg-gradient-to-r from-purple-600 to-purple-800 dark:from-white dark:to-purple-200 bg-clip-text text-transparent">{formatTime(elapsed)}</span>
+      <div className="mt-3 flex items-center justify-center">
+        <span className="text-5xl font-bold tabular-nums bg-gradient-to-r from-purple-600 to-purple-800 dark:from-white dark:to-purple-200 bg-clip-text text-transparent">{formatTime(elapsed)}</span>
       </div>
 
       {/* Session Type Toggle */}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <button
           onClick={() => !isRunning && setSessionType('focus')}
           disabled={isRunning}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
             sessionType === 'focus' 
               ? 'bg-purple-600 text-white' 
               : 'bg-purple-100 dark:bg-white/10 text-purple-600 dark:text-white/60 hover:bg-purple-200 dark:hover:bg-white/20'
@@ -2201,7 +2395,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
         <button
           onClick={() => !isRunning && setSessionType('break')}
           disabled={isRunning}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
             sessionType === 'break' 
               ? 'bg-emerald-600 text-white' 
               : 'bg-emerald-100 dark:bg-white/10 text-emerald-600 dark:text-white/60 hover:bg-emerald-200 dark:hover:bg-white/20'
@@ -2212,10 +2406,10 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
       </div>
 
       {/* Control Buttons */}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-3 flex gap-2">
         <button
           onClick={handleStartStop}
-          className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 py-3 text-sm font-semibold text-white transition-all shadow-lg shadow-purple-600/30 hover:shadow-purple-600/40"
+          className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 py-2.5 text-sm font-semibold text-white transition-all shadow-lg shadow-purple-600/30 hover:shadow-purple-600/40"
         >
           Open Focus Timer
         </button>
@@ -2223,7 +2417,7 @@ const TimeTrackerWidget = ({ stats = {}, className = '' }) => {
 
       <button
         onClick={() => router?.push('/sessions')}
-        className="mt-4 w-full rounded-xl border border-purple-200 dark:border-white/20 py-2 text-xs font-semibold text-purple-600 dark:text-white/80 hover:bg-purple-50 dark:hover:bg-white/10 transition-all"
+        className="mt-3 w-full rounded-lg border border-purple-200 dark:border-white/20 py-1.5 text-xs font-semibold text-purple-600 dark:text-white/80 hover:bg-purple-50 dark:hover:bg-white/10 transition-all"
       >
         View Session History →
       </button>
@@ -2535,17 +2729,17 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
 const TimelineCard = ({ entries, className = '' }) => {
   if (entries.length === 0) {
     return (
-      <section className={`rounded-[28px] border border-gray-100 dark:border-slate-700 bg-gradient-to-br from-white via-white to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-purple-900/20 px-6 py-6 shadow-[0_15px_45px_rgba(15,23,42,0.05)] dark:shadow-[0_15px_45px_rgba(0,0,0,0.2)] ${className}`}>
+      <section className={`rounded-2xl border border-gray-100 dark:border-slate-700 bg-gradient-to-br from-white via-white to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-purple-900/20 px-4 py-4 shadow-sm ${className}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Day timeline</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Day timeline</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visual timeline from first to last task</p>
           </div>
           <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/30">
             <CalendarDays size={18} className="text-purple-600 dark:text-purple-400" />
           </div>
         </div>
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No timed tasks today — use the board to plan a slot.</p>
+        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No timed tasks today — use the board to plan a slot.</p>
       </section>
     );
   }
@@ -2626,23 +2820,46 @@ const TimelineCard = ({ entries, className = '' }) => {
 };
 
 const ViewSwitcher = ({ mode, onChange }) => (
-  <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center justify-between gap-3 md:gap-4 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-4 md:px-6 py-4 shadow-sm hover:shadow-md transition-shadow">
-    <div className="flex flex-wrap gap-2">
-      {viewTabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onChange(tab.id)}
-          className={`flex items-center gap-2 rounded-lg md:rounded-xl px-3 md:px-4 py-2 text-xs md:text-sm font-semibold transition-all ${
-            mode === tab.id ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-          }`}
-        >
-          <tab.icon size={16} className="hidden sm:inline" />
-          <tab.icon size={14} className="sm:hidden" />
-          {tab.label}
-        </button>
-      ))}
-    </div>
+  <div className="inline-flex flex-wrap gap-2 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-3 md:px-4 py-2.5 shadow-sm hover:shadow-md transition-shadow">
+    {viewTabs.map((tab) => (
+      <button
+        key={tab.id}
+        onClick={() => onChange(tab.id)}
+        className={`flex items-center gap-2 rounded-lg md:rounded-xl px-3 md:px-4 py-2 text-xs md:text-sm font-semibold transition-all ${
+          mode === tab.id ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105' : 'text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+        }`}
+      >
+        <tab.icon size={16} className="hidden sm:inline" />
+        <tab.icon size={14} className="sm:hidden" />
+        {tab.label}
+      </button>
+    ))}
   </div>
+);
+
+const BoardColumnToggle = ({ hideLaterColumn, onToggleHideLater }) => (
+  <button
+    type="button"
+    onClick={onToggleHideLater}
+    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 text-xs ${
+      hideLaterColumn
+        ? 'border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+        : 'border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+    }`}
+  >
+    <div className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${
+      hideLaterColumn ? 'bg-emerald-500' : 'bg-purple-500'
+    }`}>
+      <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transform transition-transform duration-200 ${
+        hideLaterColumn ? 'translate-x-4' : 'translate-x-0.5'
+      }`} />
+    </div>
+    <span className={`font-semibold ${
+      hideLaterColumn ? 'text-emerald-700 dark:text-emerald-300' : 'text-purple-700 dark:text-purple-300'
+    }`}>
+      {hideLaterColumn ? 'Done' : 'Later'}
+    </span>
+  </button>
 );
 
 const TaskBoard = ({
@@ -2656,16 +2873,20 @@ const TaskBoard = ({
   onColumnDragOver,
   onQuickAdd,
   onOpenDetail,
+  hideLaterColumn,
+  onToggleHideLater,
 }) => {
   const [doneExpanded, setDoneExpanded] = useState(false);
   const prominentColumns = columns.filter(c => c.prominent !== false);
   const doneColumn = columns.find(c => c.id === 'done');
   const doneTasks = columnTasks['done'] || [];
+  // Check if Done is shown as a prominent column (when Later is hidden)
+  const doneIsProminent = prominentColumns.some(c => c.id === 'done');
   
   return (
     <div className="space-y-4">
       {/* Main columns grid */}
-      <div className="grid gap-3 md:gap-4 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-3 md:px-4 py-3 md:py-4 shadow-sm hover:shadow-md transition-shadow grid-cols-1 md:grid-cols-3">
+      <div className={`grid gap-3 md:gap-4 rounded-xl md:rounded-2xl border border-purple-100 dark:border-purple-700 bg-white dark:bg-slate-800 px-3 md:px-4 py-3 md:py-4 shadow-sm hover:shadow-md transition-shadow grid-cols-1 ${prominentColumns.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
         {prominentColumns.map((column) => {
           const tasks = columnTasks[column.id] || [];
           const isActiveDrop = dragOverColumn === column.id && draggingTaskId;
@@ -2726,6 +2947,22 @@ const TaskBoard = ({
                           <span className="text-slate-400 dark:text-slate-500">{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                         )}
                       </div>
+                      {/* Tags display */}
+                      {Array.isArray(task.tags) && task.tags.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {task.tags.slice(0, 3).map((tag) => (
+                            <span 
+                              key={tag} 
+                              className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[9px] font-medium text-slate-600 dark:text-slate-400"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {task.tags.length > 3 && (
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500">+{task.tags.length - 3}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -2743,8 +2980,8 @@ const TaskBoard = ({
         })}
       </div>
       
-      {/* Done column - collapsed/compact by default */}
-      {doneColumn && (
+      {/* Done column - collapsed/compact by default, hidden when Done is a prominent column */}
+      {doneColumn && !doneIsProminent && (
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -2831,13 +3068,25 @@ const WeekPlanner = ({
   const renderTaskRow = (task) => {
     const dueLabel = task.dueDate
       ? new Date(task.dueDate).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-      : 'Anytime';
+      : '';
+    const typeColor = {
+      exam: '#ef4444',
+      quiz: '#f97316', 
+      assignment: '#3b82f6',
+      project: '#8b5cf6',
+      study: '#22c55e',
+    }[task.type?.toLowerCase()] || '#64748b';
+    
     return (
       <div
         key={task.id}
         role="button"
         tabIndex={0}
-        className="group flex items-start gap-2 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-2 shadow-sm transition hover:border-purple-200 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-200 dark:focus-visible:ring-purple-600"
+        className={`group relative flex items-start gap-2.5 rounded-lg border bg-white dark:bg-slate-800 p-2.5 transition-all cursor-pointer ${
+          task.completed 
+            ? 'border-slate-100 dark:border-slate-700 opacity-60' 
+            : 'border-slate-150 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-sm'
+        }`}
         onClick={() => onOpenDetail?.(task)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -2846,60 +3095,63 @@ const WeekPlanner = ({
           }
         }}
       >
+        {/* Left color indicator */}
+        <div 
+          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full"
+          style={{ backgroundColor: task.courseColor || typeColor }}
+        />
+        
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             onToggleComplete?.(task.id);
           }}
-          className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-xs transition-all ${
+          className={`ml-1 mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border transition-all ${
             task.completed
-              ? 'border-purple-600 bg-purple-600 text-white'
-              : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-purple-500 hover:text-purple-500'
+              ? 'border-purple-500 bg-purple-500 text-white'
+              : 'border-slate-300 dark:border-slate-600 hover:border-purple-400 dark:hover:border-purple-500'
           }`}
         >
-          {task.completed ? <Check size={10} /> : null}
+          {task.completed && <Check size={10} strokeWidth={3} />}
         </button>
+        
         <div className="flex-1 min-w-0">
-          <p className={`text-xs font-semibold leading-snug ${task.completed ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
-            <span>{dueLabel}</span>
+          <p className={`text-[13px] font-medium leading-tight ${
+            task.completed 
+              ? 'text-slate-400 dark:text-slate-500 line-through' 
+              : 'text-slate-800 dark:text-slate-100'
+          }`}>
+            {task.title}
+          </p>
+          
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {dueLabel && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                <Clock size={10} />
+                {dueLabel}
+              </span>
+            )}
             {task.course && (
-              <>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span
-                  className="rounded-full px-1.5 py-0.5"
-                  style={{ color: task.courseColor, backgroundColor: `${task.courseColor}15` }}
-                >
-                  {task.course}
-                </span>
-              </>
+              <span
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ 
+                  color: task.courseColor || '#6366f1', 
+                  backgroundColor: `${task.courseColor || '#6366f1'}12` 
+                }}
+              >
+                {task.course}
+              </span>
             )}
             {task.type && (
-              <>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="rounded-full bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 capitalize">
-                  {task.type}
-                </span>
-              </>
+              <span 
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium capitalize"
+                style={{ color: typeColor, backgroundColor: `${typeColor}12` }}
+              >
+                {task.type}
+              </span>
             )}
           </div>
-          {task.tags && task.tags.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {task.tags.slice(0, 2).map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 text-[9px] font-medium text-purple-600 dark:text-purple-300"
-                >
-                  <Tag size={7} />
-                  {tag}
-                </span>
-              ))}
-              {task.tags.length > 2 && (
-                <span className="text-[9px] text-slate-400 dark:text-slate-500">+{task.tags.length - 2}</span>
-              )}
-            </div>
-          )}
         </div>
       </div>
     );
@@ -3065,19 +3317,25 @@ const LecturesTab = ({ groups = [], syncing = false }) => {
 const InsightsPanel = ({ insightSummary, widgetFactory, order }) => {
   if (!insightSummary) return null;
   const widgets = order
-    .map((widgetId) => {
+    .map((widgetId, index) => {
       const renderWidget = widgetFactory[widgetId];
       if (!renderWidget) return null;
-      return <div key={widgetId}>{renderWidget()}</div>;
+      // If there are 3 widgets and this is the last one, span full width
+      const isLastOddWidget = order.length === 3 && index === 2;
+      return (
+        <div key={widgetId} className={isLastOddWidget ? 'lg:col-span-2' : ''}>
+          {renderWidget()}
+        </div>
+      );
     })
     .filter(Boolean);
   return (
-    <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
+    <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
         <Lightbulb size={18} className="text-purple-600 dark:text-purple-400" />
         <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Quick Insights</h3>
       </div>
-      <div className="grid gap-3 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-3">
+      <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-3">
         <div className="rounded-xl border border-purple-200 dark:border-purple-700 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/20 dark:to-purple-800/20 px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <CalendarDays size={14} className="text-purple-600 dark:text-purple-400" />
@@ -3104,12 +3362,12 @@ const InsightsPanel = ({ insightSummary, widgetFactory, order }) => {
         </div>
       </div>
       {widgets.length ? (
-        <details className="group mt-5 text-sm text-slate-500 dark:text-slate-400" open>
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-3">
+        <details className="group mt-3 text-sm text-slate-500 dark:text-slate-400" open>
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-2">
             <ChevronRight size={16} className="transition duration-200 group-open:rotate-90" />
             Study Focus & Insights
           </summary>
-          <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:items-start lg:gap-2">
             {widgets}
           </div>
         </details>
@@ -3136,8 +3394,15 @@ export default function TasksPage() {
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [viewMode, setViewMode] = useState('list');
   const [notificationPermission, setNotificationPermission] = useState('default');
+  const [hideLaterColumn, setHideLaterColumn] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('tasks-board-hide-later') === 'true';
+    }
+    return false;
+  });
   const composerInputRef = useRef(null);
   const { setOpen, setClose } = useModal();
+  const toast = useToast();
   const actionableTasks = useMemo(() => tasks.filter((task) => !isLectureTask(task) && !task.completed), [tasks]);
 
   // Check notification permission on mount
@@ -3243,7 +3508,13 @@ export default function TasksPage() {
         if (firstLoad) {
           initializeNotifications(mergedTasks);
         }
+      } else if (taskPayload !== null) {
+        // API returned successfully but with 0 tasks - this is legitimate empty state
+        hasLoadedTasksRef.current = true;
+        setUsingSampleTasks(false);
+        setTasks([]);
       } else if (!hasLoadedTasksRef.current) {
+        // API failed - show fallback sample tasks
         setTasks(fallbackNormalizedTasks);
         setUsingSampleTasks(true);
         hasLoadedTasksRef.current = true;
@@ -3828,7 +4099,7 @@ export default function TasksPage() {
 
   const handleComposerSubmit = useCallback(async () => {
     if (!composerValue.trim()) {
-      setComposerError('Type a task before adding.');
+      toast.showToast('Type a task before adding', 'error');
       return;
     }
     const parsed = detectedDate;
@@ -3838,12 +4109,12 @@ export default function TasksPage() {
     const dueDate = parsed?.date ? parsed.date.toISOString() : null;
     const result = await createTask({ title: cleanedTitle, dueDate });
     if (!result?.success) {
-      setComposerError(result?.error || 'Unable to create task');
+      toast.showToast(result?.error || 'Unable to create task', 'error');
       return;
     }
-    setComposerError(null);
+    toast.showToast('Task created', 'success');
     setComposerValue('');
-  }, [composerValue, createTask, detectedDate]);
+  }, [composerValue, createTask, detectedDate, toast]);
 
   const handleStatusChange = useCallback(
     (taskId, status) => {
@@ -3879,6 +4150,28 @@ export default function TasksPage() {
     [draggingTaskId, handleStatusChange]
   );
 
+  const toggleHideLaterColumn = useCallback(() => {
+    setHideLaterColumn(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tasks-board-hide-later', String(next));
+      }
+      return next;
+    });
+  }, []);
+
+  // Filter board columns based on hideLaterColumn setting
+  // When hiding Later, show Done as a prominent column instead
+  const visibleBoardColumns = useMemo(() => {
+    if (hideLaterColumn) {
+      // Swap Later for Done - make Done prominent
+      return boardColumns
+        .filter(col => col.id !== 'later')
+        .map(col => col.id === 'done' ? { ...col, prominent: true } : col);
+    }
+    return boardColumns;
+  }, [hideLaterColumn]);
+
   const handleQuickAddToColumn = useCallback(
     (columnId) => {
       setOpen(
@@ -3889,6 +4182,7 @@ export default function TasksPage() {
             modules={modules}
             setOpen={setOpen}
             setClose={setClose}
+            toast={toast}
             onCreate={async (data) => {
               const result = await createTask(data);
               if (result?.success) {
@@ -3901,7 +4195,7 @@ export default function TasksPage() {
         </CustomModal>
       );
     },
-    [createTask, modules, setClose, setOpen]
+    [createTask, modules, setClose, setOpen, toast]
   );
 
   const handleQuickAddToSection = useCallback(
@@ -3922,6 +4216,7 @@ export default function TasksPage() {
             modules={modules}
             setOpen={setOpen}
             setClose={setClose}
+            toast={toast}
             onCreate={async (data) => {
               const result = await createTask(data);
               if (result?.success) {
@@ -3934,7 +4229,7 @@ export default function TasksPage() {
         </CustomModal>
       );
     },
-    [createTask, modules, setClose, setOpen]
+    [createTask, modules, setClose, setOpen, toast]
   );
 
   const openComposerModal = useCallback(() => {
@@ -3945,6 +4240,7 @@ export default function TasksPage() {
           modules={modules}
           setOpen={setOpen}
           setClose={setClose}
+          toast={toast}
           onCreate={async (data) => {
             const result = await createTask(data);
             if (result?.success) {
@@ -3956,57 +4252,94 @@ export default function TasksPage() {
         />
       </CustomModal>
     );
-  }, [createTask, modules, setClose, setOpen]);
+  }, [createTask, modules, setClose, setOpen, toast]);
 
   const openTaskDetail = useCallback(
     (task) => {
       if (!task) return;
-      setOpen(
-        <CustomModal
-          title=""
-          showMinimalHeader={true}
-          headerActions={
-            <div className="relative group">
-              <button
-                aria-label="More options"
-                className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-              >
-                <MoreVertical size={18} />
-              </button>
-              <div className="absolute right-0 top-full mt-1 hidden w-48 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg group-focus-within:block z-50">
+      
+      // Create a wrapper component to manage modal state
+      const TaskDetailModal = () => {
+        const [isStarred, setIsStarred] = React.useState(Boolean(task.important));
+        const [hasReminder, setHasReminder] = React.useState(Boolean(task.dueDate || task.reminder));
+        
+        const handleStarClick = () => {
+          const newValue = !isStarred;
+          setIsStarred(newValue);
+          handleFieldUpdate(task.id, { important: newValue });
+        };
+        
+        const handleClockClick = () => {
+          // Switch to reminder page in TaskDetailPanel
+          // For now, just show a simple reminder toggle
+          const panel = document.querySelector('[data-reminder-trigger]');
+          if (panel) panel.click();
+        };
+        
+        return (
+          <CustomModal
+            title=""
+            showMinimalHeader={true}
+            isStarred={isStarred}
+            hasReminder={hasReminder}
+            onStarClick={handleStarClick}
+            onClockClick={handleClockClick}
+            headerActions={
+              <div className="relative group">
                 <button
-                  type="button"
-                  onClick={async () => {
-                    const result = await handleDeleteTask(task.id);
-                    if (result?.success) {
-                      setClose();
-                    }
-                  }}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+                  aria-label="More options"
+                  className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <Trash2 size={16} />
-                  Delete task
+                  <MoreVertical size={18} />
                 </button>
+                <div className="absolute right-0 top-full mt-1 hidden w-48 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg group-focus-within:block z-50">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const result = await handleDeleteTask(task.id);
+                      if (result?.success) {
+                        setClose();
+                      }
+                    }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Delete task
+                  </button>
+                </div>
               </div>
-            </div>
-          }
-        >
-          <TaskDetailPanel
-            task={task}
-            onToggleComplete={handleToggleComplete}
-            onQuickAction={handleQuickAction}
-            onStatusChange={handleStatusChange}
-            onUpdateFields={handleFieldUpdate}
-            onTagsChange={handleTagsChange}
-            onDeleteTask={handleDeleteTask}
-            modules={modules}
-            setOpen={setOpen}
-            setClose={setClose}
-          />
-        </CustomModal>
-      );
+            }
+          >
+            <TaskDetailPanel
+              task={task}
+              onToggleComplete={handleToggleComplete}
+              onQuickAction={handleQuickAction}
+              onStatusChange={handleStatusChange}
+              onUpdateFields={(taskId, updates) => {
+                handleFieldUpdate(taskId, updates);
+                // Update local state if important changes
+                if ('important' in updates) {
+                  setIsStarred(updates.important);
+                }
+                // Update reminder state if dueDate changes
+                if ('dueDate' in updates) {
+                  setHasReminder(Boolean(updates.dueDate));
+                }
+              }}
+              onTagsChange={handleTagsChange}
+              onDeleteTask={handleDeleteTask}
+              modules={modules}
+              setOpen={setOpen}
+              setClose={setClose}
+              toast={toast}
+            />
+          </CustomModal>
+        );
+      };
+      
+      setOpen(<TaskDetailModal />);
     },
-    [handleDeleteTask, handleFieldUpdate, handleQuickAction, handleStatusChange, handleTagsChange, handleToggleComplete, modules, setClose, setOpen]
+    [handleDeleteTask, handleFieldUpdate, handleQuickAction, handleStatusChange, handleTagsChange, handleToggleComplete, modules, setClose, setOpen, toast]
   );
 
   return (
@@ -4016,7 +4349,7 @@ export default function TasksPage() {
         <title>Tasks | University Planner</title>
       </Head>
       <div className="min-h-screen px-2 sm:px-4 py-6 sm:py-10 text-slate-900 dark:text-white dark:bg-slate-950" style={{ background: themePalette.background }}>
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 sm:gap-6 pb-16">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-2 pb-16">
           <FloatingHeader
             onAdd={openComposerModal}
             onQuickFocus={() => composerInputRef.current?.focus()}
@@ -4058,21 +4391,18 @@ export default function TasksPage() {
             </div>
           )}
           
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
             {loading ? (
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/90 px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 shadow-sm">
                 <Loader2 size={16} className="animate-spin text-purple-500" />
                 <span>Fetching planner data…</span>
               </div>
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <ViewSwitcher mode={viewMode} onChange={setViewMode} />
-              {refreshing ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-800/80 px-3 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  <Loader2 size={12} className="animate-spin text-slate-400" />
-                  Syncing…
-                </span>
-              ) : null}
+              {viewMode === 'board' && (
+                <BoardColumnToggle hideLaterColumn={hideLaterColumn} onToggleHideLater={toggleHideLaterColumn} />
+              )}
             </div>
             {dataError ? (
               <div className="rounded-[28px] border border-amber-100 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-5 py-3 text-sm text-amber-700 dark:text-amber-300 shadow-sm">
@@ -4080,8 +4410,27 @@ export default function TasksPage() {
                 {usingSampleTasks ? ' Using placeholder tasks until the API responds.' : ''}
               </div>
             ) : null}
-            {viewMode === 'list' ? (
-              <div className="grid gap-6 grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3">
+            {/* Empty state when no tasks */}
+            {!loading && tasks.length === 0 && !usingSampleTasks && !dataError ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+                  <ClipboardList className="w-10 h-10 text-purple-500 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No tasks yet</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-sm mb-6">
+                  Start by creating your first task. You can add assignments, exams, projects, or any other academic work to track.
+                </p>
+                <button
+                  onClick={openComposerModal}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors shadow-sm"
+                >
+                  <Plus size={18} />
+                  Create your first task
+                </button>
+              </div>
+            ) : null}
+            {viewMode === 'list' && (tasks.length > 0 || usingSampleTasks) ? (
+              <div className="grid gap-3 grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3">
                 {listSections.map((section) => (
                   <TaskGroup
                     key={section.id}
@@ -4097,7 +4446,7 @@ export default function TasksPage() {
                 ))}
               </div>
             ) : null}
-            {viewMode === 'week' ? (
+            {viewMode === 'week' && (tasks.length > 0 || usingSampleTasks) ? (
               <WeekPlanner
                 rangeLabel={weekRangeLabel}
                 weekDays={weekDays}
@@ -4108,9 +4457,9 @@ export default function TasksPage() {
                 onQuickAdd={openComposerModal}
               />
             ) : null}
-            {viewMode === 'board' ? (
+            {viewMode === 'board' && (tasks.length > 0 || usingSampleTasks) ? (
               <TaskBoard
-                columns={boardColumns}
+                columns={visibleBoardColumns}
                 columnTasks={columnTasks}
                 draggingTaskId={draggingTaskId}
                 dragOverColumn={dragOverColumn}
@@ -4120,6 +4469,8 @@ export default function TasksPage() {
                 onColumnDragOver={handleColumnDragOver}
                 onQuickAdd={handleQuickAddToColumn}
                 onOpenDetail={openTaskDetail}
+                hideLaterColumn={hideLaterColumn}
+                onToggleHideLater={toggleHideLaterColumn}
               />
             ) : null}
             {viewMode === 'lectures' ? <LecturesTab groups={lectureGroups} syncing={loading} /> : null}
@@ -4128,6 +4479,16 @@ export default function TasksPage() {
             <RecentlyCompletedPills items={recentlyCompleted} onUndo={undoRecentlyCompleted} />
           </div>
         </div>
+        
+        {/* Floating Action Button */}
+        <button
+          onClick={openComposerModal}
+          aria-label="Add new task"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg hover:bg-purple-700 hover:shadow-xl active:scale-95 transition-all duration-200 sm:h-16 sm:w-16"
+        >
+          <Plus size={28} className="sm:hidden" />
+          <Plus size={32} className="hidden sm:block" />
+        </button>
       </div>
     </>
     </HygraphSidebar>

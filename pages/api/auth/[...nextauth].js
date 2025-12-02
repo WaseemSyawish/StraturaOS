@@ -13,8 +13,7 @@ const nextAuthUrl = process.env.NEXTAUTH_URL
   ? (process.env.NEXTAUTH_URL.startsWith('http') ? process.env.NEXTAUTH_URL : `https://${process.env.NEXTAUTH_URL}`)
   : undefined;
 
-console.log('[nextauth] NEXTAUTH_URL:', nextAuthUrl);
-console.log('[nextauth] NODE_ENV:', process.env.NODE_ENV);
+const isDev = process.env.NODE_ENV !== 'production';
 
 export const authOptions = {
   url: nextAuthUrl,
@@ -26,25 +25,22 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const email = credentials?.email;
+        const email = credentials?.email?.toLowerCase()?.trim();
         const password = credentials?.password;
+        
         if (!email || !password) return null;
+        
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-          console.log('[nextauth] authorize: user not found for', email);
-          return null;
-        }
+        if (!user) return null;
+        
         if (!user.password_hash) {
           // No password set (legacy/demo user) - deny by default for security
-          console.log('[nextauth] authorize: user has no password_hash, denying', email);
           return null;
         }
+        
         const ok = await bcrypt.compare(password, user.password_hash);
-        if (!ok) {
-          console.log('[nextauth] authorize: password mismatch for', email);
-          return null;
-        }
-        console.log('[nextauth] authorize: success for', email, 'id=', user.id);
+        if (!ok) return null;
+        
         return { id: user.id, name: user.name || null, email: user.email };
       }
     })
@@ -54,7 +50,7 @@ export const authOptions = {
     maxAge: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24 // Update session every 24 hours
   },
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  useSecureCookies: !isDev,
   pages: {
     signIn: '/signin',
     error: '/signin',
@@ -62,14 +58,9 @@ export const authOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // Ensure userId is always a string when set from the DB
         token.userId = user.id ? String(user.id) : token.userId;
         token.name = user.name || token.name;
         token.email = user.email || token.email;
-        console.log('[nextauth] jwt callback - created token for user:', token.userId, 'email:', token.email, 'name:', token.name);
-      } else {
-        // token-only refresh - keep existing token.userId
-        console.log('[nextauth] jwt callback - token refresh, userId:', token.userId, 'name:', token.name);
       }
       return token;
     },
@@ -78,37 +69,26 @@ export const authOptions = {
       session.user.id = token.userId;
       session.user.name = token.name || session.user.name;
       session.user.email = token.email || session.user.email;
-      console.log('[nextauth] session callback - session for user:', session.user.id, 'name:', session.user.name);
       return session;
     }
   },
-  events: {
-    async signIn(message) {
-      // message = { user, account, profile, isNewUser }
-      console.log('[nextauth] event signIn', { user: message.user?.id || message.user, isNewUser: message.isNewUser });
-    },
-    async signOut(message) {
-      console.log('[nextauth] event signOut', message);
-    }
-  },
-  secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret',
+  secret: process.env.NEXTAUTH_SECRET || (isDev ? 'dev-nextauth-secret' : undefined),
   cookies: {
-    // Use reasonable defaults and enforce secure cookies in production
     sessionToken: {
-      name: 'next-auth.session-token',
+      name: isDev ? 'next-auth.session-token' : '__Secure-next-auth.session-token',
       options: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: !isDev,
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24 * 30 // 30 days in seconds
+        maxAge: 60 * 60 * 24 * 30 // 30 days
       }
     },
     csrfToken: {
-      name: 'next-auth.csrf-token',
+      name: isDev ? 'next-auth.csrf-token' : '__Host-next-auth.csrf-token',
       options: {
         httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
+        secure: !isDev,
         sameSite: 'lax',
         path: '/',
       }

@@ -1,6 +1,8 @@
 import prisma from "../../../lib/prisma";
 import { resolveUser } from "../../../lib/resolveUser";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -31,7 +33,7 @@ export default async function handler(req, res) {
       session: focusSession,
     });
   } catch (error) {
-    console.error("Error starting focus session:", error);
+    if (isDev) console.error("Error starting focus session:", error);
     return res.status(500).json({ error: "Failed to start session" });
   }
 }

@@ -3,16 +3,20 @@
 import prisma from '../../lib/prisma';
 import { resolveUser } from '../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
-    console.log('[semester-settings] Method:', req.method, 'Path:', req.url);
-    console.log('[semester-settings] Prisma client:', typeof prisma, 'has semesterSetting:', !!prisma?.semesterSetting);
+    if (isDev) {
+      console.log('[semester-settings] Method:', req.method, 'Path:', req.url);
+      console.log('[semester-settings] Prisma client:', typeof prisma, 'has semesterSetting:', !!prisma?.semesterSetting);
+    }
     
     const userId = await resolveUser(req);
-    console.log('[semester-settings] Resolved userId:', userId);
+    if (isDev) console.log('[semester-settings] Resolved userId:', userId);
     
     if (!userId) {
-      console.log('[semester-settings] Not authenticated - returning 401');
+      if (isDev) console.log('[semester-settings] Not authenticated - returning 401');
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
@@ -28,13 +32,15 @@ export default async function handler(req, res) {
 
     // POST: Create new semester setting
     if (req.method === 'POST') {
-      console.log('[semester-settings POST] Request body:', req.body);
-      console.log('[semester-settings POST] userId:', userId);
+      if (isDev) {
+        console.log('[semester-settings POST] Request body:', req.body);
+        console.log('[semester-settings POST] userId:', userId);
+      }
       
       const { name, start_date, end_date, is_active } = req.body;
 
       if (!name || !start_date || !end_date) {
-        console.log('[semester-settings POST] Missing fields - name:', !!name, 'start_date:', !!start_date, 'end_date:', !!end_date);
+        if (isDev) console.log('[semester-settings POST] Missing fields - name:', !!name, 'start_date:', !!start_date, 'end_date:', !!end_date);
         return res.status(400).json({ 
           success: false, 
           error: 'Missing required fields: name, start_date, end_date' 
@@ -43,20 +49,22 @@ export default async function handler(req, res) {
 
       // If setting this as active, deactivate all others
       if (is_active) {
-        console.log('[semester-settings POST] Deactivating other semesters for user:', userId);
+        if (isDev) console.log('[semester-settings POST] Deactivating other semesters for user:', userId);
         await prisma.semesterSetting.updateMany({
           where: { user_id: userId },
           data: { is_active: false }
         });
       }
 
-      console.log('[semester-settings POST] Creating semester with data:', {
-        user_id: userId,
-        name,
-        start_date,
-        end_date,
-        is_active: is_active ?? false
-      });
+      if (isDev) {
+        console.log('[semester-settings POST] Creating semester with data:', {
+          user_id: userId,
+          name,
+          start_date,
+          end_date,
+          is_active: is_active ?? false
+        });
+      }
 
       const setting = await prisma.semesterSetting.create({
         data: {
@@ -68,7 +76,7 @@ export default async function handler(req, res) {
         }
       });
 
-      console.log('[semester-settings POST] Successfully created semester:', setting.id);
+      if (isDev) console.log('[semester-settings POST] Successfully created semester:', setting.id);
       return res.status(201).json({ success: true, setting });
     }
 
@@ -138,17 +146,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   } catch (error) {
-    console.error('[semester-settings] ERROR:', error);
-    console.error('[semester-settings] Error name:', error.name);
-    console.error('[semester-settings] Error message:', error.message);
-    console.error('[semester-settings] Error stack:', error.stack);
+    console.error('[semester-settings] ERROR:', error.message);
+    if (isDev) {
+      console.error('[semester-settings] Error name:', error.name);
+      console.error('[semester-settings] Error stack:', error.stack);
+    }
     
     return res.status(500).json({ 
       success: false, 
       error: 'Internal server error',
-      details: error.message,
-      errorType: error.name,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: isDev ? error.message : undefined,
+      errorType: isDev ? error.name : undefined,
+      stack: isDev ? error.stack : undefined
     });
   }
 }

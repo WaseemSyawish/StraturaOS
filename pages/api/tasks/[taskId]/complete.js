@@ -2,6 +2,8 @@ import prisma from '../../../../lib/prisma';
 import { resolveUser } from '../../../../lib/resolveUser';
 import { TASK_EVENT_INCLUDE, eventToTask } from '../../../../lib/task-helpers';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, task: eventToTask(updated) });
   } catch (error) {
-    console.error(`[api/tasks/${req.query.taskId}/complete] Failed to update`, error);
+    if (isDev) console.error(`[api/tasks/${req.query.taskId}/complete] Failed to update`, error);
     return res.status(500).json({ success: false, error: 'Failed to update task' });
   }
 }

@@ -162,23 +162,24 @@ export default function MonthView({
   ).getDate();
 
   return (
-    <div className="bg-default-50 dark:bg-slate-900 -mx-6 p-6 rounded-b-lg">
+    <div className="bg-default-50 dark:bg-slate-900 -mx-2 sm:-mx-6 p-2 sm:p-6 rounded-b-lg">
       <div className="flex flex-col mb-4 pt-2 max-w-[1200px] mx-auto">
-        <h2 className="text-3xl my-3 tracking-tighter font-bold text-slate-900 dark:text-white">
+        <h2 className="text-xl sm:text-3xl my-2 sm:my-3 tracking-tighter font-bold text-slate-900 dark:text-white">
           {currentDate.toLocaleString("default", { month: "long" })}{" "}
           {currentDate.getFullYear()}
         </h2>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           {prevButton ? (
             <div onClick={handlePrevMonth}>{prevButton}</div>
           ) : (
             <Button
               variant="outline"
-              className={cn(classNames?.prev, 'text-slate-900')}
+              size="sm"
+              className={cn(classNames?.prev, 'text-slate-900 px-2 sm:px-4')}
               onClick={handlePrevMonth}
             >
-              <ArrowLeft />
-              Prev
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">Prev</span>
             </Button>
           )}
           {nextButton ? (
@@ -186,11 +187,12 @@ export default function MonthView({
           ) : (
             <Button
               variant="outline"
-              className={cn(classNames?.next, 'text-slate-900')}
+              size="sm"
+              className={cn(classNames?.next, 'text-slate-900 px-2 sm:px-4')}
               onClick={handleNextMonth}
             >
-              Next
-              <ArrowRight />
+              <span className="hidden sm:inline mr-1">Next</span>
+              <ArrowRight className="w-4 h-4" />
             </Button>
           )}
         </div>
@@ -206,19 +208,20 @@ export default function MonthView({
           exit="exit"
           transition={{ opacity: { duration: 0.2 } }}
         >
-          <div className="grid grid-cols-7 gap-2 sm:gap-3 mt-6 max-w-[1500px] mx-auto">
+          <div className="grid grid-cols-7 gap-1 sm:gap-3 mt-4 sm:mt-6 max-w-[1500px] mx-auto">
             {daysOfWeek.map((day, idx) => (
               <div
                 key={idx}
-                className="text-left py-6 text-2xl tracking-tighter font-medium text-black dark:text-white"
+                className="text-center sm:text-left py-2 sm:py-6 text-xs sm:text-2xl tracking-tighter font-medium text-black dark:text-white"
               >
-                {day}
+                <span className="hidden sm:inline">{day}</span>
+                <span className="sm:hidden">{day.slice(0, 1)}</span>
               </div>
             ))}
 
             {Array.from({ length: startOffset }).map((_, idx) => (
-              <div key={`offset-${idx}`} className="h-[150px] opacity-50">
-                <div className="font-semibold relative text-2xl mb-1">
+              <div key={`offset-${idx}`} className="h-[60px] sm:h-[150px] opacity-50">
+                <div className="font-semibold relative text-sm sm:text-2xl mb-1 text-center sm:text-left">
                   {lastDateOfPrevMonth - startOffset + idx + 1}
                 </div>
               </div>
@@ -240,27 +243,27 @@ export default function MonthView({
                   onClick={() => (dayEvents && dayEvents.length > 0) ? handleShowMoreEvents(dayEvents) : handleAddEvent(dayObj.day)}
                   className="w-full"
                 >
-                  <div className="hover:z-50 border-none h-[150px] rounded group flex flex-col transition-transform duration-200 hover:scale-[1.02]">
-                    <Card className="shadow-sm cursor-pointer overflow-hidden relative flex flex-col justify-between p-3 border h-full rounded-lg bg-background dark:bg-slate-800 dark:border-slate-700 transition-shadow duration-200 hover:shadow-md">
+                  <div className="hover:z-50 border-none h-[60px] sm:h-[150px] rounded group flex flex-col transition-transform duration-200 hover:scale-[1.02]">
+                    <Card className="shadow-sm cursor-pointer overflow-hidden relative flex flex-col justify-between p-1 sm:p-3 border h-full rounded-lg bg-background dark:bg-slate-800 dark:border-slate-700 transition-shadow duration-200 hover:shadow-md">
                       <div
                         className={clsx(
-                          "font-semibold relative text-2xl transition-colors duration-200 inline-block",
+                          "font-semibold relative text-sm sm:text-2xl transition-colors duration-200 inline-block text-center sm:text-left",
                           dayEvents.length > 0
                             ? "text-primary-600 dark:text-primary-400"  // Add dark mode color
                             : "text-black dark:text-muted-foreground",
-                          isToday && "bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full px-2 py-1"
+                          isToday && "bg-purple-50 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-full px-1 sm:px-2 py-0.5 sm:py-1"
                         )}
-                        style={{ marginBottom: 6 }}
+                        style={{ marginBottom: 2 }}
                       >
                         {dayObj.day}
                       </div>
 
-                      <div className="flex-grow flex flex-col justify-center items-center gap-1 w-full mt-0">
+                      <div className="flex-grow flex flex-col justify-center items-center gap-0.5 sm:gap-1 w-full mt-0">
                         <div className="flex-1" />
                         {dayEvents?.length > 0 && (
                           <div
-                            className="w-full max-w-[90%] mt-0"
-                            style={{ marginBottom: 6 }}
+                            className="w-full max-w-[95%] sm:max-w-[90%] mt-0 hidden sm:block"
+                            style={{ marginBottom: 2 }}
                           >
                             <div className="flex justify-center">
                               <EventStyled
@@ -274,30 +277,41 @@ export default function MonthView({
                             </div>
                           </div>
                         )}
+                        {/* Mobile: Show event count as colored dot */}
+                        {dayEvents?.length > 0 && (
+                          <div className="sm:hidden flex items-center justify-center gap-0.5">
+                            <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400" />
+                            {dayEvents.length > 1 && (
+                              <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                                {dayEvents.length}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         {dayEvents.length > 1 && (
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
                               handleShowMoreEvents(dayEvents);
                             }}
-                            className="absolute right-2 top-2 px-2.5 py-1 rounded-lg bg-gradient-to-br from-indigo-500/90 to-purple-500/90 dark:from-indigo-600/90 dark:to-purple-600/90 backdrop-blur-sm border border-indigo-400/50 dark:border-indigo-500/50 text-white text-xs font-bold cursor-pointer hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-700 dark:hover:to-purple-700 transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
+                            className="absolute right-0.5 sm:right-2 top-0.5 sm:top-2 px-1 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-gradient-to-br from-indigo-500/90 to-purple-500/90 dark:from-indigo-600/90 dark:to-purple-600/90 backdrop-blur-sm border border-indigo-400/50 dark:border-indigo-500/50 text-white text-[10px] sm:text-xs font-bold cursor-pointer hover:from-indigo-600 hover:to-purple-600 dark:hover:from-indigo-700 dark:hover:to-purple-700 transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl hidden sm:flex"
                             title={`View all ${dayEvents.length} events`}
                           >
                             <span className="flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-2.5 sm:w-3 h-2.5 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                               </svg>
                               {dayEvents.length - 1}
                             </span>
                           </div>
                         )}
-                        <div style={{ height: 6 }} />
+                        <div className="h-1 sm:h-1.5" />
                       </div>
 
                       {dayEvents.length === 0 && (
                         <div className="absolute inset-0 bg-black/4 dark:bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-80 transition-opacity duration-300 pointer-events-none rounded-lg">
-                          <span className="text-black/70 dark:text-white/80 tracking-tighter text-lg font-semibold">
-                            Add Event
+                          <span className="text-black/70 dark:text-white/80 tracking-tighter text-sm sm:text-lg font-semibold">
+                            +
                           </span>
                         </div>
                       )}

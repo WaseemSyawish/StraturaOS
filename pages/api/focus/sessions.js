@@ -1,9 +1,10 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
-import fs from 'fs';
-import path from 'path';
+import withPrisma from '../../../lib/withPrisma';
 
-export default async function handler(req, res) {
+const isDev = process.env.NODE_ENV === 'development';
+
+async function handler(req, res) {
   const userId = await resolveUser(req);
 
   if (!userId) {
@@ -11,12 +12,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('[api/focus/sessions] incoming method=', req.method);
-    try {
-      console.log('[api/focus/sessions] request body:', JSON.stringify(req.body));
-    } catch (e) {
-      console.log('[api/focus/sessions] request body (could not stringify)');
-    }
     if (req.method === 'GET') {
       // Get focus sessions with optional filters
       const { startDate, endDate, type, limit = 50 } = req.query;
@@ -51,7 +46,7 @@ export default async function handler(req, res) {
         notes,
       } = req.body;
 
-      console.log('[api/focus/sessions] userId=', userId, 'creating session with duration=', duration);
+      if (isDev) console.log('[api/focus/sessions] userId=', userId, 'creating session with duration=', duration);
       if (!duration || !started_at) {
         return res.status(400).json({ error: 'Duration and started_at are required' });
       }
@@ -72,11 +67,11 @@ export default async function handler(req, res) {
           },
         });
 
-        console.log('[api/focus/sessions] created session id=', session.id);
+        if (isDev) console.log('[api/focus/sessions] created session id=', session.id);
 
         return res.status(201).json({ session });
       } catch (err) {
-        console.error('[api/focus/sessions] Prisma error on POST:', err && err.message ? err.message : err);
+        if (isDev) console.error('[api/focus/sessions] Prisma error on POST:', err && err.message ? err.message : err);
         // Dev fallback: persist to local JSON when Prisma engine not available
         if (process.env.NODE_ENV !== 'production' && err && String(err.message || '').includes('Engine is not yet connected')) {
           try {
@@ -103,10 +98,10 @@ export default async function handler(req, res) {
             };
             list.push(fakeSession);
             fs.writeFileSync(devFile, JSON.stringify(list, null, 2));
-            console.log('[api/focus/sessions] Wrote dev session to', devFile);
+            if (isDev) console.log('[api/focus/sessions] Wrote dev session to', devFile);
             return res.status(201).json({ session: fakeSession, fallback: 'dev-file' });
           } catch (fsErr) {
-            console.error('[api/focus/sessions] dev fallback write failed:', fsErr);
+            if (isDev) console.error('[api/focus/sessions] dev fallback write failed:', fsErr);
             return res.status(500).json({ error: 'Prisma unavailable and fallback failed' });
           }
         }
@@ -119,7 +114,7 @@ export default async function handler(req, res) {
       // Update an existing session (for completing or interrupting)
       const { session_id, ended_at, completed, interrupted, notes } = req.body;
 
-      console.log('[api/focus/sessions] PATCH for session_id=', session_id, 'userId=', userId);
+      if (isDev) console.log('[api/focus/sessions] PATCH for session_id=', session_id, 'userId=', userId);
 
       if (!session_id) {
         return res.status(400).json({ error: 'session_id is required' });
@@ -138,6 +133,23 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'Session not found' });
         }
 
+        // Calculate actual duration if session is being ended
+        const MIN_DURATION_SECONDS = 300; // 5 minutes
+        if (ended_at && !completed) {
+          const startTime = new Date(existingSession.started_at);
+          const endTime = new Date(ended_at);
+          const actualDurationSeconds = Math.floor((endTime - startTime) / 1000);
+          
+          // If session was under 5 minutes and not completed, delete it instead of saving
+          if (actualDurationSeconds < MIN_DURATION_SECONDS) {
+            await prisma.focusSession.delete({
+              where: { id: session_id },
+            });
+            if (isDev) console.log('[api/focus/sessions] Deleted incomplete session under 5 min, id=', session_id, 'duration=', actualDurationSeconds, 'seconds');
+            return res.status(200).json({ session: null, deleted: true, reason: 'Session under 5 minutes' });
+          }
+        }
+
         const updatedSession = await prisma.focusSession.update({
           where: { id: session_id },
           data: {
@@ -151,7 +163,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ session: updatedSession });
       } catch (err) {
-        console.error('[api/focus/sessions] Prisma error on PATCH:', err && err.message ? err.message : err);
+        if (isDev) console.error('[api/focus/sessions] Prisma error on PATCH:', err && err.message ? err.message : err);
         if (process.env.NODE_ENV !== 'production' && err && String(err.message || '').includes('Engine is not yet connected')) {
           // Dev fallback: update local JSON file
           try {
@@ -171,10 +183,10 @@ export default async function handler(req, res) {
             if (notes) list[idx].notes = notes;
             list[idx].updated_at = new Date().toISOString();
             fs.writeFileSync(devFile, JSON.stringify(list, null, 2));
-            console.log('[api/focus/sessions] Updated dev session in', devFile);
+            if (isDev) console.log('[api/focus/sessions] Updated dev session in', devFile);
             return res.status(200).json({ session: list[idx], fallback: 'dev-file' });
           } catch (fsErr) {
-            console.error('[api/focus/sessions] dev fallback update failed:', fsErr);
+            if (isDev) console.error('[api/focus/sessions] dev fallback update failed:', fsErr);
             return res.status(500).json({ error: 'Prisma unavailable and fallback failed' });
           }
         }
@@ -185,9 +197,10 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Focus sessions API error:', error);
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
-  } finally {
-    await prisma.$disconnect();
+    if (isDev) console.error('Focus sessions API error:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// Use withPrisma wrapper for connection management
+export default withPrisma(handler);

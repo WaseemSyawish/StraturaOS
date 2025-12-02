@@ -3,6 +3,8 @@ import prisma from '../../../lib/prisma';
 const fallback = require('../../../lib/eventsFallback');
 const { MIN_SCHEDULE_OFFSET_MS, MIN_SCHEDULE_OFFSET_LABEL } = require('../../../lib/config');
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function isDateOnly(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -89,7 +91,7 @@ export default async function handler(req, res) {
       } catch (e) {
         if (!isMissingColumnError(e)) throw e;
         // If the DB/schema mismatch mentions unsupported fields (e.g. end_date), strip them and retry.
-        console.warn('[events/:id] retrying update without unsupported fields due to DB schema mismatch', e && e.message ? String(e.message) : '');
+        if (isDev) console.warn('[events/:id] retrying update without unsupported fields due to DB schema mismatch', e && e.message ? String(e.message) : '');
         const copy = { ...data };
         if (Object.prototype.hasOwnProperty.call(copy, 'meta')) delete copy.meta;
         // Remove end_date if error message references it
@@ -109,7 +111,7 @@ export default async function handler(req, res) {
         return await prisma.event.create({ data, include: includeCourses ? { courses: true } : undefined });
       } catch (e) {
         if (!isMissingColumnError(e)) throw e;
-        console.warn('[events/:id] retrying create without unsupported fields due to DB schema mismatch', e && e.message ? String(e.message) : '');
+        if (isDev) console.warn('[events/:id] retrying create without unsupported fields due to DB schema mismatch', e && e.message ? String(e.message) : '');
         const copy = { ...data };
         if (Object.prototype.hasOwnProperty.call(copy, 'meta')) delete copy.meta;
         try {
@@ -130,7 +132,7 @@ export default async function handler(req, res) {
           }
           return res.status(200).json({ success: true, event: normalizeEventRow(event) });
         } catch (err) {
-          console.error(`[events/:id] GET prisma error for id=${id}:`, err && err.message ? err.message : err);
+          if (isDev) console.error(`[events/:id] GET prisma error for id=${id}:`, err && err.message ? err.message : err);
           // Prisma unreachable -> fallback to file store
           if (err && (err.code === 'P1001' || String(err.message || '').includes("Can't reach database"))) {
             try {
@@ -138,7 +140,7 @@ export default async function handler(req, res) {
               if (!local) return res.status(404).json({ code: 'NOT_FOUND', message: 'Event not found' });
               return res.status(200).json({ success: true, event: normalizeEventRow(local) });
             } catch (fe) {
-              console.error('[events/:id] fallback.find error:', fe && fe.message ? fe.message : fe);
+              if (isDev) console.error('[events/:id] fallback.find error:', fe && fe.message ? fe.message : fe);
             }
           }
           throw err;
@@ -147,7 +149,7 @@ export default async function handler(req, res) {
       
       case 'PATCH': {
   const updateData = { ...req.body } || {};
-        console.log(`[events/:id] PATCH payload for id=${id}:`, JSON.stringify(updateData));
+        if (isDev) console.log(`[events/:id] PATCH payload for id=${id}:`, JSON.stringify(updateData));
 
         // Normalize common client-side field names to DB column names
         if (Object.prototype.hasOwnProperty.call(updateData, 'courseId')) {
@@ -252,7 +254,7 @@ export default async function handler(req, res) {
 
           if (!archivedRec) {
             const attempted = ['original_event_id', 'id'];
-            console.warn(`[events/:id] unarchive failed for id=${id}: archived record not found (attempted keys: ${attempted.join(',')})`);
+            if (isDev) console.warn(`[events/:id] unarchive failed for id=${id}: archived record not found (attempted keys: ${attempted.join(',')})`);
             return res.status(404).json({ code: 'NOT_FOUND', message: 'Archived event not found', attempted });
           }
 

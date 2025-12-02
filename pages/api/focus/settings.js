@@ -1,6 +1,8 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   const userId = await resolveUser(req);
 
@@ -10,21 +12,23 @@ export default async function handler(req, res) {
 
   try {
     // Debug logging
-    console.log('[settings API] Prisma client:', prisma ? 'EXISTS' : 'UNDEFINED');
-    console.log('[settings API] Prisma.focusSettings:', prisma?.focusSettings ? 'EXISTS' : 'UNDEFINED');
+    if (isDev) {
+      console.log('[settings API] Prisma client:', prisma ? 'EXISTS' : 'UNDEFINED');
+      console.log('[settings API] Prisma.focusSettings:', prisma?.focusSettings ? 'EXISTS' : 'UNDEFINED');
+    }
     
     if (req.method === 'GET') {
-      console.log('[settings API] GET request for user:', userId);
+      if (isDev) console.log('[settings API] GET request for user:', userId);
       // Get user's focus settings
       let settings = await prisma.focusSettings.findUnique({
         where: { user_id: userId },
       });
 
-      console.log('[settings API] Found settings:', settings ? 'YES' : 'NO');
+      if (isDev) console.log('[settings API] Found settings:', settings ? 'YES' : 'NO');
 
       // Create default settings if none exist
       if (!settings) {
-        console.log('[settings API] Creating default settings');
+        if (isDev) console.log('[settings API] Creating default settings');
         settings = await prisma.focusSettings.create({
           data: {
             user_id: userId,
@@ -32,14 +36,16 @@ export default async function handler(req, res) {
         });
       }
 
-      console.log('[settings API] Returning settings:', JSON.stringify(settings, null, 2));
+      if (isDev) console.log('[settings API] Returning settings:', JSON.stringify(settings, null, 2));
       return res.status(200).json({ settings });
     }
 
     if (req.method === 'PUT' || req.method === 'PATCH') {
-      console.log('[settings API] PUT/PATCH request for user:', userId);
-      console.log('[settings API] Request body:', JSON.stringify(req.body, null, 2));
-      console.log('[settings API] Request method:', req.method);
+      if (isDev) {
+        console.log('[settings API] PUT/PATCH request for user:', userId);
+        console.log('[settings API] Request body:', JSON.stringify(req.body, null, 2));
+        console.log('[settings API] Request method:', req.method);
+      }
       
       // Update focus settings
       const {
@@ -62,7 +68,7 @@ export default async function handler(req, res) {
         where: { user_id: userId },
       });
 
-      console.log('[settings API] Existing settings:', settings ? 'YES' : 'NO');
+      if (isDev) console.log('[settings API] Existing settings:', settings ? 'YES' : 'NO');
 
       if (!settings) {
         // Create new settings
@@ -105,15 +111,13 @@ export default async function handler(req, res) {
         });
       }
 
-      console.log('[settings API] Final settings object:', JSON.stringify(settings, null, 2));
+      if (isDev) console.log('[settings API] Final settings object:', JSON.stringify(settings, null, 2));
       return res.status(200).json({ settings });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Focus settings API error:', error);
+    if (isDev) console.error('Focus settings API error:', error);
     return res.status(500).json({ error: 'Internal server error', details: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 }

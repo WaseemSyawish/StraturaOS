@@ -1,11 +1,15 @@
 import { resolveUser } from '../../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
-    console.log('[auth-debug] Environment:', process.env.NODE_ENV);
-    console.log('[auth-debug] NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);
-    console.log('[auth-debug] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
-    console.log('[auth-debug] Cookies:', Object.keys(req.cookies || {}));
+    if (isDev) {
+      console.log('[auth-debug] Environment:', process.env.NODE_ENV);
+      console.log('[auth-debug] NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);
+      console.log('[auth-debug] NEXTAUTH_URL:', process.env.NEXTAUTH_URL);
+      console.log('[auth-debug] Cookies:', Object.keys(req.cookies || {}));
+    }
     
     const userId = await resolveUser(req);
     
@@ -21,7 +25,7 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
-    console.error('[auth-debug] Error:', error);
+    if (isDev) console.error('[auth-debug] Error:', error);
     return res.status(500).json({
       error: error.message,
       stack: error.stack

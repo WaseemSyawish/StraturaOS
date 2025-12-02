@@ -1,5 +1,7 @@
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function localDateOnlyString(d) {
   if (!d) return null;
   const dt = (Object.prototype.toString.call(d) === '[object Date]') ? d : new Date(String(d));
@@ -33,7 +35,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ events: out });
   } catch (err) {
-    console.error('/api/debug/events-enddates error', err);
+    if (isDev) console.error('/api/debug/events-enddates error', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

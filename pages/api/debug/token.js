@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default function handler(req, res) {
   try {
     const raw = req.headers.cookie || '';
@@ -23,7 +25,7 @@ export default function handler(req, res) {
 
     return res.status(200).json({ ok: true, cookies, sessionTokenPresent: !!sessionToken, sessionTokenPayload: verified });
   } catch (err) {
-    console.error('debug/token error', err);
+    if (isDev) console.error('debug/token error', err);
     return res.status(500).json({ ok: false, error: String(err) });
   }
 }

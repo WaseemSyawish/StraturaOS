@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     return res.status(405).end();
   } catch (err) {
-    console.error('/api/users error', err);
+    if (isDev) console.error('/api/users error', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

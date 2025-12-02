@@ -1,5 +1,7 @@
 import prisma from '../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -10,24 +12,20 @@ export default async function handler(req, res) {
     const { resolveUser } = await import('../../lib/resolveUser');
     let userId = await resolveUser(req);
     
-    console.log('[export-data] Resolved userId:', userId);
+    if (isDev) console.log('[export-data] Resolved userId:', userId);
     
     // Development fallback
-    if (!userId && process.env.NODE_ENV === 'development' && req.query && req.query.userId) {
+    if (!userId && isDev && req.query && req.query.userId) {
       userId = String(req.query.userId);
-      console.log('[export-data] Using dev fallback userId:', userId);
+      if (isDev) console.log('[export-data] Using dev fallback userId:', userId);
     }
     
     if (!userId) {
-      console.error('[export-data] No userId found - unauthorized');
       return res.status(401).json({ error: 'Unauthorized - Please sign in' });
     }
 
-    console.log('[export-data] Fetching data for userId:', userId);
-
     // Ensure userId is the correct type
     const userIdInt = typeof userId === 'string' ? parseInt(userId) : userId;
-    console.log('[export-data] Using userId (as int):', userIdInt);
 
     // Fetch all user data in parallel with error handling for each query
     let events = [], courses = [], assessments = [], attendanceSessions = [], semesterSettings = [];
@@ -39,7 +37,7 @@ export default async function handler(req, res) {
           where: { user_id: userIdInt },
           orderBy: { date: 'asc' }
         }).catch(err => {
-          console.error('[export-data] Events query failed:', err.message);
+          if (isDev) console.error('[export-data] Events query failed:', err.message);
           return [];
         }),
         
@@ -51,7 +49,7 @@ export default async function handler(req, res) {
           },
           orderBy: { name: 'asc' }
         }).catch(err => {
-          console.error('[export-data] Courses query failed:', err.message);
+          if (isDev) console.error('[export-data] Courses query failed:', err.message);
           return [];
         }),
         
@@ -72,7 +70,7 @@ export default async function handler(req, res) {
           },
           orderBy: { date_assigned: 'desc' }
         }).catch(err => {
-          console.error('[export-data] Assessments query failed:', err.message);
+          if (isDev) console.error('[export-data] Assessments query failed:', err.message);
           return [];
         }),
         
@@ -81,7 +79,7 @@ export default async function handler(req, res) {
           where: { user_id: userIdInt },
           orderBy: { date: 'desc' }
         }).catch(err => {
-          console.error('[export-data] Attendance query failed:', err.message);
+          if (isDev) console.error('[export-data] Attendance query failed:', err.message);
           return [];
         }),
         
@@ -90,20 +88,22 @@ export default async function handler(req, res) {
           where: { user_id: userIdInt },
           orderBy: { start_date: 'desc' }
         }).catch(err => {
-          console.error('[export-data] Semester settings query failed:', err.message);
+          if (isDev) console.error('[export-data] Semester settings query failed:', err.message);
           return [];
         })
       ]);
       
-      console.log('[export-data] Fetched:', {
-        events: events.length,
-        courses: courses.length,
-        assessments: assessments.length,
-        attendance: attendanceSessions.length,
-        semesters: semesterSettings.length
-      });
+      if (isDev) {
+        console.log('[export-data] Fetched:', {
+          events: events.length,
+          courses: courses.length,
+          assessments: assessments.length,
+          attendance: attendanceSessions.length,
+          semesters: semesterSettings.length
+        });
+      }
     } catch (error) {
-      console.error('[export-data] Promise.all failed:', error);
+      if (isDev) console.error('[export-data] Promise.all failed:', error);
       // Continue with empty arrays
     }
 
@@ -187,12 +187,11 @@ export default async function handler(req, res) {
     
     return res.status(200).json(exportData);
   } catch (error) {
-    console.error('[export-data] Error:', error);
-    console.error('[export-data] Error message:', error.message);
-    console.error('[export-data] Error stack:', error.stack);
+    console.error('[export-data] Error:', error.message);
+    if (isDev) console.error('[export-data] Error stack:', error.stack);
     return res.status(500).json({ 
       error: 'Failed to export data',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: isDev ? error.message : undefined
     });
   }
 }

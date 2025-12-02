@@ -2,6 +2,8 @@ import { resolveUser } from '../../../lib/resolveUser';
 import bcrypt from 'bcryptjs';
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   try {
     let userId = await resolveUser(req);
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('/api/users/change-password error', err);
+    if (isDev) console.error('/api/users/change-password error', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

@@ -1,6 +1,8 @@
 import prisma from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,7 +49,7 @@ export default async function handler(req, res) {
         }
       });
 
-      console.log(`Password reset successful for user ${user.email}`);
+      if (isDev) console.log(`Password reset successful for user ${user.email}`);
 
       return res.status(200).json({
         success: true,
@@ -92,7 +94,7 @@ export default async function handler(req, res) {
       message: 'Password updated successfully'
     });
   } catch (error) {
-    console.error('Password reset error:', error);
+    if (isDev) console.error('Password reset error:', error);
     return res.status(500).json({
       error: process.env.NODE_ENV === 'development'
         ? `Server error: ${error.message}`

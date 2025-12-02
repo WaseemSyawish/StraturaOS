@@ -8,6 +8,8 @@ import {
   filterTasksForMyDay,
 } from '../../../lib/task-helpers';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const META_ERROR_HINTS = ['does not exist', 'no such column', 'unknown argument', 'unknown arg'];
 
 const isMetaSchemaError = (error) => {
@@ -79,7 +81,7 @@ export default async function handler(req, res) {
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[api/tasks/my-day] Failed to load tasks', error);
+    if (isDev) console.error('[api/tasks/my-day] Failed to load tasks', error);
     return res.status(500).json({ success: false, error: 'Failed to load tasks' });
   }
 }

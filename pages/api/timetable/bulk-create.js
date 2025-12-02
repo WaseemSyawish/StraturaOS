@@ -1,5 +1,7 @@
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 async function resolveUserId(req) {
   try {
     const { getToken } = await import('next-auth/jwt');
@@ -7,13 +9,13 @@ async function resolveUserId(req) {
     const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
     if (tokenUserId) return tokenUserId;
 
-    if (process.env.NODE_ENV !== 'production' && req && req.cookies) {
+    if (isDev && req && req.cookies) {
       if (req.cookies.userId) return req.cookies.userId;
       if (req.cookies.debug_userId) return req.cookies.debug_userId;
     }
     return null;
   } catch (err) {
-    console.error('resolveUserId error', err);
+    if (isDev) console.error('resolveUserId error', err);
     return null;
   }
 }
@@ -83,7 +85,7 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`Bulk create request: ${patterns.length} patterns from ${startDate} to ${endDate}`);
+    if (isDev) console.log(`Bulk create request: ${patterns.length} patterns from ${startDate} to ${endDate}`);
 
     // Fetch holidays for the semester
     const year = new Date(startDate).getFullYear();
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
         holidays = holidayData.holidays || [];
       }
     } catch (err) {
-      console.warn('Failed to fetch holidays:', err.message);
+      if (isDev) console.warn('Failed to fetch holidays:', err.message);
     }
 
     const summary = {};
@@ -106,7 +108,7 @@ export default async function handler(req, res) {
       const { courseId, sessionType, dayOfWeek, startTime, endTime, location } = pattern;
 
       if (!courseId || dayOfWeek === undefined || !startTime || !endTime) {
-        console.warn('Skipping invalid pattern:', pattern);
+        if (isDev) console.warn('Skipping invalid pattern:', pattern);
         continue;
       }
 
@@ -116,7 +118,7 @@ export default async function handler(req, res) {
       });
 
       if (!course || course.user_id !== userId) {
-        console.warn('Course not found or unauthorized:', courseId);
+        if (isDev) console.warn('Course not found or unauthorized:', courseId);
         continue;
       }
 
@@ -128,7 +130,7 @@ export default async function handler(req, res) {
         holidays
       );
 
-      console.log(`Creating ${occurrences.length} events for ${course.name} on day ${dayOfWeek}`);
+      if (isDev) console.log(`Creating ${occurrences.length} events for ${course.name} on day ${dayOfWeek}`);
 
       // Prepare events data
       const eventsData = occurrences.map(date => ({
@@ -168,7 +170,7 @@ export default async function handler(req, res) {
       totalEvents += occurrences.length;
     }
 
-    console.log(`✅ Created ${totalEvents} events across ${Object.keys(summary).length} courses`);
+    if (isDev) console.log(`✅ Created ${totalEvents} events across ${Object.keys(summary).length} courses`);
 
     return res.status(201).json({
       success: true,
@@ -177,7 +179,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Bulk create error:', error);
+    if (isDev) console.error('Bulk create error:', error);
     return res.status(500).json({
       success: false,
       error: 'Failed to create timetable events',

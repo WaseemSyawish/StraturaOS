@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   // Only allow this legacy helper in development to avoid demo authentication in production
   if (process.env.NODE_ENV !== 'development') {
@@ -54,7 +56,7 @@ export default async function handler(req, res) {
     res.end();
     return;
   } catch (err) {
-    console.error('local-signin error', err);
+    if (isDev) console.error('local-signin error', err);
     res.status(500).send('Server error');
     return;
   }

@@ -1,6 +1,8 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 function parseCookies(req) {
   const raw = req.headers.cookie || '';
   return Object.fromEntries(raw.split(';').map(s => { const [k,v] = s.split('='); return [k && k.trim(), v && v.trim()]; }).filter(Boolean));
@@ -52,7 +54,7 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET,PATCH');
     return res.status(405).end();
   } catch (err) {
-    console.error('[api/users/[id]]', err);
+    if (isDev) console.error('[api/users/[id]]', err);
     return res.status(500).json({ error: 'Server error' });
   }
 }

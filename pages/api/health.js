@@ -1,5 +1,7 @@
 // Lightweight health endpoint to verify deployment and presence of env vars.
 // Returns only boolean flags for env var presence to avoid leaking secrets.
+const isDev = process.env.NODE_ENV === 'development';
+
 export default function handler(req, res) {
   try {
     res.status(200).json({
@@ -12,7 +14,7 @@ export default function handler(req, res) {
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('Health endpoint error', err);
+    if (isDev) console.error('Health endpoint error', err);
     res.status(500).json({ status: 'error', error: String(err) });
   }
 }

@@ -78,10 +78,10 @@ export default function SessionsPage() {
           {/* Header */}
           <div className="mb-8">
             <button
-              onClick={() => router.push("/tasks")}
+              onClick={() => router.back()}
               className="mb-4 text-sm text-purple-600 hover:text-purple-700 font-medium"
             >
-              ← Back to Tasks
+              ← Back
             </button>
             <h1 className="text-4xl font-bold text-slate-900">Focus Sessions</h1>
             <p className="mt-2 text-slate-600">Track your productivity and focus time</p>

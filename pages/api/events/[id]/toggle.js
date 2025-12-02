@@ -1,5 +1,7 @@
 import prisma from '../../../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export default async function handler(req, res) {
   const { id } = req.query;
   if (req.method !== 'POST') return res.status(405).end();
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
     };
     return res.status(200).json({ success: true, event: normalize(updated) });
   } catch (err) {
-    console.error(err);
+    if (isDev) console.error(err);
     return res.status(500).json({ error: 'Failed to toggle event' });
   }
 }

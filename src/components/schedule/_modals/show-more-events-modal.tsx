@@ -3,13 +3,33 @@ import { useModal } from "@/providers/modal-context";
 import { useToast } from "@/providers/toast-provider";
 import { Event } from "@/types";
 import React, { useEffect, useState } from "react";
-import { X, Clock, MapPin, Edit, Trash2, Plus, Sparkles } from "lucide-react";
+import { X, Clock, MapPin, Edit, Trash2, Plus, Sparkles, BookOpen, AlertTriangle, FileText, Target, Beaker, GraduationCap, Calendar } from "lucide-react";
 import CustomModal from "@/components/ui/custom-modal";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
 import EditScopeModal from "@/components/Timetable/EditScopeModal";
 import { useScheduler } from "@/providers/schedular-provider";
 
-function getEventColor(variant: string) {
+function getEventColor(variant: string, eventType?: string) {
+  // First check by event type
+  const typeColors: Record<string, string> = {
+    exam: '#ef4444',      // red
+    quiz: '#f97316',      // orange
+    assignment: '#3b82f6', // blue
+    project: '#8b5cf6',   // purple
+    class: '#10b981',     // green
+    lecture: '#10b981',   // green
+    lab: '#06b6d4',       // cyan
+    tutorial: '#14b8a6',  // teal
+    study: '#22c55e',     // green
+    deadline: '#ef4444',  // red
+    meeting: '#6366f1',   // indigo
+  };
+  
+  if (eventType && typeColors[eventType.toLowerCase()]) {
+    return typeColors[eventType.toLowerCase()];
+  }
+  
+  // Fall back to variant colors
   const colors: Record<string, string> = {
     primary: '#8b5cf6',   // purple
     success: '#10b981',   // green
@@ -20,9 +40,40 @@ function getEventColor(variant: string) {
   return colors[variant] || colors.primary;
 }
 
+function getTypeIcon(type?: string) {
+  const typeIcons: Record<string, any> = {
+    exam: AlertTriangle,
+    quiz: Beaker,
+    assignment: FileText,
+    project: Target,
+    class: GraduationCap,
+    lecture: GraduationCap,
+    lab: Beaker,
+    study: BookOpen,
+    deadline: AlertTriangle,
+    meeting: Calendar,
+  };
+  return typeIcons[type?.toLowerCase() || ''] || Calendar;
+}
+
+function getTypeBgColor(type?: string) {
+  const typeBgColors: Record<string, string> = {
+    exam: 'bg-red-100 dark:bg-red-900/30',
+    quiz: 'bg-orange-100 dark:bg-orange-900/30',
+    assignment: 'bg-blue-100 dark:bg-blue-900/30',
+    project: 'bg-purple-100 dark:bg-purple-900/30',
+    class: 'bg-emerald-100 dark:bg-emerald-900/30',
+    lecture: 'bg-emerald-100 dark:bg-emerald-900/30',
+    lab: 'bg-cyan-100 dark:bg-cyan-900/30',
+    study: 'bg-green-100 dark:bg-green-900/30',
+    deadline: 'bg-red-100 dark:bg-red-900/30',
+    meeting: 'bg-indigo-100 dark:bg-indigo-900/30',
+  };
+  return typeBgColors[type?.toLowerCase() || ''] || 'bg-slate-100 dark:bg-slate-800';
+}
+
 export default function ShowMoreEventsModal() {
   const { data } = useModal();
-  console.log(data);
   const dayEvents = data?.default?.dayEvents || [];
 
   const [events, setEvents] = useState<Event[]>(dayEvents);
@@ -171,71 +222,130 @@ export default function ShowMoreEventsModal() {
   };
 
   return (
-    <div className="space-y-4 p-5">
-      {/* header removed — modal begins with event list */}
-
-      {/* Events List with enhanced styling */}
-      <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-        {events.map((event, idx) => (
-          <div
-            key={event.id || idx}
-            className="group relative bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-850 border border-gray-200 dark:border-gray-800 rounded-lg p-3.5 transition-colors duration-150 cursor-pointer"
-            style={{ borderLeft: `3px solid ${getEventColor((event as any).variant || 'primary')}` }}
-            onClick={() => handleEdit(event)}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm truncate">{event.title}</h4>
-                  {(event as any).meta?.schedulePattern && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-medium rounded border border-indigo-200 dark:border-indigo-500/20">
-                      <Sparkles className="w-3 h-3" />
-                      Smart
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{new Date(event.startDate || event.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                </div>
-                {event.location && (
-                  <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span className="truncate">{event.location}</span>
+    <div className="-mx-6 -mb-6">
+      {/* Events List */}
+      <div className="max-h-[60vh] overflow-y-auto">
+        {events.length > 0 ? (
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {events.map((event, idx) => {
+              const eventType = (event as any).type || '';
+              const eventColor = getEventColor((event as any).variant || 'primary', eventType);
+              const TypeIcon = getTypeIcon(eventType);
+              const typeBgColor = getTypeBgColor(eventType);
+              const courseName = (event as any).courses?.name || (event as any).course || '';
+              const courseCode = (event as any).courses?.code || '';
+              
+              return (
+                <div
+                  key={event.id || idx}
+                  className="group relative hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-colors cursor-pointer"
+                  onClick={() => handleEdit(event)}
+                >
+                  <div className="flex items-stretch">
+                    {/* Color bar */}
+                    <div 
+                      className="w-1 flex-shrink-0 transition-all group-hover:w-1.5" 
+                      style={{ backgroundColor: eventColor }}
+                    />
+                    
+                    <div className="flex-1 px-4 py-3.5">
+                      <div className="flex items-start gap-3">
+                        {/* Type Icon */}
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${typeBgColor} flex items-center justify-center`}>
+                          <TypeIcon className="w-4 h-4" style={{ color: eventColor }} />
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight truncate">
+                                {event.title}
+                              </h4>
+                              
+                              {/* Meta row */}
+                              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1">
+                                {/* Time */}
+                                <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                  <Clock className="w-3 h-3" />
+                                  <span>
+                                    {new Date(event.startDate || event.date).toLocaleTimeString('en-US', { 
+                                      hour: 'numeric', 
+                                      minute: '2-digit', 
+                                      hour12: true 
+                                    })}
+                                  </span>
+                                </div>
+                                
+                                {/* Location */}
+                                {event.location && (
+                                  <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                    <MapPin className="w-3 h-3" />
+                                    <span className="truncate max-w-[100px]">{event.location}</span>
+                                  </div>
+                                )}
+                                
+                                {/* Course */}
+                                {(courseCode || courseName) && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-medium rounded">
+                                    {courseCode || courseName}
+                                  </span>
+                                )}
+                                
+                                {/* Type badge */}
+                                {eventType && (
+                                  <span 
+                                    className="px-1.5 py-0.5 text-[10px] font-medium rounded capitalize"
+                                    style={{ 
+                                      backgroundColor: `${eventColor}15`,
+                                      color: eventColor 
+                                    }}
+                                  >
+                                    {eventType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {(event as any).meta?.schedulePattern && (
+                                <span className="mr-1 inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-medium rounded">
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  Smart
+                                </span>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEdit(event); }}
+                                className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                aria-label="Edit event"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(event.id, event); }}
+                                className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                aria-label="Delete event"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Action Buttons - Always visible on mobile, hover on desktop */}
-              <div className="flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEdit(event); }}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  aria-label="Edit event"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(event.id, event); }}
-                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                  aria-label="Delete event"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
-        
-        {events.length === 0 && (
-          <div className="py-12 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
-              <svg className="w-7 h-7 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+        ) : (
+          <div className="py-12 text-center px-6">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-xl mb-3">
+              <Calendar className="w-7 h-7 text-slate-400 dark:text-slate-500" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 font-medium text-sm">No events for this day</p>
-            <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">Click "Add Event" to create one</p>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">No events scheduled</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Click below to add an event</p>
           </div>
         )}
       </div>
@@ -271,7 +381,6 @@ export default function ShowMoreEventsModal() {
             try {
               if (sched && typeof sched.handleDeleteEvent === 'function') await sched.handleDeleteEvent(id, 'all');
               else {
-                // best effort: call API with scope param
                 await fetch(`/api/events/${encodeURIComponent(id)}?scope=all`, { method: 'DELETE' });
               }
               showToast(`Deleted all occurrences of "${deleteTarget?.title}"`, 'success', { duration: 3000 });
@@ -279,7 +388,6 @@ export default function ShowMoreEventsModal() {
               console.warn('Bulk delete failed', e);
               showToast('Failed to delete all occurrences', 'error', { duration: 4000 });
             }
-            // close and let provider refresh list
             setClose();
           } catch (err) {
             console.warn('EditScopeModal onConfirm error', err);
@@ -288,21 +396,26 @@ export default function ShowMoreEventsModal() {
         }}
       />
 
-      {/* Footer - Simplified styling */}
-      <div className="flex justify-end gap-2.5 pt-3.5 border-t border-gray-200 dark:border-gray-800">
-        <button 
-          onClick={handleClose} 
-          className="px-4 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-lg transition-colors font-medium text-sm"
-        >
-          Close
-        </button>
-        <button 
-          onClick={() => handleAddEvent(events[0]?.startDate || events[0]?.date)} 
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          Add Event
-        </button>
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          {events.length} {events.length === 1 ? 'event' : 'events'}
+        </span>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleClose} 
+            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            Close
+          </button>
+          <button 
+            onClick={() => handleAddEvent(events[0]?.startDate || events[0]?.date)} 
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Event
+          </button>
+        </div>
       </div>
     </div>
   );

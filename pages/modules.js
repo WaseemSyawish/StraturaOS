@@ -989,26 +989,83 @@ const ModulesManager = () => {
           </div>
         ) : courses.length === 0 ? (
           <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="text-center max-w-md">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-2xl mb-6">
-                <BookOpen className="w-10 h-10 text-indigo-600" strokeWidth={2} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">No Modules Yet</h3>
-              <p className="text-gray-600 mb-2">Start organizing your academic schedule by adding your first module.</p>
-              {!currentSemester && (
-                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800">
-                    💡 <strong>Tip:</strong> Configure your semester settings first to organize your modules by academic period.
-                  </p>
-                  <button
-                    onClick={() => setShowSemesterConfig(true)}
-                    className="mt-3 text-sm text-amber-700 hover:text-amber-900 font-medium underline"
-                  >
-                    Set up semester configuration
-                  </button>
+            <div className="max-w-2xl w-full mx-auto">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-slate-700">
+                {/* Header Section */}
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <BookOpen className="w-7 h-7 text-white" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">No Modules Yet</h2>
+                      <p className="text-indigo-100 text-sm">Let's get you set up</p>
+                    </div>
+                  </div>
                 </div>
-              )}
-              <p className="text-sm text-gray-500 mt-4">Click the "Add Module" button above to get started.</p>
+
+                {/* Content Section */}
+                <div className="px-8 py-10">
+                  <p className="text-gray-700 dark:text-gray-300 mb-2 leading-relaxed">
+                    Start organizing your academic schedule by adding your first module.
+                  </p>
+                  {!currentSemester && (
+                    <div className="mt-4 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        💡 <strong>Tip:</strong> Configure your semester settings first to organize your modules by academic period.
+                      </p>
+                      <button
+                        onClick={() => setShowSemesterConfig(true)}
+                        className="mt-3 text-sm text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 font-medium underline"
+                      >
+                        Set up semester configuration
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+                    Once you add modules, you'll be able to track attendance, manage assignments, and monitor your grades.
+                  </p>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={handleAddCourse}
+                    className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Your First Module</span>
+                  </button>
+
+                  {/* Feature Highlights */}
+                  <div className="mt-10 pt-8 border-t border-gray-100 dark:border-slate-700">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-6">
+                      What you can do
+                    </p>
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Track Attendance</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Monitor class participation</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Manage Tasks</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Track assignments and deadlines</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                          <GraduationCap className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Track Grades</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Monitor your academic progress</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

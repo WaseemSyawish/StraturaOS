@@ -308,32 +308,32 @@ const ArchivedEventsPage = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-3 md:p-4 border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Items</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">{events.length}</p>
+                    <p className="text-xs md:text-sm font-medium text-blue-700 dark:text-blue-300">Total Items</p>
+                    <p className="text-xl md:text-2xl font-bold text-blue-900 dark:text-blue-100 mt-1">{events.length}</p>
                   </div>
-                  <Package className="w-8 h-8 text-blue-600 dark:text-blue-400 opacity-50" />
+                  <Package className="w-6 h-6 md:w-8 md:h-8 text-blue-600 dark:text-blue-400 opacity-50" />
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-3 md:p-4 border border-green-200 dark:border-green-800">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Completed</p>
-                    <p className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{events.filter(e => e.completed).length}</p>
+                    <p className="text-xs md:text-sm font-medium text-green-700 dark:text-green-300">Completed</p>
+                    <p className="text-xl md:text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{events.filter(e => e.completed).length}</p>
                   </div>
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400 opacity-50" />
+                  <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-green-600 dark:text-green-400 opacity-50" />
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-3 md:p-4 border border-purple-200 dark:border-purple-800">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">This Month</p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
+                    <p className="text-xs md:text-sm font-medium text-purple-700 dark:text-purple-300">This Month</p>
+                    <p className="text-xl md:text-2xl font-bold text-purple-900 dark:text-purple-100 mt-1">
                       {events.filter(e => {
                         try {
                           const date = new Date(e.date || e.startDate);
@@ -343,15 +343,15 @@ const ArchivedEventsPage = () => {
                       }).length}
                     </p>
                   </div>
-                  <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400 opacity-50" />
+                  <Calendar className="w-6 h-6 md:w-8 md:h-8 text-purple-600 dark:text-purple-400 opacity-50" />
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-3 md:p-4 border border-amber-200 dark:border-amber-800">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Event Types</p>
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">{eventTypes.length}</p>
+                    <p className="text-xs md:text-sm font-medium text-amber-700 dark:text-amber-300">Event Types</p>
+                    <p className="text-xl md:text-2xl font-bold text-amber-900 dark:text-amber-100 mt-1">{eventTypes.length}</p>
                   </div>
                   <Tag className="w-8 h-8 text-amber-600 dark:text-amber-400 opacity-50" />
                 </div>
@@ -359,16 +359,16 @@ const ArchivedEventsPage = () => {
             </div>
 
             {/* Filters */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {/* Search - Full width on mobile */}
+              <div className="relative col-span-2 md:col-span-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search events..."
+                  placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
+                  className="w-full pl-9 md:pl-10 pr-3 md:pr-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -376,7 +376,7 @@ const ArchivedEventsPage = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
+                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
               >
                 <option value="all">All Types</option>
                 {eventTypes.map(type => (
@@ -388,7 +388,7 @@ const ArchivedEventsPage = () => {
               <select
                 value={filterCourse}
                 onChange={(e) => setFilterCourse(e.target.value)}
-                className="px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
+                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
               >
                 <option value="all">All Courses</option>
                 {courses.map(course => (
@@ -400,12 +400,12 @@ const ArchivedEventsPage = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
+                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
               >
-                <option value="date-desc">Newest First</option>
-                <option value="date-asc">Oldest First</option>
-                <option value="title-asc">Title A-Z</option>
-                <option value="title-desc">Title Z-A</option>
+                <option value="date-desc">Newest</option>
+                <option value="date-asc">Oldest</option>
+                <option value="title-asc">A-Z</option>
+                <option value="title-desc">Z-A</option>
               </select>
             </div>
           </div>
@@ -473,11 +473,11 @@ const ArchivedEventsPage = () => {
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
+                      {/* Actions - Stack on mobile */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3 sm:mt-0">
                         <button
                           onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
-                          className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                          className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors hidden sm:block"
                           title={expandedEvent === event.id ? 'Collapse' : 'Expand'}
                         >
                           {expandedEvent === event.id ? (
@@ -488,14 +488,15 @@ const ArchivedEventsPage = () => {
                         </button>
                         <button
                           onClick={() => handleUnarchive(event.id)}
-                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
                         >
                           <RotateCcw className="w-4 h-4" />
-                          Restore / Uncomplete
+                          <span className="hidden sm:inline">Restore / Uncomplete</span>
+                          <span className="sm:hidden">Restore</span>
                         </button>
                         <button
                           onClick={() => handleDelete(event.id)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center"
                           title="Delete permanently"
                         >
                           <Trash2 className="w-5 h-5" />

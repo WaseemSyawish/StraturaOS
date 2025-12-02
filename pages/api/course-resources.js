@@ -2,6 +2,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 import prismaClient from '../../lib/prisma';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 /**
  * API endpoint for managing course resources (links, files, notes)
  * GET: List all resources for a course
@@ -142,7 +144,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (error) {
-    console.error('[api/course-resources] Error:', error);
+    if (isDev) console.error('[api/course-resources] Error:', error);
     return res.status(500).json({ 
       success: false, 
       error: 'Internal server error',

@@ -1,7 +1,7 @@
 import prisma from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
-import { isValidEmail, validatePassword, sanitizeString } from '../../../lib/security/validation';
+import { validatePassword, sanitizeString } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
 

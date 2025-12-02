@@ -1,15 +1,18 @@
 import prisma from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
+import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
+import { isValidEmail, validatePassword, sanitizeString } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { email, newPassword, currentPassword, token } = req.body;
+    const { email: rawEmail, newPassword, currentPassword, token } = req.body;
+    const email = rawEmail ? sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim() : null;
 
     // Token-based password reset (forgot password flow)
     if (token) {
@@ -17,8 +20,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'New password is required' });
       }
 
-      if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+      // Validate password strength
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.errors[0] || 'Password does not meet requirements' });
       }
 
       // Find user with valid reset token
@@ -75,8 +80,10 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    // Validate password strength
+    const pwdValidation = validatePassword(newPassword);
+    if (!pwdValidation.valid) {
+      return res.status(400).json({ error: pwdValidation.errors[0] || 'Password does not meet requirements' });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
@@ -102,3 +109,5 @@ export default async function handler(req, res) {
     });
   }
 }
+
+export default withRateLimit(handler, 'passwordReset', RATE_LIMITS.passwordReset);

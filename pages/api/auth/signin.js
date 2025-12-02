@@ -2,6 +2,8 @@ import prisma from '../../../lib/prisma';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
+import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
+import { isValidEmail, sanitizeString } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -45,10 +47,17 @@ function loadLocalDevUser() {
   return null;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { email } = req.body || {};
+  const rawEmail = req.body?.email;
+  
+  // Validate and sanitize email
+  if (rawEmail && !isValidEmail(rawEmail)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+  
+  const email = rawEmail ? sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim() : null;
 
   const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
 
@@ -91,8 +100,10 @@ export default async function handler(req, res) {
           return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Database unreachable — using local dev-user fallback' });
         }
       }
-      return res.status(503).json({ error: 'Database unreachable', details: msg });
+      return res.status(503).json({ error: 'Database unreachable', details: isDev ? msg : undefined });
     }
-    return res.status(500).json({ error: 'Failed to sign in', details: msg });
+    return res.status(500).json({ error: 'Failed to sign in', details: isDev ? msg : undefined });
   }
 }
+
+export default withRateLimit(handler, 'auth', RATE_LIMITS.auth);

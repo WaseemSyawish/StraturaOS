@@ -1,10 +1,12 @@
 import { resolveUser } from '../../../lib/resolveUser';
 import bcrypt from 'bcryptjs';
 import prisma from '../../../lib/prisma';
+import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
+import { validatePassword } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   try {
     let userId = await resolveUser(req);
     
@@ -19,8 +21,11 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { currentPassword, newPassword } = req.body || {};
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
-      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({ error: passwordValidation.errors[0] || 'Password does not meet requirements' });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -41,3 +46,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server error' });
   }
 }
+
+export default withRateLimit(handler, 'auth', RATE_LIMITS.auth);

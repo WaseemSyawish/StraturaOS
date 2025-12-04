@@ -1,4 +1,4 @@
-# University Planner - Complete Documentation
+# StraturaOS - Complete Documentation
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-**University Planner** is a comprehensive academic management system designed specifically for university students. It provides an all-in-one platform to manage courses, track grades, schedule events, monitor attendance, and organize academic life efficiently.
+**StraturaOS** is a comprehensive academic management system designed specifically for university students. It provides an all-in-one platform to manage courses, track grades, schedule events, monitor attendance, and organize academic life efficiently.
 
 ### Key Capabilities
 
@@ -37,7 +37,7 @@
 ### Application Structure
 
 ```
-university-planner/
+straturaos/
 ├── pages/                      # Next.js pages and API routes
 │   ├── api/                    # Backend API endpoints
 │   │   ├── auth/               # Authentication endpoints
@@ -111,8 +111,8 @@ university-planner/
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/WaseemSyawish/university-planner.git
-   cd university-planner
+   git clone https://github.com/WaseemSyawish/straturaos.git
+   cd straturaos
    ```
 
 2. **Install dependencies**
@@ -797,7 +797,7 @@ Delete a semester configuration.
 
    - Go to [vercel.com](https://vercel.com)
    - Import your GitHub repository
-   - Select the `university-planner` project
+   - Select the `straturaos` project
 
 3. **Configure environment variables**
    In Vercel dashboard, add all variables from `.env`:
@@ -1028,7 +1028,7 @@ This project is proprietary software. All rights reserved.
 
 For support and questions:
 
-- GitHub Issues: [university-planner/issues](https://github.com/WaseemSyawish/university-planner/issues)
+- GitHub Issues: [straturaos/issues](https://github.com/WaseemSyawish/straturaos/issues)
 - Email: support@example.com
 
 ---

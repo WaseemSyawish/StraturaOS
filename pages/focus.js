@@ -253,7 +253,7 @@ export default function FocusPage() {
     <HygraphSidebar pageName="Focus Session" pageActions={pageActions}>
       <>
         <Head>
-          <title>Focus Session - University Planner</title>
+          <title>Focus Session - StraturaOS</title>
         </Head>
 
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">

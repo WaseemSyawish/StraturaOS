@@ -60,7 +60,7 @@ Add to your `.env` file:
 
 ```env
 RESEND_API_KEY="re_your_api_key_here"
-RESEND_FROM_EMAIL="University Planner <noreply@universityplanner.com>"
+RESEND_FROM_EMAIL="StraturaOS <noreply@StraturaOS.com>"
 ```
 
 ## Database Schema
@@ -101,4 +101,4 @@ The following fields were added to the User model:
 3. Test the flow end-to-end
 
 The forgot password system is now fully functional and ready for use!</content>
-<parameter name="filePath">c:\Users\Administrator\Desktop\university-planner\PASSWORD-RESET-IMPLEMENTATION.md
+<parameter name="filePath">c:\Users\Administrator\Desktop\straturaos\PASSWORD-RESET-IMPLEMENTATION.md

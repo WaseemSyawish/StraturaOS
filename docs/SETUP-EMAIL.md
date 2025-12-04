@@ -13,14 +13,14 @@ The password reset feature requires email functionality to send reset links to u
 
    - After signing in, go to: https://resend.com/api-keys
    - Click "Create API Key"
-   - Give it a name (e.g., "University Planner Dev")
+   - Give it a name (e.g., "StraturaOS Dev")
    - Copy the API key (starts with `re_`)
 
 3. **Add to .env file**
 
    ```bash
    RESEND_API_KEY="re_your_actual_api_key_here"
-   RESEND_FROM_EMAIL="University Planner <noreply@yourdomain.com>"
+   RESEND_FROM_EMAIL="StraturaOS <noreply@yourdomain.com>"
    ```
 
 4. **Restart your dev server**

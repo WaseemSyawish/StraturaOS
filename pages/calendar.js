@@ -286,7 +286,7 @@ export default function CalendarPage() {
     <HygraphSidebar>
       <>
       <Head>
-        <title>Calendar — University Planner</title>
+        <title>Calendar — StraturaOS</title>
       </Head>
       <div className="calendar-page min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-2 sm:p-4`}>

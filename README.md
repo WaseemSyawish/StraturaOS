@@ -1,70 +1,68 @@
-# Getting Started with Create React App
+# StraturaOS
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive academic planning and productivity platform built for students. StraturaOS helps you stay organized throughout your academic journey with smart timetables, task management, focus sessions, and grade tracking.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- 📅 **Smart Timetable** - Intelligent class scheduling with recurrence patterns
+- ✅ **Task Management** - Inbox workflow with subtasks, priorities, and due dates  
+- 🎯 **Focus Sessions** - Pomodoro timer with task integration and analytics
+- 📊 **Grade Calculator** - Track grades and predict final scores
+- 📋 **Attendance Tracking** - Monitor your class attendance
+- 🌙 **Dark Mode** - Beautiful UI in light and dark themes
+- 🔐 **Secure Authentication** - Rate-limited, validated, and secure
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Frontend**: Next.js 15, React 19, Tailwind CSS
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: PostgreSQL (Supabase)
+- **Authentication**: NextAuth.js + Custom JWT
+- **Deployment**: Vercel
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Getting Started
 
-### `npm test`
+```bash
+# Clone the repository
+git clone https://github.com/WaseemSyawish/straturaos.git
+cd straturaos
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Install dependencies
+npm install
 
-### `npm run build`
+# Set up environment variables
+cp .env.example .env.local
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# Run database migrations
+npx prisma migrate dev
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Start development server
+npm run dev
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Environment Variables
 
-### `npm run eject`
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+NEXTAUTH_SECRET="your-secret"
+NEXTAUTH_URL="http://localhost:3000"
+RESEND_API_KEY="re_..."
+RESEND_FROM_EMAIL="StraturaOS <noreply@yourdomain.com>"
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Scripts
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm test` - Run tests
+- `npm run lint` - Lint code
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## License
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Private - All rights reserved.
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Built with ❤️ by Waseem Syawish

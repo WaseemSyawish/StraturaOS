@@ -57,7 +57,7 @@ DIRECT_URL="postgresql://user:password@host:port/database?schema=public"
 NEXTAUTH_SECRET="generate-with-openssl-rand-base64-32"
 NEXTAUTH_URL="https://your-app.vercel.app"
 RESEND_API_KEY="re_your_key_here"
-RESEND_FROM_EMAIL="University Planner <noreply@resend.dev>"
+RESEND_FROM_EMAIL="StraturaOS <noreply@resend.dev>"
 ```
 
 ### Railway PostgreSQL Setup

@@ -158,7 +158,7 @@ export default function SignUp() {
 
   return (
     <>
-      <title>Create account — University Planner</title>
+      <title>Create account — StraturaOS</title>
       <style>{`
         .signup-page button svg {
           color: #ffffff !important;
@@ -180,7 +180,7 @@ export default function SignUp() {
               Create your account
             </h1>
             <p style={{ color: '#64748b' }}>
-              Get started with University Planner
+              Get started with StraturaOS
             </p>
           </div>
 

@@ -31,7 +31,7 @@ export default function SignOut() {
   return (
     <div style={{ padding: 36 }}>
       <Head>
-        <title>Sign out — University Planner</title>
+        <title>Sign out — StraturaOS</title>
       </Head>
       <div className="card" style={{ maxWidth: 680, margin: '48px auto', textAlign: 'center' }}>
         <h2>Signed out</h2>

@@ -93,7 +93,7 @@ export default function ResetPassword() {
 }  return (
     <>
       <Head>
-        <title>Reset Password — University Planner</title>
+        <title>Reset Password — StraturaOS</title>
       </Head>
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">

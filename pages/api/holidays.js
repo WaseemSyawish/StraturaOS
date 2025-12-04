@@ -8,7 +8,7 @@ const CACHE_DIR = path.join(process.cwd(), 'data');
 async function fetchRemoteHolidays(year, country) {
   const url = `https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`;
   try {
-    const r = await fetch(url, { headers: { 'User-Agent': 'university-planner' }, timeout: 8000 });
+    const r = await fetch(url, { headers: { 'User-Agent': 'straturaos' }, timeout: 8000 });
     if (!r.ok) {
       if (isDev) console.warn('Remote holidays fetch returned non-OK status', r.status, url);
       return [];

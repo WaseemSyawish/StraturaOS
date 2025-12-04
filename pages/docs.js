@@ -23,8 +23,8 @@ export default function Docs() {
     <HygraphSidebar>
       <>
         <Head>
-          <title>Documentation — University Planner</title>
-          <meta name="description" content="Complete documentation for University Planner - Academic management system" />
+          <title>Documentation — StraturaOS</title>
+          <meta name="description" content="Complete documentation for StraturaOS - Academic management system" />
         </Head>
       
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -110,9 +110,9 @@ export default function Docs() {
 function OverviewSection() {
   return (
     <div className="prose prose-slate dark:prose-invert max-w-none">
-      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Welcome to University Planner</h2>
+      <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Welcome to StraturaOS</h2>
       <p className="text-slate-600 dark:text-slate-300 text-lg mb-6">
-        <strong>University Planner</strong> helps you stay organized throughout your academic journey. 
+        <strong>StraturaOS</strong> helps you stay organized throughout your academic journey. 
         Manage your courses, track grades, schedule events, and monitor attendance all in one place.
       </p>
 
@@ -154,7 +154,7 @@ function OverviewSection() {
         <div className="flex items-start gap-3">
           <GraduationCap className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
           <div>
-            <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">New to University Planner?</h4>
+            <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">New to StraturaOS?</h4>
             <p className="text-blue-800 dark:text-blue-200 mb-4">
               Start by creating your account, then set up your first semester and add your courses. The guide will walk you through everything!
             </p>
@@ -178,7 +178,7 @@ function GettingStartedSection() {
       <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Getting Started</h2>
       
       <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
-        Follow these simple steps to get started with University Planner and organize your academic life.
+        Follow these simple steps to get started with StraturaOS and organize your academic life.
       </p>
 
       <div className="space-y-6">
@@ -654,7 +654,7 @@ function TipsSection() {
       <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Tips & Best Practices</h2>
       
       <p className="text-slate-600 dark:text-slate-300 text-lg mb-8">
-        Get the most out of University Planner with these helpful tips.
+        Get the most out of StraturaOS with these helpful tips.
       </p>
 
       <div className="space-y-6">

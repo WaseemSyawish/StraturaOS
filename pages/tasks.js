@@ -4388,7 +4388,7 @@ export default function TasksPage() {
     <HygraphSidebar pageName="Tasks">
       <>
       <Head>
-        <title>Tasks | University Planner</title>
+        <title>Tasks | StraturaOS</title>
       </Head>
       <div className="min-h-screen px-2 sm:px-4 py-6 sm:py-10 text-slate-900 dark:text-white dark:bg-slate-950" style={{ background: themePalette.background }}>
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-2 pb-16">

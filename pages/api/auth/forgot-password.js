@@ -72,14 +72,14 @@ async function handler(req, res) {
     
     try {
       await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || 'University Planner <noreply@universityplanner.com>',
+        from: process.env.RESEND_FROM_EMAIL || 'StraturaOS <noreply@StraturaOS.com>',
         to: user.email,
-        subject: 'Reset your University Planner password',
+        subject: 'Reset your StraturaOS password',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #333;">Reset your password</h2>
             <p>Hello ${user.name || 'there'},</p>
-            <p>You requested a password reset for your University Planner account.</p>
+            <p>You requested a password reset for your StraturaOS account.</p>
             <p>Click the link below to reset your password:</p>
             <p style="margin: 20px 0;">
               <a href="${resetUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
@@ -88,7 +88,7 @@ async function handler(req, res) {
             </p>
             <p>This link will expire in 1 hour.</p>
             <p>If you didn't request this reset, please ignore this email.</p>
-            <p>Best regards,<br>The University Planner Team</p>
+            <p>Best regards,<br>The StraturaOS Team</p>
           </div>
         `
       });

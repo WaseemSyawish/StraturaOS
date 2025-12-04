@@ -21,7 +21,7 @@
 **Expected result:**
 
 - Email arrives within seconds
-- Beautiful HTML email with University Planner branding
+- Beautiful HTML email with StraturaOS branding
 - Link works and takes you to reset page
 - Console also shows the reset link for backup
 

@@ -46,7 +46,7 @@ RESEND_API_KEY
 re_DjpSwj6w_E2wnosfs3BTNXkok3UGnRkYz
 
 RESEND_FROM_EMAIL
-University Planner <onboarding@resend.dev>
+StraturaOS <onboarding@resend.dev>
 ```
 
 **Important Notes:**

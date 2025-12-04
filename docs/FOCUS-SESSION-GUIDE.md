@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-A modern, clean Pomodoro timer implementation for the University Planner with intelligent task integration, session tracking, and productivity analytics.
+A modern, clean Pomodoro timer implementation for the StraturaOS with intelligent task integration, session tracking, and productivity analytics.
 
 **Design Inspiration**: Clean, minimal interfaces from leading Pomodoro apps with focus on distraction-free work environment.
 

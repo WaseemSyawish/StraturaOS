@@ -113,7 +113,7 @@ export default async function handler(req, res) {
         exportDate: new Date().toISOString(),
         userId: userId,
         version: '1.0',
-        application: 'University Planner'
+        application: 'StraturaOS'
       },
       events: events.map(e => ({
         id: e.id,
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
     };
 
     // Set headers for file download
-    const filename = `university-planner-export-${new Date().toISOString().split('T')[0]}.json`;
+    const filename = `straturaos-export-${new Date().toISOString().split('T')[0]}.json`;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     

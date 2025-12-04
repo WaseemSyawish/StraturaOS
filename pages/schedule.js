@@ -793,7 +793,7 @@ export default function SchedulePage() {
       `}</style>
 
       <Head>
-        <title>Schedule — University Planner</title>
+        <title>Schedule — StraturaOS</title>
       </Head>
 
       <main className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">

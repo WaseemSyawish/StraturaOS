@@ -15,7 +15,7 @@ Before deploying to Vercel, you need:
 1. Sign up at https://resend.com/signup
 2. Go to https://resend.com/api-keys
 3. Click "Create API Key"
-4. Name it (e.g., "University Planner")
+4. Name it (e.g., "StraturaOS")
 5. Copy the key (starts with `re_`)
 
 **Free tier includes:**
@@ -28,7 +28,7 @@ Before deploying to Vercel, you need:
 
 1. Go to https://resend.com/domains
 2. Click "Add Domain"
-3. Enter your domain (e.g., `universityplanner.app`)
+3. Enter your domain (e.g., `StraturaOS.app`)
 4. Add the provided DNS records to your domain
 5. Wait for verification (5-10 minutes)
 6. Your emails will come from `noreply@yourdomain.com`
@@ -70,7 +70,7 @@ Before deploying to Vercel, you need:
 
    RESEND_API_KEY = re_your_actual_key_here
 
-   RESEND_FROM_EMAIL = University Planner <noreply@resend.dev>
+   RESEND_FROM_EMAIL = StraturaOS <noreply@resend.dev>
    ```
 
    **Notes:**
@@ -117,9 +117,9 @@ If you forgot to add them during deployment:
 
 - ✅ `DATABASE_URL` - Your PostgreSQL connection string
 - ✅ `NEXTAUTH_SECRET` - Your NextAuth secret
-- ✅ `NEXTAUTH_URL` - Your production URL (e.g., `https://university-planner.vercel.app`)
+- ✅ `NEXTAUTH_URL` - Your production URL (e.g., `https://straturaos.vercel.app`)
 - ✅ `RESEND_API_KEY` - Your Resend API key (starts with `re_`)
-- ✅ `RESEND_FROM_EMAIL` - Email address for sending (e.g., `University Planner <noreply@resend.dev>`)
+- ✅ `RESEND_FROM_EMAIL` - Email address for sending (e.g., `StraturaOS <noreply@resend.dev>`)
 
 **After adding variables:**
 
@@ -226,7 +226,7 @@ NEXTAUTH_URL="https://your-app.vercel.app"  # REQUIRED
 - Better deliverability
 - Email analytics
 
-**For a university planner app:**
+**For a StraturaOS app:**
 
 - Free tier is more than enough
 - Only pay if you get >3000 users resetting passwords/month

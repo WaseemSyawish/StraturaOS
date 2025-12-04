@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -1436,7 +1436,7 @@ export default function UniversityOverview() {
     return (
       <>
         <Head>
-          <title>Overview — University Planner</title>
+          <title>Overview — StraturaOS</title>
         </Head>
         <div className="min-h-screen bg-white flex items-center justify-center">
           <div className="text-center">
@@ -1451,7 +1451,7 @@ export default function UniversityOverview() {
   return (
     <HygraphSidebar pageName="Overview">
       <Head>
-        <title>Overview — University Planner</title>
+        <title>Overview — StraturaOS</title>
       </Head>
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
       

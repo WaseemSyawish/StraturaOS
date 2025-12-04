@@ -5,7 +5,7 @@ import React from 'react';
 export default function Brand({ size = 'md', className = '' }) {
   const sizeClass = size === 'lg' ? 'w-14 h-14' : size === 'sm' ? 'w-7 h-7' : 'w-10 h-10';
   return (
-    <div className={`brand-logo ${className}`} role="img" aria-label="University Planner logo">
+    <div className={`brand-logo ${className}`} role="img" aria-label="StraturaOS logo">
       <div className={`avatar ${sizeClass}`} aria-hidden>
         {/* inner fill container: ensure it fills the avatar and centers text precisely */}
         <div

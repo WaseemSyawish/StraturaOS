@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import UniversityPlanner from '../../pages/index';
+import StraturaOS from '../../pages/index';
 
 test('renders header', () => {
-  render(<UniversityPlanner initialEvents={[]} initialCourses={[]} />);
-  expect(screen.getByText(/University Planner/i)).toBeInTheDocument();
+  render(<StraturaOS initialEvents={[]} initialCourses={[]} />);
+  expect(screen.getByText(/StraturaOS/i)).toBeInTheDocument();
 });

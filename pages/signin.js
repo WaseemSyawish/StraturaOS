@@ -178,7 +178,7 @@ export default function SignInPolished() {
   return (
     <>
       <Head>
-        <title>Sign In — University Planner</title>
+        <title>Sign In — StraturaOS</title>
       </Head>
       <style>{`
         .signin-page button svg {
@@ -201,7 +201,7 @@ export default function SignInPolished() {
               Welcome back
             </h1>
             <p style={{ color: '#64748b' }}>
-              Sign in to continue to University Planner
+              Sign in to continue to StraturaOS
             </p>
           </div>
 

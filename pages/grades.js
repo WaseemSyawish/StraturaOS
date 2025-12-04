@@ -647,7 +647,7 @@ const GradesPage = () => {
     <HygraphSidebar>
     <div className="min-h-screen relative text-slate-900 dark:text-slate-100 dark:bg-slate-900">
       <Head>
-        <title>Grade Calculator & Predictor — University Planner</title>
+        <title>Grade Calculator & Predictor — StraturaOS</title>
       </Head>
       <style dangerouslySetInnerHTML={{__html: `
         /* Modal form text coloring: keep white in dark mode, black in light mode */

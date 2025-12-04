@@ -344,11 +344,11 @@ export function useFocusDocumentTitle() {
       const modeStr = mode === 'focus' ? 'Focus' : mode === 'short_break' ? 'Break' : 'Long Break';
       document.title = `${timeStr} - ${modeStr}`;
     } else {
-      document.title = 'Focus Session - University Planner';
+      document.title = 'Focus Session - StraturaOS';
     }
     
     return () => {
-      document.title = 'Focus Session - University Planner';
+      document.title = 'Focus Session - StraturaOS';
     };
   }, [timeLeft, isRunning, mode]);
 }

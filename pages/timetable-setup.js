@@ -257,7 +257,7 @@ export default function TimetableSetup() {
   return (
     <>
       <Head>
-        <title>Smart Timetable Creator - University Planner</title>
+        <title>Smart Timetable Creator - StraturaOS</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">

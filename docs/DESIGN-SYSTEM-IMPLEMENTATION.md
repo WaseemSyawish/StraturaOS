@@ -1,6 +1,6 @@
 # Design System Implementation Plan
 
-## University Planner UI Modernization
+## StraturaOS UI Modernization
 
 ---
 

@@ -269,7 +269,7 @@
                 maxWidth: '700px',
                 margin: '0 auto 3rem'
               }}>
-                Students worldwide are achieving their academic goals with University Planner. You're next.
+                Students worldwide are achieving their academic goals with StraturaOS. You're next.
               </p>
 
               <div style={{ 
@@ -364,14 +364,14 @@
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>
-                University Planner
+                StraturaOS
               </span>
             </div>
             <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
               Empowering Academic Excellence Through Smart Planning
             </p>
             <p style={{ color: '#9ca3af', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-              © {new Date().getFullYear()} University Planner. All rights reserved.
+              © {new Date().getFullYear()} StraturaOS. All rights reserved.
             </p>
           </div>
 

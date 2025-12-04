@@ -7,7 +7,7 @@
 
 ## Summary
 
-Successfully implemented all 5 requested UI/UX improvements across the university planner application. All changes maintain both light and dark mode compatibility where applicable.
+Successfully implemented all 5 requested UI/UX improvements across the StraturaOS application. All changes maintain both light and dark mode compatibility where applicable.
 
 ---
 

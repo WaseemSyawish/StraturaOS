@@ -30,7 +30,7 @@ export default function Welcome() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     }}>
       <Head>
-        <title>University Planner - Stop drowning in sticky notes</title>
+        <title>StraturaOS - Stop drowning in sticky notes</title>
         <meta name="description" content="Built by students who were tired of juggling 47 browser tabs. One calendar for everything. Actually free." />
       </Head>
 
@@ -81,7 +81,7 @@ export default function Welcome() {
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
             }}>
-              University Planner
+              StraturaOS
             </span>
           </Link>
 
@@ -156,7 +156,7 @@ export default function Welcome() {
               marginBottom: '2.5rem',
               fontWeight: 500
             }}>
-              A university planner that actually understands how chaotic student life is. Built by students who were tired of juggling 47 browser tabs.
+              A StraturaOS that actually understands how chaotic student life is. Built by students who were tired of juggling 47 browser tabs.
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
@@ -632,7 +632,7 @@ export default function Welcome() {
                 fontWeight: 700,
                 color: '#1f2937'
               }}>
-                University Planner
+                StraturaOS
               </span>
             </div>
             <p style={{ color: '#6b7280', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>

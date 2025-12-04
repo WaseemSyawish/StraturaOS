@@ -177,7 +177,7 @@ function EventCard({ ev, onEdit, compact = false }) {
   );
 }
 
-export default function UniversityPlanner({ initialEvents = [], initialCourses = [], ssrTimetable = [], ssrAttendanceSummary = null }) {
+export default function StraturaOS({ initialEvents = [], initialCourses = [], ssrTimetable = [], ssrAttendanceSummary = null }) {
   // Client-side auth guard
   useEffect(() => {
     let mounted = true;

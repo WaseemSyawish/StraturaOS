@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Clock, TrendingUp, Plus, BookOpen, X, Check, Star, Zap, Target } from 'lucide-react';
 import { buildLocalDateFromParts, formatTimeFromParts, parseDatePreserveLocal } from './lib/dateHelpers';
 
-const UniversityPlanner = () => {
+const StraturaOS = () => {
   const [events, setEvents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -796,4 +796,4 @@ const UniversityPlanner = () => {
   );
 };
 
-export default UniversityPlanner; 
+export default StraturaOS; 

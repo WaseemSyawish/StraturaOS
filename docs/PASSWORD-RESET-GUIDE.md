@@ -113,7 +113,7 @@ User resets password ✅
 ### The Email (When Configured)
 
 ```html
-┌─────────────────────────────────────────┐ │ 🎓 University Planner │ │ Password
+┌─────────────────────────────────────────┐ │ 🎓 StraturaOS │ │ Password
 Reset Request │ ├─────────────────────────────────────────┤ │ │ │ We received a
 password reset request │ │ for your account. │ │ │ │ [ Reset Password ] ← Button
 │ │ │ │ Link expires in 1 hour │ │ │ └─────────────────────────────────────────┘
@@ -133,7 +133,7 @@ NEXTAUTH_URL="https://your-app.vercel.app"
 
 # Required for email
 RESEND_API_KEY="re_your_key"
-RESEND_FROM_EMAIL="University Planner <noreply@resend.dev>"
+RESEND_FROM_EMAIL="StraturaOS <noreply@resend.dev>"
 ```
 
 ### Where to Add in Vercel

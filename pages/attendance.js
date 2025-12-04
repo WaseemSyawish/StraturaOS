@@ -901,7 +901,7 @@ useEffect(() => {
     <HygraphSidebar pageName="Attendance">
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
       <Head>
-        <title>Attendance — University Planner</title>
+        <title>Attendance — StraturaOS</title>
       </Head>
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
@@ -936,7 +936,7 @@ useEffect(() => {
     <HygraphSidebar pageName="Attendance">
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 flex items-center justify-center">
       <Head>
-        <title>Attendance — University Planner</title>
+        <title>Attendance — StraturaOS</title>
       </Head>
       <div className="max-w-2xl w-full mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
@@ -1015,7 +1015,7 @@ useEffect(() => {
     <HygraphSidebar pageName="Attendance">
     <div className="attendance-root calendar-root min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <Head>
-        <title>Attendance — University Planner</title>
+        <title>Attendance — StraturaOS</title>
       </Head>
       <style>{`html.dark .attendance-root { background: linear-gradient(180deg,#071023,#071423); }
         html.dark .cozy, html.dark .card { background: #071423; color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.04); }

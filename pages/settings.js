@@ -314,7 +314,7 @@ export default function Settings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `university-planner-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `straturaos-export-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -372,7 +372,7 @@ export default function Settings() {
     <HygraphSidebar>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-3 sm:p-6">
       <Head>
-        <title>Settings — University Planner</title>
+        <title>Settings — StraturaOS</title>
       </Head>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -445,7 +445,7 @@ export default function Settings() {
                     <Palette className="w-5 h-5" />
                     Appearance
                   </CardTitle>
-                  <CardDescription>Customize how University Planner looks on your device</CardDescription>
+                  <CardDescription>Customize how StraturaOS looks on your device</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>

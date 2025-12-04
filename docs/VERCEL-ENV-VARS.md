@@ -19,7 +19,7 @@ RESEND_API_KEY
 Value: re_DjpSwj6w_E2wnosfs3BTNXkok3UGnRkYz
 
 RESEND_FROM_EMAIL
-Value: University Planner <onboarding@resend.dev>
+Value: StraturaOS <onboarding@resend.dev>
 ```
 
 ## How to Add in Vercel
@@ -39,7 +39,7 @@ Value: University Planner <onboarding@resend.dev>
 
 ## Important Notes
 
-- **NEXTAUTH_URL**: Must be your actual Vercel domain (e.g., `https://university-planner.vercel.app`)
+- **NEXTAUTH_URL**: Must be your actual Vercel domain (e.g., `https://straturaos.vercel.app`)
 - **RESEND_FROM_EMAIL**: Using `onboarding@resend.dev` (free, no domain verification needed)
 - All variables should be added to all three environments (Production, Preview, Development)
 

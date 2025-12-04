@@ -492,7 +492,7 @@ const ModulesManager = () => {
   <HygraphSidebar pageName="Modules">
   <div className="modules-root min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <Head>
-        <title>Modules — University Planner</title>
+        <title>Modules — StraturaOS</title>
       </Head>
       <style>{`
         /* Enhanced Dark mode overrides for Modules Manager */

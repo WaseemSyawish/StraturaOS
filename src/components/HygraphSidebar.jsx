@@ -200,7 +200,7 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
                   <GraduationCap className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white">University Planner</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">StraturaOS</div>
               </div>
             </div>
 

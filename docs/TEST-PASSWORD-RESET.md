@@ -67,7 +67,7 @@ When you deploy to Vercel:
 1. **Add environment variables in Vercel dashboard:**
 
    - `RESEND_API_KEY` = your API key
-   - `RESEND_FROM_EMAIL` = `University Planner <noreply@resend.dev>`
+   - `RESEND_FROM_EMAIL` = `StraturaOS <noreply@resend.dev>`
    - `NEXTAUTH_URL` = `https://your-app.vercel.app`
 
 2. **That's it!** Emails will work automatically

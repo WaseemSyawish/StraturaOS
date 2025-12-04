@@ -70,7 +70,7 @@ export default function SessionsPage() {
     <HygraphSidebar>
     <>
       <Head>
-        <title>Focus Sessions - University Planner</title>
+        <title>Focus Sessions - StraturaOS</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30">

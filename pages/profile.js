@@ -106,7 +106,7 @@ export default function Profile() {
   return (
     <HygraphSidebar pageName="Profile">
       <Head>
-        <title>Profile — University Planner</title>
+        <title>Profile — StraturaOS</title>
       </Head>
       
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">

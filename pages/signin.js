@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
+
+// StraturaOS Logo SVG Component
+const StraturaLogo = ({ size = 32, color = "gradient" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 64 64" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {color === "gradient" && (
+      <defs>
+        <linearGradient id="logoGradientSignin" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3730A3"/>
+          <stop offset="50%" stopColor="#4F46E5"/>
+          <stop offset="100%" stopColor="#6366F1"/>
+        </linearGradient>
+      </defs>
+    )}
+    <g transform="translate(0,64) scale(0.1,-0.1)" fill={color === "gradient" ? "url(#logoGradientSignin)" : color}>
+      <path d="M169 567 c-75 -40 -144 -78 -153 -86 -13 -11 -16 -36 -16 -160 0 -80 4 -151 8 -157 4 -6 76 -46 160 -89 l154 -79 145 74 c80 41 152 80 159 88 20 20 20 305 0 324 -19 19 -291 158 -307 157 -8 0 -75 -33 -150 -72z m271 -74 l110 -58 0 -67 c0 -40 -4 -68 -10 -68 -6 0 -56 23 -112 51 l-102 51 28 23 28 22 -31 12 c-27 12 -36 10 -100 -25 -39 -21 -71 -41 -71 -44 0 -3 81 -45 180 -92 99 -48 180 -91 179 -95 0 -4 -49 -32 -108 -62 l-108 -53 -114 58 c-107 55 -114 61 -117 92 -2 18 1 32 8 32 5 0 56 -23 112 -51 l102 -51 35 17 36 17 -148 74 -148 75 3 42 3 42 110 57 c61 32 113 57 117 58 5 0 57 -26 118 -57z"/>
+    </g>
+  </svg>
+);
 
 export default function SignInPolished() {
   const [loading, setLoading] = useState(false);
@@ -195,7 +219,7 @@ export default function SignInPolished() {
             <div className="inline-flex auth-brand-logo items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{
               background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
             }}>
-              <GraduationCap className="w-8 h-8 text-white" />
+              <StraturaLogo size={32} color="white" />
             </div>
             <h1 className="text-5xl font-black mb-2" style={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
               Welcome back
@@ -319,7 +343,7 @@ export default function SignInPolished() {
                   backgroundColor: 'rgba(34, 197, 94, 0.08)',
                   border: '1px solid rgba(34, 197, 94, 0.15)'
                 }}>
-                  <GraduationCap className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
                   <p className="text-sm" style={{ color: '#16a34a' }}>Account created — please sign in.</p>
                 </div>
               )}
@@ -673,7 +697,7 @@ export default function SignInPolished() {
                       border: '1px solid rgba(34, 197, 94, 0.15)'
                     }}
                   >
-                    <GraduationCap className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                    <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
                     <div>
                       <p className="text-sm font-medium" style={{ color: '#16a34a' }}>
                         Password updated successfully!

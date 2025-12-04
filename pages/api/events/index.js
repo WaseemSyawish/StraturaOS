@@ -1,56 +1,26 @@
 import prisma from '../../../lib/prisma';
 import withPrisma from '../../../lib/withPrisma';
+import { 
+  isDateOnly, 
+  parseDateForStorage as parseDate, 
+  toDateString, 
+  normalizeEventDates,
+  isBeforeToday 
+} from '../../../lib/timezone';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// Helper: treat date-only strings (YYYY-MM-DD) as a date without local-midnight
-// to avoid timezone shifts when parsed by `new Date(string)`.
-function isDateOnly(value) {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
+// Re-export for backward compatibility with existing code
 function localDateOnlyString(d) {
-  if (!d) return null;
-  const dt = (Object.prototype.toString.call(d) === '[object Date]') ? d : new Date(String(d));
-  if (isNaN(dt.getTime())) return null;
-  // Use local date components (getFullYear/getMonth/getDate) so the API's
-  // `date` field corresponds to the wall-clock Y-M-D that clients expect
-  // when they reconstruct a local Date from a YYYY-MM-DD plus a time string.
-  // Previously this used UTC getters which could produce a different Y-M-D
-  // for instants that sit near midnight UTC and therefore led to mismatches
-  // when clients computed start/end from `date` + `time`.
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth() + 1).padStart(2, '0');
-  const day = String(dt.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return toDateString(d);
 }
 
-function parseDateForStorage(value) {
-  if (!value) return new Date();
-  if (Object.prototype.toString.call(value) === '[object Date]') return value;
-  const s = String(value);
-  // If it's a pure date like 2025-09-21, anchor it to local midnight to avoid
-  // timezone offsets that could move it to the previous/next day.
-  // Use local noon (12:00) when converting a date-only string to a Date so
-  // that converting to/from UTC is less likely to shift the calendar day
-  // across different server/client timezone environments.
-  if (isDateOnly(s)) {
-    const parts = s.split('-').map(Number);
-    return new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, 12, 0, 0);
-  }
-  const parsed = new Date(s);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
+function parseDateForStorage(value, time = null) {
+  return parseDate(value, time);
 }
 
 function isBeforeTodayLocal(date) {
-  if (!date) return false;
-  const d = (Object.prototype.toString.call(date) === '[object Date]') ? date : new Date(String(date));
-  if (isNaN(d.getTime())) return false;
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  // If the provided date's y/m/d is strictly less than today's y/m/d, it's before today
-  const providedStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return providedStart < todayStart;
+  return isBeforeToday(date);
 }
 
 // Detect common Prisma/DB error messages that indicate the `meta` field
@@ -409,41 +379,18 @@ async function handler(req, res) {
                   }
                 }
               } catch (e) {}
-              // Build an ISO instant representing the local y/m/d hh:mm. Use the
-              // local Date constructor so the HH:MM represents the wall-clock
-              // time intended by the client (avoid treating the components as UTC).
-              // IMPORTANT: Times are stored as Arabia time (GMT+3). We need to adjust
-              // if the server is in a different timezone.
+              // Build an ISO instant representing the y/m/d hh:mm in UTC.
+              // Client provides startDate if they want timezone-aware handling,
+              // otherwise we store dates as UTC and let clients convert for display.
               try {
-                // Arabia Standard Time is GMT+3 (180 minutes offset from UTC)
-                const arabiaOffsetMinutes = -180; // Arabia is UTC+3, so offset is -180
-                const localDate = new Date(y, m, day, hh, mm, 0);
-                const serverOffsetMinutes = localDate.getTimezoneOffset();
-                // Adjust for timezone difference between server and Arabia
-                const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
-                const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
-                out.startDate = adjustedDate.toISOString();
+                // Store as UTC - clients handle timezone conversion
+                out.startDate = new Date(Date.UTC(y, m, day, hh, mm, 0)).toISOString();
               } catch (e) {
                 out.startDate = (new Date(String(dateVal))).toISOString();
               }
-              // Derive a stable local YYYY-MM-DD `date` from the newly-computed
-              // startDate so API consumers receive the intended wall-clock day.
+              // Derive a stable YYYY-MM-DD `date` from the UTC components
               try {
-                if (out.startDate && typeof out.startDate === 'string') {
-                  const mmatch = String(out.startDate).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-                  if (mmatch) {
-                    const yy = Number(mmatch[1]);
-                    const momo = Number(mmatch[2]) - 1;
-                    const dd = Number(mmatch[3]);
-                    const hh2 = Number(mmatch[4]);
-                    const mm2 = Number(mmatch[5]);
-                    const localDt2 = new Date(yy, momo, dd, hh2, mm2, 0);
-                    const y2 = localDt2.getFullYear();
-                    const m2s = String(localDt2.getMonth() + 1).padStart(2, '0');
-                    const d2s = String(localDt2.getDate()).padStart(2, '0');
-                    out.date = `${y2}-${m2s}-${d2s}`;
-                  }
-                }
+                out.date = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               } catch (e) { /* best-effort only */ }
             }
             }
@@ -481,13 +428,8 @@ async function handler(req, res) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      // Create date with timezone adjustment for Arabia (GMT+3)
-                      const arabiaOffsetMinutes = -180;
-                      const localDate = new Date(y, m, day, ehh, emm, 0);
-                      const serverOffsetMinutes = localDate.getTimezoneOffset();
-                      const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
-                      const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
-                      out.endDate = adjustedDate.toISOString();
+                      // Store as UTC - clients handle timezone conversion
+                      out.endDate = new Date(Date.UTC(y, m, day, ehh, emm, 0)).toISOString();
                     }
                   }
                 }
@@ -518,13 +460,8 @@ async function handler(req, res) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      // Create date with timezone adjustment for Arabia (GMT+3)
-                      const arabiaOffsetMinutes = -180;
-                      const localDate = new Date(y, m, day, ehh, emm, 0);
-                      const serverOffsetMinutes = localDate.getTimezoneOffset();
-                      const adjustmentMinutes = serverOffsetMinutes - arabiaOffsetMinutes;
-                      const adjustedDate = new Date(localDate.getTime() - adjustmentMinutes * 60000);
-                      out.endDate = adjustedDate.toISOString();
+                      // Store as UTC - clients handle timezone conversion
+                      out.endDate = new Date(Date.UTC(y, m, day, ehh, emm, 0)).toISOString();
                     }
                   }
                 }

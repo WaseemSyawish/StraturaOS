@@ -1,6 +1,7 @@
 // pages/_app.js
 
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import '../src/App.css'
 import '../src/index.css'
 import '../src/styles/typography.css'
@@ -15,6 +16,9 @@ import ModalProvider from '@/providers/modal-context'
 import { ToastProvider } from '@/providers/toast-provider'
 import { ConfirmProvider } from '@/providers/confirm-provider'
 import { SessionProvider } from 'next-auth/react'
+
+// Pages that should always use light mode (unauthenticated/public pages)
+const LIGHT_MODE_ONLY_PAGES = ['/', '/landing', '/signin', '/signup', '/signout', '/forgot-password', '/reset-password'];
 
 function NavEnhancer() {
   useEffect(() => {
@@ -58,8 +62,12 @@ function NavEnhancer() {
 }
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter();
   // Track and apply theme for global CSS vars and NextUI provider
   const [activeTheme, setActiveTheme] = useState('light');
+
+  // Check if current page should force light mode
+  const isLightModeOnlyPage = LIGHT_MODE_ONLY_PAGES.includes(router.pathname);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -86,6 +94,10 @@ export default function App({ Component, pageProps }) {
     };
 
     const loadAndApply = () => {
+      // Force light mode on unauthenticated pages
+      if (isLightModeOnlyPage) {
+        return applyTheme('light');
+      }
       try {
         const raw = localStorage.getItem('up:settings');
         if (!raw) return applyTheme('system');
@@ -99,6 +111,8 @@ export default function App({ Component, pageProps }) {
     loadAndApply();
 
     const onSettings = (e) => {
+      // Don't apply theme changes on light-mode-only pages
+      if (isLightModeOnlyPage) return;
       const detail = e?.detail || {};
       if (detail.theme) applyTheme(detail.theme);
     };
@@ -107,6 +121,8 @@ export default function App({ Component, pageProps }) {
 
     const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
     const onPref = () => {
+      // Don't apply system preference on light-mode-only pages
+      if (isLightModeOnlyPage) return;
       try {
         const raw = localStorage.getItem('up:settings');
         const parsed = raw ? JSON.parse(raw) : {};
@@ -129,7 +145,7 @@ export default function App({ Component, pageProps }) {
         else mql.removeListener(onPref);
       }
     };
-  }, []);
+  }, [isLightModeOnlyPage]);
 
   const content = (
     <>

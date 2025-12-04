@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../../../lib/prisma';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
-import { isValidEmail, validatePassword, sanitizeString } from '../../../lib/security/validation';
+import { withCsrfProtection } from '../../../lib/security/csrf';
+import { registerSchema, withValidation } from '../../../lib/validation/schemas';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -9,28 +10,11 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   
   try {
-    const { name, email, password } = req.body || {};
-    
-    // Validate email
-    if (!email || !isValidEmail(email)) {
-      return res.status(400).json({ error: 'Valid email is required' });
-    }
-    
-    // Validate password strength
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.valid) {
-      return res.status(400).json({ 
-        error: 'Password does not meet requirements',
-        details: passwordValidation.errors 
-      });
-    }
-    
-    // Sanitize name input
-    const sanitizedName = name ? sanitizeString(name, { maxLength: 100 }) : null;
-    const normalizedEmail = email.toLowerCase().trim();
+    // Body is already validated and sanitized by withValidation middleware
+    const { name, email, password } = req.body;
     
     // Check for existing user
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return res.status(409).json({ error: 'A user with that email already exists' });
     }
@@ -39,8 +23,8 @@ async function handler(req, res) {
     const hash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({ 
       data: { 
-        email: normalizedEmail, 
-        name: sanitizedName, 
+        email, 
+        name: name || null, 
         password_hash: hash 
       } 
     });
@@ -58,5 +42,12 @@ async function handler(req, res) {
   }
 }
 
-// Apply rate limiting - 5 registration attempts per minute
-export default withRateLimit(handler, 'auth', RATE_LIMITS.auth);
+// Apply validation, rate limiting, and CSRF protection
+export default withCsrfProtection(
+  withRateLimit(
+    withValidation(handler, registerSchema),
+    'auth',
+    RATE_LIMITS.auth
+  ),
+  { skipInDev: true }
+);

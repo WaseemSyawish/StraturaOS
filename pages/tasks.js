@@ -375,9 +375,9 @@ const formatRelativeDue = (value) => {
   return `Overdue since ${due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 };
 
-const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
+const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeChange }) => {
   const [date, setDate] = useState(value ? new Date(value).toISOString().split('T')[0] : '');
-  const [time, setTime] = useState(value ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '07:45');
+  const [time, setTime] = useState(value ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
   const [viewMonth, setViewMonth] = useState(new Date());
 
   const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
@@ -386,11 +386,13 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
   today.setHours(0, 0, 0, 0);
   const selectedDate = date ? new Date(date + 'T00:00:00') : null;
 
-  const applyShortcut = (daysOffset, defaultTime = '17:00') => {
+  const applyShortcut = (daysOffset, defaultTime = '') => {
     if (daysOffset === null) {
-      // "Someday" - clear the date
+      // "Someday" - clear the date and time
       setDate('');
+      setTime('');
       onChange?.(null);
+      onTimeChange?.(null);
       return;
     }
     const target = new Date();
@@ -410,23 +412,30 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
     // Update date/time - user must click Set to apply
     setDate(dateStr);
     setTime(timeStr);
-    const [hours, minutes] = timeStr.split(':');
-    const dateTime = new Date(dateStr);
-    dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    const dateTime = new Date(dateStr + 'T00:00:00');
+    if (timeStr) {
+      const [hours, minutes] = timeStr.split(':');
+      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    }
     onChange?.(dateTime.toISOString());
+    onTimeChange?.(timeStr || null);
   };
 
   const handleSet = () => {
     if (!date) {
       // If no date selected, treat as "Someday" (clear date)
       onChange?.(null);
+      onTimeChange?.(null);
       onApply?.();
       return;
     }
-    const [hours, minutes] = time.split(':');
     const dateTime = new Date(date + 'T00:00:00');
-    dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    if (time) {
+      const [hours, minutes] = time.split(':');
+      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    }
     onChange?.(dateTime.toISOString());
+    onTimeChange?.(time || null);
     onApply?.();
   };
 
@@ -439,9 +448,11 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
     setDate(newDate);
     
     // Update parent immediately so display reflects selection
-    const [hours, minutes] = time.split(':');
     const dateTime = new Date(newDate + 'T00:00:00');
-    dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    if (time) {
+      const [hours, minutes] = time.split(':');
+      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    }
     onChange?.(dateTime.toISOString());
   };
 
@@ -468,23 +479,40 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => {
-                const newTime = e.target.value;
-                setTime(newTime);
-                // Update parent immediately when time changes
-                if (date) {
-                  const [hours, minutes] = newTime.split(':');
-                  const dateTime = new Date(date + 'T00:00:00');
-                  dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                  onChange?.(dateTime.toISOString());
-                }
-              }}
-              className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100"
-            />
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+            <div className="relative">
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => {
+                  const newTime = e.target.value;
+                  setTime(newTime);
+                  // Update parent immediately when time changes
+                  if (date && newTime) {
+                    const [hours, minutes] = newTime.split(':');
+                    const dateTime = new Date(date + 'T00:00:00');
+                    dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                    onChange?.(dateTime.toISOString());
+                    onTimeChange?.(newTime);
+                  }
+                }}
+                className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 pr-8 text-sm font-medium text-slate-900 dark:text-slate-100"
+                placeholder="No time"
+              />
+              {time && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTime('');
+                    onTimeChange?.(null);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  title="Clear time"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -555,8 +583,8 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose }) => {
       </div>
 
       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800">
-        <button type="button" onClick={() => { setDate(''); setTime('07:45'); onChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-          Clear
+        <button type="button" onClick={() => { setDate(''); setTime(''); onChange?.(null); onTimeChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+          Clear all
         </button>
         <div className="flex gap-2">
           <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors px-4">
@@ -598,6 +626,7 @@ const TaskDetailPanel = ({
   const [tagDraft, setTagDraft] = useState('');
   const [modalPage, setModalPage] = useState('main'); // 'main' or 'reminder'
   const [tempDueDate, setTempDueDate] = useState(null);
+  const [tempDueTime, setTempDueTime] = useState(null);
   const [localDueDate, setLocalDueDate] = useState(task?.dueDate || '');
   const [localStatus, setLocalStatus] = useState(initialStatus || task?.status || 'todo');
   const [localPriority, setLocalPriority] = useState(task?.priority || PRIORITY_DEFAULT);
@@ -882,20 +911,30 @@ const TaskDetailPanel = ({
             onChange={(dueDate) => {
               setTempDueDate(dueDate);
             }}
+            onTimeChange={(time) => {
+              setTempDueTime(time);
+            }}
             onDelete={() => {
               setTempDueDate(null);
+              setTempDueTime(null);
             }}
             onApply={() => {
               if (isCreateMode) {
                 setDueStartInput(tempDueDate || '');
               } else {
                 setLocalDueDate(tempDueDate || '');
-                onUpdateFields?.(task.id, { dueDate: tempDueDate });
+                // Send both dueDate and time to properly handle clearing time
+                const updates = { dueDate: tempDueDate };
+                if (tempDueTime !== undefined) {
+                  updates.time = tempDueTime;
+                }
+                onUpdateFields?.(task.id, updates);
               }
               setModalPage('main');
             }}
             onClose={() => {
               setTempDueDate(isCreateMode ? (dueStartInput || null) : (task?.dueDate || null));
+              setTempDueTime(null);
               setModalPage('main');
             }}
           />
@@ -1739,6 +1778,7 @@ const normalizeTask = (task) => {
   const completed = Boolean(task.completed);
   const priority = normalizePriority(task.priority);
   const addedToMyDay = task.addedToMyDay ?? task.myDay ?? false;
+  const subtasks = Array.isArray(task.subtasks) ? task.subtasks : Array.isArray(task.meta?.subtasks) ? task.meta.subtasks : [];
   return {
     id: String(task.id ?? `local-${Math.random().toString(36).slice(2)}`),
     title: task.title || 'Untitled Task',
@@ -1758,6 +1798,7 @@ const normalizeTask = (task) => {
     myDay: addedToMyDay,
     status: normalizeStatus(task.status, completed),
     tags: Array.isArray(task.tags) ? task.tags : Array.isArray(task.meta?.tags) ? task.meta.tags : [],
+    subtasks,
     reminder: task.reminder || task.reminderAt || task.nextReminder || null,
     borderColor: determineBorderColor(dueDate),
     meta: { ...(task.meta || {}) },
@@ -4028,6 +4069,7 @@ export default function TasksPage() {
             courseColor: meta.courseColor || null,
             type: meta.type || 'task',
             tags: meta.tags || [],
+            subtasks: meta.subtasks || [],
           }),
         });
         if (res.ok) {

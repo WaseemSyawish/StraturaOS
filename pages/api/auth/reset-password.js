@@ -1,6 +1,7 @@
 import prisma from '../../../lib/prisma';
 import bcrypt from 'bcryptjs';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
+import { withCsrfProtection } from '../../../lib/security/csrf';
 import { validatePassword, sanitizeString } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -110,4 +111,7 @@ async function handler(req, res) {
   }
 }
 
-export default withRateLimit(handler, 'passwordReset', RATE_LIMITS.passwordReset);
+export default withCsrfProtection(
+  withRateLimit(handler, 'passwordReset', RATE_LIMITS.passwordReset),
+  { skipInDev: true }
+);

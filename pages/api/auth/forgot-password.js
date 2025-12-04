@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import crypto from 'crypto';
 import prisma from '../../../lib/prisma';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
+import { withCsrfProtection } from '../../../lib/security/csrf';
 import { isValidEmail } from '../../../lib/security/validation';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -122,5 +123,8 @@ async function handler(req, res) {
   }
 }
 
-// Apply strict rate limiting - 3 password reset attempts per hour
-export default withRateLimit(handler, 'passwordReset', RATE_LIMITS.passwordReset);
+// Apply strict rate limiting and CSRF protection - 3 password reset attempts per hour
+export default withCsrfProtection(
+  withRateLimit(handler, 'passwordReset', RATE_LIMITS.passwordReset),
+  { skipInDev: true }
+);

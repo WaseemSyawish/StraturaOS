@@ -1,15 +1,14 @@
 import React from 'react';
 
-// Render a daisyUI-like avatar using utility classes (no external dependency required).
-// Size prop maps to common Tailwind width classes so the avatar scales.
+// StraturaOS brand logo component - purple hexagon with S
 export default function Brand({ size = 'md', className = '' }) {
   const sizeClass = size === 'lg' ? 'w-14 h-14' : size === 'sm' ? 'w-7 h-7' : 'w-10 h-10';
   return (
     <div className={`brand-logo ${className}`} role="img" aria-label="StraturaOS logo">
       <div className={`avatar ${sizeClass}`} aria-hidden>
-        {/* inner fill container: ensure it fills the avatar and centers text precisely */}
+        {/* StraturaOS purple hexagon brand */}
         <div
-          className={`rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white font-extrabold`}
+          className={`rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-extrabold`}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -17,10 +16,11 @@ export default function Brand({ size = 'md', className = '' }) {
             width: '100%',
             height: '100%',
             lineHeight: 1,
-            fontSize: size === 'lg' ? 20 : size === 'sm' ? 12 : 16,
+            fontSize: size === 'lg' ? 28 : size === 'sm' ? 14 : 20,
+            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          UP
+          S
         </div>
       </div>
     </div>

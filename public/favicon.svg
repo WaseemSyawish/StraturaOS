@@ -1,26 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
   <defs>
-    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8B5CF6"/>
-      <stop offset="100%" style="stop-color:#6366F1"/>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3730A3"/>
+      <stop offset="50%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#6366F1"/>
     </linearGradient>
   </defs>
-  <!-- Hexagon background -->
-  <path d="M256 20 L460 130 L460 350 L256 460 L52 350 L52 130 Z" 
-        fill="url(#hexGrad)" 
-        stroke="none"/>
-  <!-- S shape - stylized -->
-  <path d="M320 160 
-           L200 160 
-           C170 160 150 185 150 215 
-           C150 245 170 270 200 270 
-           L312 270
-           C342 270 362 295 362 325
-           C362 355 342 380 312 380
-           L192 380"
-        fill="none" 
-        stroke="white" 
-        stroke-width="45" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"/>
+  <g transform="translate(0,640) scale(0.1,-0.1)" fill="url(#shieldGradient)" stroke="none">
+    <path d="M169 567 c-75 -40 -144 -78 -153 -86 -13 -11 -16 -36 -16 -160 0 -80
+4 -151 8 -157 4 -6 76 -46 160 -89 l154 -79 145 74 c80 41 152 80 159 88 20
+20 20 305 0 324 -19 19 -291 158 -307 157 -8 0 -75 -33 -150 -72z m271 -74
+l110 -58 0 -67 c0 -40 -4 -68 -10 -68 -6 0 -56 23 -112 51 l-102 51 28 23 28
+22 -31 12 c-27 12 -36 10 -100 -25 -39 -21 -71 -41 -71 -44 0 -3 81 -45 180
+-92 99 -48 180 -91 179 -95 0 -4 -49 -32 -108 -62 l-108 -53 -114 58 c-107 55
+-114 61 -117 92 -2 18 1 32 8 32 5 0 56 -23 112 -51 l102 -51 35 17 36 17
+-148 74 -148 75 3 42 3 42 110 57 c61 32 113 57 117 58 5 0 57 -26 118 -57z"/>
+  </g>
 </svg>

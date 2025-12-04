@@ -6,9 +6,9 @@ export default function Brand({ size = 'md', className = '' }) {
   return (
     <div className={`brand-logo ${className}`} role="img" aria-label="StraturaOS logo">
       <div className={`avatar ${sizeClass}`} aria-hidden>
-        {/* StraturaOS purple hexagon brand */}
+        {/* StraturaOS purple hexagon brand - matches logo gradient */}
         <div
-          className={`rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-extrabold`}
+          className={`rounded-xl text-white font-extrabold`}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -18,6 +18,7 @@ export default function Brand({ size = 'md', className = '' }) {
             lineHeight: 1,
             fontSize: size === 'lg' ? 28 : size === 'sm' ? 14 : 20,
             fontFamily: 'system-ui, -apple-system, sans-serif',
+            background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 50%, #6366F1 100%)',
           }}
         >
           S

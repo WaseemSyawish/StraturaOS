@@ -19,10 +19,11 @@ export default async function handler(req, res) {
       if (tokenUserId !== id) return res.status(403).json({ error: 'Forbidden' });
       const user = await prisma.user.findUnique({ where: { id } });
       if (!user) return res.status(404).json({ error: 'User not found' });
-      // Extract avatarColor from settings JSON
+      // Extract avatarColor and avatarUrl from settings JSON
       const settings = user.settings || {};
       const avatarColor = settings.avatarColor || '#7c3aed';
-      return res.json({ id: user.id, name: user.name || 'User', email: user.email || '', avatarColor });
+      const avatarUrl = settings.avatarUrl || null;
+      return res.json({ id: user.id, name: user.name || 'User', email: user.email || '', avatarColor, avatarUrl });
     }
 
     if (req.method === 'PATCH') {

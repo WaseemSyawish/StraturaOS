@@ -15,6 +15,7 @@
     "@upstash/redis": "^1.35.7",
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
+    "formidable": "^3.5.4",
     "framer-motion": "^12.23.24",
     "jsonwebtoken": "^9.0.0",
     "lucide-react": "^0.544.0",

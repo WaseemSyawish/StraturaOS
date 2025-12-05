@@ -72,22 +72,16 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [userName, setUserName] = useState('');
   const [avatarColor, setAvatarColor] = useState('#7c3aed');
+  const [avatarUrl, setAvatarUrl] = useState(null);
 
   useEffect(() => {
+    // Single API call now returns all user data including avatar info
     fetch('/api/auth/me')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.name) setUserName(data.name);
         if (data?.avatarColor) setAvatarColor(data.avatarColor);
-        // If no avatarColor in auth/me, fetch user profile
-        if (data?.id && !data.avatarColor) {
-          fetch(`/api/users/${data.id}`)
-            .then(r => r.ok ? r.json() : null)
-            .then(profile => {
-              if (profile?.avatarColor) setAvatarColor(profile.avatarColor);
-            })
-            .catch(() => {});
-        }
+        if (data?.avatarUrl) setAvatarUrl(data.avatarUrl);
       })
       .catch(() => {});
   }, []);
@@ -109,6 +103,7 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
         onToggleSidebar={() => setIsExpanded(!isExpanded)} 
         userName={userName} 
         avatarColor={avatarColor}
+        avatarUrl={avatarUrl}
         pageName={pageName}
         pageActions={pageActions}
       />

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import HygraphSidebar from '@/components/HygraphSidebar';
-import { User, Mail, Palette, Save, X, Camera, GraduationCap, Calendar, BookOpen, Target, Award, Loader2, Check, ChevronRight, Settings, Bell, Shield } from 'lucide-react';
+import { User, Mail, Palette, Save, X, Camera, Calendar, BookOpen, Target, Award, Loader2, Check, ChevronRight, Settings, Bell, Shield, Upload, Image } from 'lucide-react';
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -10,6 +10,8 @@ export default function Profile() {
   const [form, setForm] = useState({ name: '', email: '', avatarColor: '' });
   const [stats, setStats] = useState({ courses: 0, tasks: 0, lectures: 0, events: 0, sessions: 0, gpa: null });
   const [toast, setToast] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -72,6 +74,53 @@ export default function Profile() {
     return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File size must be less than 5MB', 'error');
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showToast('Please upload a JPEG, PNG, GIF, or WebP image', 'error');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/users/avatar', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      
+      if (res.ok && data.avatarUrl) {
+        setProfile(prev => ({ ...prev, avatarUrl: data.avatarUrl }));
+        showToast('Avatar updated successfully', 'success');
+      } else {
+        showToast(data.error || 'Failed to upload avatar', 'error');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      showToast('Failed to upload avatar', 'error');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -126,17 +175,51 @@ export default function Profile() {
               <div className="flex flex-col md:flex-row items-center gap-8">
                 {/* Avatar */}
                 <div className="relative group">
-                  <div 
-                    className="w-32 h-32 rounded-3xl shadow-2xl flex items-center justify-center text-white text-4xl font-bold ring-4 ring-white dark:ring-slate-800 transition-transform group-hover:scale-105"
-                    style={{ backgroundColor: profile.avatarColor || '#7c3aed' }}
-                  >
-                    {getInitials(profile.name)}
-                  </div>
+                  {profile.avatarUrl ? (
+                    <div 
+                      className="w-32 h-32 rounded-3xl shadow-2xl overflow-hidden ring-4 transition-transform group-hover:scale-105"
+                      style={{ 
+                        ringColor: profile.avatarColor || '#7c3aed',
+                        borderWidth: '4px',
+                        borderStyle: 'solid',
+                        borderColor: profile.avatarColor || '#7c3aed'
+                      }}
+                    >
+                      <img 
+                        src={profile.avatarUrl} 
+                        alt={profile.name || 'User'} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-32 h-32 rounded-3xl shadow-2xl flex items-center justify-center text-white text-4xl font-bold ring-4 ring-white dark:ring-slate-800 transition-transform group-hover:scale-105"
+                      style={{ backgroundColor: profile.avatarColor || '#7c3aed' }}
+                    >
+                      {getInitials(profile.name)}
+                    </div>
+                  )}
+                  
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                  
+                  {/* Upload button */}
                   <button 
-                    onClick={() => { setForm({ name: profile.name || '', email: profile.email || '', avatarColor: profile.avatarColor || '#7c3aed' }); setEditing(true); }}
-                    className="absolute -bottom-2 -right-2 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400 transition-all"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute -bottom-2 -right-2 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400 transition-all disabled:opacity-50"
                   >
-                    <Camera size={16} />
+                    {uploadingAvatar ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Camera size={16} />
+                    )}
                   </button>
                 </div>
                 

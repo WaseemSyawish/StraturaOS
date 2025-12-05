@@ -62,6 +62,11 @@ export default async function handler(req, res) {
       return res.status(404).json({ authenticated: false, error: 'User not found' });
     }
 
+    // Extract avatar settings for faster loading
+    const settings = user.settings || {};
+    const avatarColor = settings.avatarColor || '#7c3aed';
+    const avatarUrl = settings.avatarUrl || null;
+
     // In development, expose which auth source was used for easier debugging.
     if (process.env.NODE_ENV !== 'production') {
       try {
@@ -72,7 +77,14 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ authenticated: true, id: user.id, name: user.name, email: user.email });
+    return res.status(200).json({ 
+      authenticated: true, 
+      id: user.id, 
+      name: user.name, 
+      email: user.email,
+      avatarColor,
+      avatarUrl
+    });
   } catch (err) {
     if (isDev) console.error('/api/auth/me error', err);
     return res.status(500).json({ error: 'Failed to read auth' });

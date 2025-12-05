@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { Menu, Search, Bell, User, AlertTriangle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
-export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7c3aed', pageName, pageActions }) {
+export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7c3aed', avatarUrl, pageName, pageActions }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [notificationCount, setNotificationCount] = useState(0);
@@ -297,13 +297,33 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
         <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
 
         {/* User Profile Avatar */}
-        <div
-          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm border border-white/20 cursor-default"
-          style={{ backgroundColor: avatarColor }}
-          title={userName || 'User'}
-        >
-          {(userName || 'U').charAt(0).toUpperCase()}
-        </div>
+        {avatarUrl ? (
+          <div
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
+            style={{ 
+              borderWidth: '2px',
+              borderStyle: 'solid',
+              borderColor: avatarColor 
+            }}
+            onClick={() => router.push('/profile')}
+            title={userName || 'User'}
+          >
+            <img 
+              src={avatarUrl} 
+              alt={userName || 'User'} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm border border-white/20 cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
+            style={{ backgroundColor: avatarColor }}
+            onClick={() => router.push('/profile')}
+            title={userName || 'User'}
+          >
+            {(userName || 'U').charAt(0).toUpperCase()}
+          </div>
+        )}
 
         {/* Sign Out Button */}
         <button

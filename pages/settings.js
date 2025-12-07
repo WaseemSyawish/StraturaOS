@@ -20,23 +20,51 @@ import {
   Globe,
   Lock,
   Mail,
-  Smartphone
-  , Loader2
+  Smartphone,
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
+
+// Design system styles matching landing/auth pages
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 dark:from-purple-900/40 dark:via-purple-800/30 dark:to-indigo-900/40 border border-purple-500/20 dark:border-purple-500/10',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-sm shadow-lg dark:shadow-xl dark:shadow-purple-500/5',
+  cardHeader: 'p-6 border-b border-slate-100 dark:border-white/5',
+  cardContent: 'p-6',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+  headingLg: 'text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2',
+  textMuted: 'text-sm text-slate-600 dark:text-slate-400 mt-1',
+  iconBox: 'w-12 h-12 rounded-xl flex items-center justify-center',
+  primaryBtn: 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 transition-all duration-200 disabled:opacity-50',
+  secondaryBtn: 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-200',
+  navItem: 'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150',
+  navItemActive: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20',
+  navItemInactive: 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5',
+  input: 'w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all',
+  toggle: 'relative w-12 h-6 rounded-full transition-colors',
+  toggleOn: 'bg-purple-600',
+  toggleOff: 'bg-slate-200 dark:bg-slate-700',
+};
+
 // CustomDropdown: dark-mode friendly select replacement
 function CustomDropdown({ value, options, onChange, label }) {
   const selected = options.find((opt) => opt.value === value);
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-  <button className="max-w-xs w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 flex justify-between items-center transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-purple-50 dark:focus:bg-purple-900 shadow-none border border-transparent">
+        <button className="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 text-slate-900 dark:text-white flex justify-between items-center transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10">
           <span>{selected ? selected.label : label}</span>
-          <svg className="w-4 h-4 ml-2 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 20 20"><path stroke="currentColor" strokeWidth="2" d="M6 8l4 4 4-4"/></svg>
+          <ChevronDown className="w-4 h-4 text-slate-400" />
         </button>
       </DropdownMenu.Trigger>
-  <DropdownMenu.Content align="start" sideOffset={4} className="w-full rounded-lg shadow-md bg-white dark:bg-gray-800 py-1 border border-transparent z-50">
+      <DropdownMenu.Content align="start" sideOffset={4} className="w-full min-w-[200px] rounded-xl shadow-xl bg-white dark:bg-[#1a1a24] py-1 border border-slate-200 dark:border-white/10 z-50">
         {options.map((opt) => (
-          <DropdownMenu.Item key={opt.value} onSelect={() => onChange(opt.value)} className={`px-3 py-2 cursor-pointer text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 rounded ${value === opt.value ? 'bg-purple-50 dark:bg-purple-900 font-semibold' : ''}`}>
+          <DropdownMenu.Item 
+            key={opt.value} 
+            onSelect={() => onChange(opt.value)} 
+            className={`px-4 py-2.5 cursor-pointer text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors duration-150 ${value === opt.value ? 'bg-purple-50 dark:bg-purple-500/10 font-semibold text-purple-700 dark:text-purple-300' : ''}`}
+          >
             {opt.label}
           </DropdownMenu.Item>
         ))}
@@ -74,65 +102,62 @@ function saveSettings(obj) {
   }
 }
 
-// Simple Card Components
+// Simple Card Components - Design System
 const Card = ({ children, className = '' }) => (
-  <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 ${className}`}>
+  <div className={`${ds.card} ${className}`}>
     {children}
   </div>
 );
 
 const CardHeader = ({ children }) => (
-  <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+  <div className={ds.cardHeader}>
     {children}
   </div>
 );
 
 const CardTitle = ({ children, className = '' }) => (
-  <h3 className={`text-lg font-semibold text-gray-900 dark:text-gray-100 ${className}`}>
+  <h3 className={`${ds.headingLg} ${className}`}>
     {children}
   </h3>
 );
 
 const CardDescription = ({ children }) => (
-  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+  <p className={ds.textMuted}>
     {children}
   </p>
 );
 
 const CardContent = ({ children, className = '' }) => (
-  <div className={`p-6 ${className}`}>
+  <div className={`${ds.cardContent} ${className}`}>
     {children}
   </div>
 );
 
-// Simple Button Component
-const Button = ({ children, onClick, variant = 'default', disabled = false, className = '' }) => {
-  const baseStyles = 'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  const variantStyles = {
-    default: 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500',
-    outline: 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-gray-500',
-  };
+// Simple Button Component - Design System
+const Button = ({ children, onClick, variant = 'default', disabled = false, className = '', type = 'button' }) => {
+  const styles = variant === 'outline' ? ds.secondaryBtn : ds.primaryBtn;
   
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${baseStyles} ${variantStyles[variant]} ${className}`}
+      className={`${styles} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
     >
       {children}
     </button>
   );
 };
 
-// Simple Badge Component
+// Simple Badge Component - Design System
 const Badge = ({ children, variant = 'default', className = '' }) => {
   const variantStyles = {
-    default: 'bg-gray-100 text-gray-700',
-    secondary: 'bg-gray-100 text-gray-700',
+    default: 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300',
+    secondary: 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300',
   };
   
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variantStyles[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${variantStyles[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -150,9 +175,16 @@ export default function Settings() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const { theme: currentTheme, setTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
+  
+  // Track when theme is ready (avoid hydration mismatch)
+  useEffect(() => {
+    setThemeMounted(true);
+  }, []);
   
   // Use the actual theme from useTheme hook, not from settings state
-  const activeTheme = currentTheme || settings.theme;
+  // Only use currentTheme after mounting to avoid hydration issues
+  const activeTheme = themeMounted ? (currentTheme || settings.theme) : settings.theme;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -219,27 +251,27 @@ export default function Settings() {
     }
 
     return (
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Current password</label>
-          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Current password</label>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={ds.input} />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">New password</label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">New password</label>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={ds.input} />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-700 mb-1">Confirm new password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Confirm new password</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={ds.input} />
         </div>
 
-        {pwdError && <p className="text-sm text-red-600">{pwdError}</p>}
-        {pwdSuccess && <p className="text-sm text-green-600">Password changed successfully</p>}
+        {pwdError && <p className="text-sm text-red-600 dark:text-red-400 p-3 bg-red-50 dark:bg-red-500/10 rounded-lg border border-red-200 dark:border-red-500/20">{pwdError}</p>}
+        {pwdSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400 p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg border border-emerald-200 dark:border-emerald-500/20">Password changed successfully</p>}
 
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={isSavingPwd} className="inline-flex items-center">
+        <div className="flex items-center gap-3 pt-2">
+          <Button type="submit" disabled={isSavingPwd}>
             {isSavingPwd ? 'Saving...' : 'Change password'}
           </Button>
           <Button variant="outline" type="button" onClick={() => { setCurrentPassword(''); setNewPassword(''); setConfirm(''); }} disabled={isSavingPwd}>Cancel</Button>
@@ -370,48 +402,64 @@ export default function Settings() {
 
   return (
     <HygraphSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-transparent dark:bg-gray-900 p-3 sm:p-6">
+      <div className={ds.pageBg + ' p-4 sm:p-6 lg:p-8'}>
       <Head>
         <title>Settings — StraturaOS</title>
       </Head>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Manage your account preferences and application settings</p>
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* ========== HERO HEADER BAND ========== */}
+        <div className={ds.headerBand}>
+          {/* Decorative gradient orbs */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-indigo-400/20 rounded-full blur-3xl" />
+          
+          <div className="relative p-6 sm:p-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <SettingsIcon className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className={ds.headingXl}>Settings</h1>
+                <p className="text-purple-100 dark:text-purple-300/70 mt-1">
+                  Manage your account preferences and application settings
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Status Messages */}
         {saved && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-lg flex items-center justify-center">
-              <Check className="w-5 h-5 text-green-600 dark:text-green-300" />
+          <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center">
+              <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="font-medium text-green-900 dark:text-green-200">Settings saved successfully</p>
-              <p className="text-sm text-green-700 dark:text-green-200">Your preferences have been updated</p>
+              <p className="font-semibold text-emerald-900 dark:text-emerald-200">Settings saved successfully</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300/70">Your preferences have been updated</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-800 rounded-lg flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-300" />
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-200/60 dark:border-red-500/20 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <p className="font-medium text-red-900 dark:text-red-200">Error saving settings</p>
-              <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+              <p className="font-semibold text-red-900 dark:text-red-200">Error saving settings</p>
+              <p className="text-sm text-red-700 dark:text-red-300/70">{error}</p>
             </div>
           </div>
         )}
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <Card>
-              <CardContent className="pt-4 sm:pt-6">
+              <CardContent className="p-4">
                 <nav className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
                   {sections.map((section) => {
                     const Icon = section.icon;
@@ -419,13 +467,11 @@ export default function Settings() {
                       <button
                         key={section.id}
                         onClick={() => setActiveSection(section.id)}
-                        className={`flex-shrink-0 lg:w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${
-                          activeSection === section.id
-                            ? 'bg-purple-50 dark:bg-purple-900 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-800'
-                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:bg-purple-50 dark:focus:bg-purple-900'
+                        className={`flex-shrink-0 lg:w-full ${ds.navItem} ${
+                          activeSection === section.id ? ds.navItemActive : ds.navItemInactive
                         }`}
                       >
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <Icon className="w-5 h-5" />
                         <span className="whitespace-nowrap">{section.label}</span>
                       </button>
                     );
@@ -441,15 +487,17 @@ export default function Settings() {
             {activeSection === 'appearance' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Palette className="w-5 h-5" />
+                  <CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/15 flex items-center justify-center mr-1">
+                      <Palette className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
                     Appearance
                   </CardTitle>
                   <CardDescription>Customize how StraturaOS looks on your device</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Theme</label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { value: 'light', label: 'Light', icon: Sun },
@@ -461,14 +509,14 @@ export default function Settings() {
                           <button
                             key={option.value}
                             onClick={() => update('theme', option.value)}
-                            className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                            className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all ${
                               activeTheme === option.value
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10'
+                                : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 bg-white dark:bg-white/5'
                             }`}
                           >
-                            <Icon className={`w-6 h-6 ${activeTheme === option.value ? 'text-purple-600' : 'text-gray-600'}`} />
-                            <span className={`text-sm font-medium ${activeTheme === option.value ? 'text-purple-700' : 'text-gray-700'}`}>
+                            <Icon className={`w-6 h-6 ${activeTheme === option.value ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'}`} />
+                            <span className={`text-sm font-medium ${activeTheme === option.value ? 'text-purple-700 dark:text-purple-300' : 'text-slate-700 dark:text-slate-300'}`}>
                               {option.label}
                             </span>
                           </button>
@@ -484,15 +532,17 @@ export default function Settings() {
             {activeSection === 'timetable' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
+                  <CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center mr-1">
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
                     Schedule Settings
                   </CardTitle>
                   <CardDescription>Configure your schedule defaults and how views behave</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Week starts on</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Week starts on</label>
                     <CustomDropdown
                       value={settings.weekStartsOn}
                       options={[
@@ -502,22 +552,22 @@ export default function Settings() {
                       onChange={(val) => update('weekStartsOn', val)}
                       label="Select week start"
                     />
-                    <p className="text-xs text-gray-500 mt-2">Choose which day your calendar week starts with</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Choose which day your calendar week starts with</p>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Default view</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Default view</label>
                     <div className="grid grid-cols-3 gap-3">
                       {['day', 'week', 'month'].map((view) => (
                         <button
                           key={view}
                           onClick={() => update('defaultView', view)}
-                          className={`px-4 py-3 rounded-lg border-2 transition-all font-medium text-sm capitalize ${
+                          className={`px-4 py-3 rounded-xl border-2 transition-all font-medium text-sm capitalize ${
                             settings.defaultView === view
-                              ? 'border-purple-500 bg-purple-50 text-purple-700'
-                              : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                              ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300'
+                              : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5'
                           }`}
                         >
                           {view}
@@ -533,25 +583,27 @@ export default function Settings() {
             {activeSection === 'notifications' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="w-5 h-5" />
+                  <CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center mr-1">
+                      <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
                     Notifications
                   </CardTitle>
                   <CardDescription>Manage how you receive event reminders and alerts</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="p-5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Bell className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
                         <p className="font-semibold text-blue-900 dark:text-blue-100">Browser Notifications</p>
-                        <p className="text-sm text-blue-700 dark:text-blue-200 mt-1">
+                        <p className="text-sm text-blue-700 dark:text-blue-200/80 mt-1">
                           Get notified before your events start. You can set multiple reminders (1 week, 2 days, 1 day, 1 hour, morning) when creating or editing events.
                         </p>
                         {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied' && (
-                          <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-200">
+                          <div className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg text-xs text-red-700 dark:text-red-300">
                             ⚠️ Browser notifications are blocked. Enable them in your browser settings to receive reminders.
                           </div>
                         )}
@@ -559,14 +611,14 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
-                  <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                     <div className="flex items-start gap-3">
-                      <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
+                      <Bell className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">Enable browser notifications</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive browser notifications for event reminders</p>
+                        <p className="font-medium text-slate-900 dark:text-white">Enable browser notifications</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Receive browser notifications for event reminders</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -582,52 +634,46 @@ export default function Settings() {
                         }}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <div className={`${ds.toggle} ${settings.notifications ? ds.toggleOn : ds.toggleOff} peer-focus:ring-2 peer-focus:ring-purple-500/40`}>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.notifications ? 'translate-x-6' : ''}`} />
+                      </div>
                     </label>
                   </div>
 
-                  <div className="border-t border-gray-200 dark:border-gray-700 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between opacity-60">
+                    <div className="flex items-start justify-between opacity-60 p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                       <div className="flex items-start gap-3">
-                        <Mail className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
+                        <Mail className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" />
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">Email notifications</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Get notified via email for important updates</p>
-                          <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800 text-xs">Coming Soon</Badge>
+                          <p className="font-medium text-slate-900 dark:text-white">Email notifications</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Get notified via email for important updates</p>
+                          <Badge variant="secondary" className="mt-2 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">Coming Soon</Badge>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-not-allowed">
-                        <input
-                          type="checkbox"
-                          checked={settings.emailNotifications}
-                          onChange={(e) => update('emailNotifications', e.target.checked)}
-                          disabled
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
+                        <input type="checkbox" checked={settings.emailNotifications} onChange={(e) => update('emailNotifications', e.target.checked)} disabled className="sr-only peer" />
+                        <div className={`${ds.toggle} ${ds.toggleOff} opacity-50`}>
+                          <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow" />
+                        </div>
                       </label>
                     </div>
 
-                    <div className="flex items-start justify-between opacity-60">
+                    <div className="flex items-start justify-between opacity-60 p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                       <div className="flex items-start gap-3">
-                        <Smartphone className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5" />
+                        <Smartphone className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" />
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">Mobile push notifications</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive push notifications on mobile devices</p>
-                          <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800 text-xs">Coming Soon</Badge>
+                          <p className="font-medium text-slate-900 dark:text-white">Mobile push notifications</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Receive push notifications on mobile devices</p>
+                          <Badge variant="secondary" className="mt-2 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">Coming Soon</Badge>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-not-allowed">
-                        <input
-                          type="checkbox"
-                          checked={settings.pushNotifications}
-                          onChange={(e) => update('pushNotifications', e.target.checked)}
-                          disabled
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-purple-400 opacity-50"></div>
+                        <input type="checkbox" checked={settings.pushNotifications} onChange={(e) => update('pushNotifications', e.target.checked)} disabled className="sr-only peer" />
+                        <div className={`${ds.toggle} ${ds.toggleOff} opacity-50`}>
+                          <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow" />
+                        </div>
                       </label>
                     </div>
                   </div>
@@ -639,8 +685,10 @@ export default function Settings() {
             {activeSection === 'security' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
+                  <CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center mr-1">
+                      <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
                     Security
                   </CardTitle>
                   <CardDescription>Manage your account security and authentication</CardDescription>
@@ -648,89 +696,89 @@ export default function Settings() {
                 <CardContent className="space-y-6">
                   {/* Password Section */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                       <Lock className="w-4 h-4" />
                       Password
                     </h4>
-                    <p className="text-sm text-gray-600 mb-4">Keep your account secure with a strong password</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Keep your account secure with a strong password</p>
                     <ChangePasswordForm />
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   {/* Email Management */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       Email Address
                     </h4>
-                    <p className="text-sm text-gray-600 mb-4">Update your email for account recovery and notifications</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Update your email for account recovery and notifications</p>
                     <Button variant="outline" className="flex items-center gap-2">
                       <Mail className="w-4 h-4" />
                       Change Email Address
                     </Button>
-                    <Badge variant="secondary" className="mt-2 bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                    <Badge variant="secondary" className="mt-2 ml-2 bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">Coming Soon</Badge>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   {/* Two-Factor Authentication */}
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                  <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Shield className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-blue-900">Two-Factor Authentication (2FA)</p>
-                        <p className="text-sm text-blue-700 mt-1">Add an extra layer of security to your account with 2FA</p>
+                        <p className="font-semibold text-blue-900 dark:text-blue-100">Two-Factor Authentication (2FA)</p>
+                        <p className="text-sm text-blue-700 dark:text-blue-200/80 mt-1">Add an extra layer of security to your account with 2FA</p>
                         <div className="mt-3 flex items-center gap-3">
                           <Button variant="outline" className="text-sm" disabled>
                             Enable 2FA
                           </Button>
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                          <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">Coming Soon</Badge>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   {/* Active Sessions */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                       <Monitor className="w-4 h-4" />
                       Active Sessions
                     </h4>
-                    <p className="text-sm text-gray-600 mb-4">Manage devices where you're currently signed in</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Manage devices where you're currently signed in</p>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-500/10 dark:to-green-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <Monitor className="w-5 h-5 text-green-600" />
+                          <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                            <Monitor className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-green-900">Current Device</p>
-                            <p className="text-xs text-green-700">Browser • Active now</p>
+                            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">Current Device</p>
+                            <p className="text-xs text-emerald-700 dark:text-emerald-300/70">Browser • Active now</p>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 font-semibold">Active</Badge>
+                        <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-semibold">Active</Badge>
                       </div>
-                      <Button variant="outline" className="w-full text-red-600 hover:text-red-700 hover:bg-red-50" disabled>
+                      <Button variant="outline" className="w-full text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10" disabled>
                         Sign Out All Other Sessions
                       </Button>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                      <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">Coming Soon</Badge>
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   {/* Account Recovery */}
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       Account Recovery
                     </h4>
-                    <p className="text-sm text-gray-600 mb-4">Set up recovery options in case you lose access to your account</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Set up recovery options in case you lose access to your account</p>
                     <div className="space-y-3">
                       <Button variant="outline" className="w-full justify-start" disabled>
                         <Mail className="w-4 h-4 mr-2" />
@@ -740,7 +788,7 @@ export default function Settings() {
                         <Smartphone className="w-4 h-4 mr-2" />
                         Add Recovery Phone Number
                       </Button>
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Coming Soon</Badge>
+                      <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">Coming Soon</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -751,16 +799,18 @@ export default function Settings() {
             {activeSection === 'preferences' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <SettingsIcon className="w-5 h-5" />
+                  <CardTitle>
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center mr-1">
+                      <SettingsIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    </div>
                     General Preferences
                   </CardTitle>
                   <CardDescription>Additional settings for your experience</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Data & Privacy</h4>
-                    <p className="text-sm text-gray-600 mb-4">Download all your data in JSON format</p>
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2">Data & Privacy</h4>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Download all your data in JSON format</p>
                     <Button 
                       variant="outline" 
                       className="w-full justify-start flex items-center gap-2"
@@ -781,14 +831,14 @@ export default function Settings() {
                     </Button>
                   </div>
 
-                  <div className="border-t border-gray-200 my-6" />
+                  <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
-                  <div>
-                    <h4 className="font-medium text-red-900 mb-2">Danger Zone</h4>
-                    <p className="text-sm text-gray-600 mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                  <div className="p-5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
+                    <h4 className="font-semibold text-red-900 dark:text-red-200 mb-2">Danger Zone</h4>
+                    <p className="text-sm text-red-700 dark:text-red-300/70 mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
                     <Button 
                       variant="outline" 
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 hover:border-red-400"
+                      className="text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-500/20 border-red-300 dark:border-red-500/30 hover:border-red-400"
                       onClick={() => setShowDeleteModal(true)}
                     >
                       Delete Account
@@ -800,8 +850,8 @@ export default function Settings() {
 
             {/* Action Buttons */}
             <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -810,14 +860,12 @@ export default function Settings() {
                       setSaved(false);
                       setError('');
                     }}
-                    className=""
                   >
                     <RotateCcw className="w-4 h-4" />
                     Reset Changes
                   </Button>
                   <Button
                     onClick={handleSave}
-                    className=""
                     disabled={isSaving}
                   >
                     {isSaving ? <Loader2 className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -831,15 +879,15 @@ export default function Settings() {
 
         {/* Delete Account Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10">
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                   <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Delete Account</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Delete Account</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     This action cannot be undone. All your data including events, courses, grades, and attendance records will be permanently deleted.
                   </p>
                 </div>
@@ -847,14 +895,14 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Enter your password to confirm
                   </label>
                   <input
                     type="password"
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={ds.input}
                     placeholder="Enter password"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleDeleteAccount();
@@ -863,7 +911,7 @@ export default function Settings() {
                 </div>
 
                 {deleteError && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
                     <p className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
                   </div>
                 )}
@@ -881,10 +929,10 @@ export default function Settings() {
                   >
                     Cancel
                   </Button>
-                  <Button
+                  <button
                     onClick={handleDeleteAccount}
                     disabled={isDeleting || !deletePassword}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/25 transition-all duration-200 disabled:opacity-50"
                   >
                     {isDeleting ? (
                       <>
@@ -894,7 +942,7 @@ export default function Settings() {
                     ) : (
                       'Delete Account'
                     )}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>

@@ -1,6 +1,9 @@
 import prisma from '../../../lib/prisma';
+import fs from 'fs';
+import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
+const DATA_DIR = path.join(process.cwd(), 'data');
 
 async function resolveUserId(req) {
   try {
@@ -87,20 +90,57 @@ export default async function handler(req, res) {
 
     if (isDev) console.log(`Bulk create request: ${patterns.length} patterns from ${startDate} to ${endDate}`);
 
-    // Fetch holidays for the semester
-    const year = new Date(startDate).getFullYear();
+    // Load holidays directly from local data files for reliability
+    const startYear = new Date(startDate).getFullYear();
+    const endYear = new Date(endDate).getFullYear();
     let holidays = [];
+    
+    // Load holidays for all years in the range
+    for (let year = startYear; year <= endYear; year++) {
+      try {
+        // Try cached file first
+        const cacheFile = path.join(DATA_DIR, `holidays-IQ-${year}.json`);
+        if (fs.existsSync(cacheFile)) {
+          const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+          if (Array.isArray(data)) holidays.push(...data);
+        }
+      } catch (err) {
+        if (isDev) console.warn(`Failed to load holidays for ${year}:`, err.message);
+      }
+    }
+    
+    // Also load Kurdistan-specific holidays
     try {
-      const holidayResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3001'}/api/holidays?year=${year}&country=IQ`);
-      if (holidayResponse.ok) {
-        const holidayData = await holidayResponse.json();
-        holidays = holidayData.holidays || [];
+      const kurdistanFile = path.join(DATA_DIR, 'holidays-iq-kurdistan.json');
+      if (fs.existsSync(kurdistanFile)) {
+        const kurdistanData = JSON.parse(fs.readFileSync(kurdistanFile, 'utf8'));
+        if (Array.isArray(kurdistanData)) {
+          // Filter to relevant years
+          const filtered = kurdistanData.filter(h => {
+            const hYear = new Date(h.date).getFullYear();
+            return hYear >= startYear && hYear <= endYear;
+          });
+          holidays.push(...filtered);
+        }
       }
     } catch (err) {
-      if (isDev) console.warn('Failed to fetch holidays:', err.message);
+      if (isDev) console.warn('Failed to load Kurdistan holidays:', err.message);
     }
+    
+    // Also load academic holidays
+    try {
+      const academicFile = path.join(DATA_DIR, `holidays-academic-${startYear}-${endYear}.json`);
+      if (fs.existsSync(academicFile)) {
+        const academicData = JSON.parse(fs.readFileSync(academicFile, 'utf8'));
+        if (Array.isArray(academicData)) holidays.push(...academicData);
+      }
+    } catch (err) {
+      if (isDev) console.warn('Failed to load academic holidays:', err.message);
+    }
+    
+    if (isDev) console.log(`Loaded ${holidays.length} holidays for date range`);
 
-    const summary = {};
+    const summary = {};;
     let totalEvents = 0;
 
     // Process each pattern
@@ -132,9 +172,15 @@ export default async function handler(req, res) {
 
       if (isDev) console.log(`Creating ${occurrences.length} events for ${course.name} on day ${dayOfWeek}`);
 
+      // Build title with session type suffix (if not Lecture, append it)
+      const sessionSuffix = sessionType && sessionType.toLowerCase() !== 'lecture' 
+        ? ` - ${sessionType}` 
+        : '';
+      const eventTitle = `${course.name}${sessionSuffix}`;
+
       // Prepare events data
       const eventsData = occurrences.map(date => ({
-        title: course.name,
+        title: eventTitle,
         type: 'class',
         course_id: courseId,
         date: date,

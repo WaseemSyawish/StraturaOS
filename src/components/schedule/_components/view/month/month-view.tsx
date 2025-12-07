@@ -13,6 +13,7 @@ import { parseDatePreserveLocal } from '@/lib/dateHelpers';
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
+import QuickAddEvent from "@/components/schedule/_modals/quick-add-event";
 import ShowMoreEventsModal from "@/components/schedule/_modals/show-more-events-modal";
 import EventStyled from "../event-component/event-styled";
 import { Event, CustomEventModal } from "@/types";
@@ -84,38 +85,18 @@ export default function MonthView({
       currentDate.getFullYear(),
       currentDate.getMonth(),
       selectedDay,
-      0,
+      9, // Default to 9 AM
       0,
       0
     );
 
-    const endDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      selectedDay,
-      23,
-      59,
-      59
-    );
-
+    // Use streamlined quick-add modal with pre-filled date
     setOpen(
-      <CustomModal title="Add Event">
-        <AddEventModal
-          CustomAddEventModal={
-            CustomEventModal?.CustomAddEventModal?.CustomForm
-          }
-          isSchedulePage={isSchedulePage}
-        />
-      </CustomModal>,
-      async () => {
-        return {
-          startDate,
-          endDate,
-          title: "",
-          id: "",
-          variant: "primary",
-        };
-      }
+      <QuickAddEvent 
+        initialDate={startDate}
+        initialTime="09:00"
+        isSchedulePage={isSchedulePage}
+      />
     );
   }
 

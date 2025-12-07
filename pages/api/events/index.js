@@ -379,12 +379,16 @@ async function handler(req, res) {
                   }
                 }
               } catch (e) {}
-              // Build an ISO instant representing the y/m/d hh:mm in UTC.
-              // Client provides startDate if they want timezone-aware handling,
-              // otherwise we store dates as UTC and let clients convert for display.
+              // Build an ISO-like string without timezone suffix (not UTC).
+              // This represents the local date/time as entered by the user.
+              // Clients will parse this as local time since it has no Z suffix.
               try {
-                // Store as UTC - clients handle timezone conversion
-                out.startDate = new Date(Date.UTC(y, m, day, hh, mm, 0)).toISOString();
+                // Format: YYYY-MM-DDTHH:MM:SS (no Z = parsed as local)
+                const mm2 = String(m + 1).padStart(2, '0');
+                const dd = String(day).padStart(2, '0');
+                const hh2 = String(hh).padStart(2, '0');
+                const mm3 = String(mm).padStart(2, '0');
+                out.startDate = `${y}-${mm2}-${dd}T${hh2}:${mm3}:00`;
               } catch (e) {
                 out.startDate = (new Date(String(dateVal))).toISOString();
               }
@@ -428,8 +432,12 @@ async function handler(req, res) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      // Store as UTC - clients handle timezone conversion
-                      out.endDate = new Date(Date.UTC(y, m, day, ehh, emm, 0)).toISOString();
+                      // Build ISO-like string without timezone (local time)
+                      const mm2 = String(m + 1).padStart(2, '0');
+                      const dd = String(day).padStart(2, '0');
+                      const ehh2 = String(ehh).padStart(2, '0');
+                      const emm2 = String(emm).padStart(2, '0');
+                      out.endDate = `${y}-${mm2}-${dd}T${ehh2}:${emm2}:00`;
                     }
                   }
                 }
@@ -460,8 +468,12 @@ async function handler(req, res) {
                       const y = dt.getFullYear();
                       const m = dt.getMonth();
                       const day = dt.getDate();
-                      // Store as UTC - clients handle timezone conversion
-                      out.endDate = new Date(Date.UTC(y, m, day, ehh, emm, 0)).toISOString();
+                      // Build ISO-like string without timezone (local time)
+                      const mm2 = String(m + 1).padStart(2, '0');
+                      const dd = String(day).padStart(2, '0');
+                      const ehh2 = String(ehh).padStart(2, '0');
+                      const emm2 = String(emm).padStart(2, '0');
+                      out.endDate = `${y}-${mm2}-${dd}T${ehh2}:${emm2}:00`;
                     }
                   }
                 }

@@ -6,6 +6,20 @@ import Head from 'next/head';
 import GradeCalculator from '../src/components/grades/GradeCalculator';
 import HygraphSidebar from '@/components/HygraphSidebar';
 
+// Design system styles matching landing/auth pages
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 dark:from-purple-900/40 dark:via-purple-800/30 dark:to-indigo-900/40 border border-purple-500/20 dark:border-purple-500/10',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-sm shadow-lg dark:shadow-xl dark:shadow-purple-500/5',
+  statCard: 'bg-white/60 dark:bg-white/5 rounded-xl border border-slate-200/60 dark:border-white/5 p-4 backdrop-blur-sm',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+  headingLg: 'text-lg font-semibold text-slate-900 dark:text-white',
+  textMuted: 'text-slate-600 dark:text-slate-400',
+  iconBox: 'w-12 h-12 rounded-xl flex items-center justify-center',
+  primaryBtn: 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 transition-all duration-200',
+  secondaryBtn: 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-200',
+};
+
 const GradesPage = () => {
   const [selectedSemester, setSelectedSemester] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -645,7 +659,7 @@ const GradesPage = () => {
 
   return (
     <HygraphSidebar>
-    <div className="min-h-screen relative text-slate-900 dark:text-slate-100 dark:bg-slate-900">
+    <div className={ds.pageBg + ' relative text-slate-900 dark:text-white'}>
       <Head>
         <title>Grade Calculator & Predictor — StraturaOS</title>
       </Head>
@@ -680,13 +694,104 @@ const GradesPage = () => {
           opacity: 1 !important;
         }
       `}} />
-      {/* Navbar: consistent with Calendar/Overview styling */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+        
+        {/* ========== HERO HEADER BAND ========== */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 dark:from-purple-700 dark:via-purple-800 dark:to-purple-900 p-6 sm:p-8 mb-6 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/2" />
+          </div>
+          
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <GraduationCap className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Grades</h1>
+                <p className="text-purple-100 dark:text-purple-200 mt-1">
+                  Track, analyze & predict your academic performance
+                </p>
+              </div>
+            </div>
+            {courses.length > 0 && (
+              <button
+                onClick={() => window.location.href = '/modules'}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-white bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 transition-all duration-200"
+              >
+                <Plus className="w-4 h-4" />
+                Add Course
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Stats row - below hero, matching overview style */}
+        {courses && courses.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stats.gpa}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">GPA</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stats.credits}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Credits</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <Award className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{stats.avgGrade}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Average</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-violet-50 dark:bg-violet-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <GraduationCap className="w-5 h-5 text-violet-600 dark:text-violet-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{filteredCourses.length}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Courses</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading ? (
           <div className="min-h-[60vh] flex items-center justify-center">
             <div className="max-w-md w-full">
-              <div className="bg-white dark:bg-gray-950 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8">
+              <div className={ds.card + ' p-8'}>
                 <div className="flex flex-col items-center text-center">
                   {/* Animated icon container */}
                   <div className="relative mb-6">
@@ -694,14 +799,14 @@ const GradesPage = () => {
                       <GraduationCap className="w-8 h-8 text-white" strokeWidth={2} />
                     </div>
                     {/* Spinning ring around icon */}
-                    <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-800 border-t-purple-600 dark:border-t-purple-400 rounded-2xl animate-spin"></div>
+                    <div className="absolute inset-0 border-4 border-purple-200 dark:border-purple-800/50 border-t-purple-600 dark:border-t-purple-400 rounded-2xl animate-spin"></div>
                   </div>
                   
                   {/* Loading text */}
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                     Loading your grades
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Calculating your academic progress...
                   </p>
                 </div>
@@ -709,62 +814,13 @@ const GradesPage = () => {
             </div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-6">
             {/* Calculator-Style Stats Dashboard */}
             {courses && courses.length > 0 && (
-              <div className="mb-8">
-                {/* Main Calculator Display */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-8 mb-6 border-2 border-purple-200 dark:border-slate-700">
-                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                      <Calculator className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-300">Your Academic Calculator</h2>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Real-time grade analysis & prediction</p>
-                    </div>
-                  </div>
-                  
-                  {/* Digital Display */}
-                  <div className="bg-white/60 dark:bg-slate-950/50 rounded-lg sm:rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-purple-200 dark:border-slate-800">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                      <div className="text-center">
-                        <div className="text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">CURRENT GPA</div>
-                        <div className="text-3xl sm:text-5xl font-bold font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
-                          {stats.gpa}
-                        </div>
-                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
-                          <TrendingUp className="w-3 h-3" />
-                          <span>Live calculation</span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-center sm:border-l sm:border-r border-t sm:border-t-0 pt-4 sm:pt-0 border-purple-200 dark:border-slate-800">
-                        <div className="text-xs sm:text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">TOTAL CREDITS</div>
-                        <div className="text-3xl sm:text-5xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-tight">
-                          {stats.credits}
-                        </div>
-                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
-                          <BookOpen className="w-3 h-3" />
-                          <span>Accumulated</span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="text-sm font-mono text-slate-600 dark:text-slate-400 mb-2">AVG GRADE</div>
-                        <div className="text-5xl font-bold font-mono text-amber-600 dark:text-amber-400 tracking-tight">
-                          {stats.avgGrade}
-                        </div>
-                        <div className="mt-2 flex items-center justify-center gap-2 text-xs text-slate-500">
-                          <Award className="w-3 h-3" />
-                          <span>Performance</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Quick Actions - Calculator Style Buttons */}
-                  <div className="grid grid-cols-3 gap-3">
+              <>
+                {/* Quick Actions */}
+                <div className={ds.card + ' p-4'}>
+                  <div className="flex flex-wrap items-center gap-3">
                     <button 
                       onClick={() => {
                         if (filteredCourses.length > 0) {
@@ -772,112 +828,45 @@ const GradesPage = () => {
                           setShowCalculator(true);
                         }
                       }}
-                      className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 active:scale-95"
+                      className={ds.secondaryBtn}
                     >
                       <Target className="w-5 h-5" />
                       Grade Predictor
                     </button>
                     <button 
-                      onClick={() => window.location.href = '/modules'}
-                      className="bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-500 text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-purple-500 active:scale-95"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Add Course
-                    </button>
-                    <button 
                       onClick={() => { /* Export grades functionality */ }}
-                      className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl p-4 transition-all font-semibold flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 active:scale-95"
+                      className={ds.secondaryBtn}
                     >
                       <Download className="w-5 h-5" />
                       Export Data
                     </button>
-                  </div>
-                </div>
-                
-                {/* Quick Stats Row */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
-                        <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    
+                    {/* Filters */}
+                    <div className="flex-1 flex items-center gap-3 ml-auto">
+                      <div className="w-48">
+                        <CustomSelect
+                          options={semesters}
+                          value={selectedSemester}
+                          onChange={(v) => setSelectedSemester(v)}
+                          placeholder="Semester"
+                          className="w-full"
+                          id="grades-semester-select"
+                        />
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">Active Courses</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredCourses.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">Categories Tracked</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {filteredCourses.reduce((sum, c) => sum + c.categories.length, 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-700">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">Total Assessments</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {filteredCourses.reduce((sum, c) => sum + c.categories.reduce((s, cat) => s + cat.items.length, 0), 0)}
-                        </p>
+                      <div className="w-56">
+                        <CustomSelect
+                          options={[{ value: 'all', label: 'All courses' }, ...courses.map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
+                          value={String(filterCourseId)}
+                          onChange={(v) => setFilterCourseId(v)}
+                          placeholder="All courses"
+                          className="w-full"
+                          id="grades-course-select"
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Filter Section: only show when there are courses available */}
-            {courses && courses.length > 0 && (
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-64">
-                  <CustomSelect
-                    options={semesters}
-                    value={selectedSemester}
-                    onChange={(v) => setSelectedSemester(v)}
-                    placeholder="Select semester"
-                    className="w-full"
-                    id="grades-semester-select"
-                  />
-                </div>
-
-                {/* Course filter - lets user restrict view to a single module */}
-                <div className="w-96">
-                  <CustomSelect
-                    options={[{ value: 'all', label: 'All courses' }, ...courses.map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
-                    value={String(filterCourseId)}
-                    onChange={(v) => setFilterCourseId(v)}
-                    placeholder="All courses"
-                    className="w-full"
-                    id="grades-course-select"
-                  />
-                </div>
-                <div className="text-sm text-gray-600 dark:text-slate-300">
-                  Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-            )}
-
-            {/* Debug panel (visible when ?debug=1 in URL) */}
-            {showDebug && (
-              <div className="mt-6 p-4 bg-white border rounded-lg text-xs dark:bg-[#071423] dark:border-transparent">
-                <h4 className="font-semibold mb-2 dark:text-slate-100">Debug: courses / semesters / stats</h4>
-                <div style={{ maxHeight: 300, overflow: 'auto' }}>
-                  <pre className="whitespace-pre-wrap dark:text-slate-200">{JSON.stringify({ courses, semesters, stats, filteredCoursesLength: filteredCourses.length }, null, 2)}</pre>
-                </div>
-              </div>
+              </>
             )}
 
             {/* Courses Grid */}

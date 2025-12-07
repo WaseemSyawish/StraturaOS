@@ -119,7 +119,7 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
         <div className="flex-1 overflow-y-auto">
           {navigationSections.map((section, sectionIdx) => (
             <React.Fragment key={section.id}>
-              <div className="flex flex-col items-center gap-0.5 py-3 px-2">
+              <div className="flex flex-col items-center gap-1 py-3 px-2">
                 {section.items.map((item) => {
                   // Skip separators in collapsed sidebar
                   if (item.type === 'separator') {
@@ -131,28 +131,27 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
                   const hasSubmenuActive = item.submenu?.some(sub => isActivePath(sub.path));
                   const isItemActive = active || hasSubmenuActive;
                   
+                  const targetPath = item.id === 'schedule' ? '/schedule' : item.path;
+                  
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        const targetPath = item.id === 'schedule' ? '/schedule' : item.path;
-                        if (targetPath) router.push(targetPath);
-                      }}
-                      className={`
-                        w-full h-10 rounded-lg flex items-center justify-center relative
-                        transition-all duration-200
-                        ${isItemActive
-                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' 
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-                        }
-                      `}
-                      title={item.label}
-                    >
-                      <Icon className="w-[18px] h-[18px]" strokeWidth={2} />
-                      {isItemActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-slate-900 dark:bg-white rounded-r-full" />
-                      )}
-                    </button>
+                    <Link key={item.id} href={targetPath || '#'}>
+                      <div
+                        className={`
+                          w-10 h-10 rounded-xl flex items-center justify-center relative
+                          transition-all duration-200 cursor-pointer
+                          ${isItemActive
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white'
+                          }
+                        `}
+                        title={item.label}
+                      >
+                        <Icon className="w-5 h-5" strokeWidth={1.75} />
+                        {isItemActive && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-purple-600 dark:bg-purple-400 rounded-r-full" />
+                        )}
+                      </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -163,34 +162,51 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
           ))}
         </div>
 
-        {/* Bottom: Settings + Profile */}
-        <div className="mt-auto border-t border-slate-200/50 dark:border-slate-800 pt-2 pb-3 px-2 flex flex-col items-center gap-2">
-          <button
-            onClick={() => router.push('/settings')}
-            className={`
-              w-full h-10 rounded-lg flex items-center justify-center relative
-              transition-all duration-200
-              ${isActivePath('/settings')
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white' 
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
-              }
-            `}
-            title="Settings"
-          >
-            <Settings className="w-[18px] h-[18px]" strokeWidth={2} />
-            {isActivePath('/settings') && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-slate-900 dark:bg-white rounded-r-full" />
-            )}
-          </button>
-
-          <button
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-all"
-            style={{ backgroundColor: avatarColor }}
-            title={userName || 'Profile'}
-            onClick={() => router.push('/profile')}
-          >
-            {(userName || 'U').charAt(0).toUpperCase()}
-          </button>
+        {/* Bottom section: Settings and Profile */}
+        <div className="flex flex-col items-center gap-1 py-3 px-2 border-t border-slate-200 dark:border-slate-800">
+          {/* Settings */}
+          <Link href="/settings">
+            <div
+              className={`
+                w-10 h-10 rounded-xl flex items-center justify-center relative
+                transition-all duration-200 cursor-pointer
+                ${router.pathname === '/settings'
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white'
+                }
+              `}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" strokeWidth={1.75} />
+              {router.pathname === '/settings' && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-7 bg-purple-600 dark:bg-purple-400 rounded-r-full" />
+              )}
+            </div>
+          </Link>
+          
+          {/* Profile */}
+          <Link href="/profile">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all overflow-hidden"
+              title={userName || 'Profile'}
+            >
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt={userName || 'User'} 
+                  className="w-8 h-8 rounded-full object-cover border-2"
+                  style={{ borderColor: avatarColor }}
+                />
+              ) : (
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {(userName || 'U').charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </Link>
         </div>
       </div>
 
@@ -216,10 +232,10 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
             {/* Header */}
             <div className="px-4 pt-6 pb-4">
               <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
                   <StraturaLogo size={24} color="white" />
                 </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-white">StraturaOS</div>
+                <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-indigo-400">StraturaOS</div>
               </div>
             </div>
 
@@ -320,12 +336,29 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
               
               <Link href="/profile">
                 <div className="px-3 py-2 flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors">
-                  <div 
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                    style={{ backgroundColor: avatarColor }}
-                  >
-                    {(userName || 'U').charAt(0).toUpperCase()}
-                  </div>
+                  {avatarUrl ? (
+                    <div 
+                      className="w-9 h-9 rounded-full overflow-hidden"
+                      style={{ 
+                        borderWidth: '2px',
+                        borderStyle: 'solid',
+                        borderColor: avatarColor 
+                      }}
+                    >
+                      <img 
+                        src={avatarUrl} 
+                        alt={userName || 'Profile'} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                      style={{ backgroundColor: avatarColor }}
+                    >
+                      {(userName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-slate-900 dark:text-white truncate">{userName || 'User'}</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400">View Profile</div>
@@ -351,24 +384,18 @@ export default function HygraphSidebar({ children, pageName, pageActions }) {
             const isActive = item.path && isActivePath(item.path);
             
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.action) {
-                    item.action();
-                  } else if (item.path) {
-                    router.push(item.path);
-                  }
-                }}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  isActive 
-                    ? 'text-purple-600 dark:text-purple-400' 
-                    : 'text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-              </button>
+              <Link key={item.id} href={item.path || '#'}>
+                <div
+                  className={`flex flex-col items-center justify-center flex-1 h-full transition-colors cursor-pointer ${
+                    isActive 
+                      ? 'text-purple-600 dark:text-purple-400' 
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                  <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+                </div>
+              </Link>
             );
           })}
         </div>

@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarIcon, CalendarDaysIcon } from "@/components/icons/simple-icons";
+import { Plus } from "lucide-react";
 import { ModernViewSwitcher } from "./modern-controls";
 import { useModal } from "@/providers/modal-context";
 import { ClassNames, CustomComponents, Views } from "@/types/index";
@@ -20,6 +21,7 @@ const BsCalendarWeek = dynamic(() => import("react-icons/bs").then((m) => m.BsCa
 const DailyView = dynamic(() => import('./day/daily-view'), { ssr: false });
 const MonthView = dynamic(() => import('./month/month-view'), { ssr: false });
 const WeeklyView = dynamic(() => import('./week/week-view'), { ssr: false });
+const QuickAddEvent = dynamic(() => import('../../_modals/quick-add-event'), { ssr: false });
 
 // Animation settings for Framer Motion (used when Motion is loaded)
 const animationConfig = {
@@ -76,7 +78,30 @@ export default function SchedulerViewFilteration({
   }, [clientSide]);
 
   function handleAddEvent(selectedDay?: number) {
-    // Create the modal content with proper data
+    // Use quick add modal for fast event creation
+    const initialDate = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      selectedDay ?? new Date().getDate()
+    );
+
+    setOpen(
+      <CustomModal title="Quick Add Event">
+        <QuickAddEvent 
+          initialDate={initialDate}
+          onSuccess={() => {
+            // Trigger a reload of events
+            try {
+              window.dispatchEvent(new CustomEvent('scheduler:eventsChanged'));
+            } catch (e) {}
+          }}
+        />
+      </CustomModal>
+    );
+  }
+
+  function handleAddEventFull(selectedDay?: number) {
+    // Full add event modal for advanced options
     const startDate = new Date(
       new Date().getFullYear(),
       new Date().getMonth(),
@@ -87,41 +112,14 @@ export default function SchedulerViewFilteration({
       0
     );
 
-    const endDate = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      selectedDay ?? new Date().getDate(),
-      23,
-      59,
-      59,
-      999
-    );
-
-    // Create a wrapper component to handle data passing
-    const ModalWrapper = () => {
-      const title =
-        CustomComponents?.CustomEventModal?.CustomAddEventModal?.title ||
-        "Add Event";
-
-      return (
-        <div>
-          <h2 className="text-xl font-semibold mb-4">{title}</h2>
-        </div>
-      );
-    };
-
     // Open the modal with the content. Import the AddEventModal dynamically
-    // at the time the user requests it so dev-time compilation doesn't
-    // eagerly include its heavy dependencies.
     (async () => {
       try {
-  const mod = await import("../../_modals/add-event-modal");
-  // module shape may vary; prefer default export. use `any` to satisfy TS here
-  const anyMod: any = mod;
-  const AddEventModalLazy = anyMod?.default || anyMod;
+        const mod = await import("../../_modals/add-event-modal");
+        const anyMod: any = mod;
+        const AddEventModalLazy = anyMod?.default || anyMod;
         setOpen(
           <CustomModal title="Add Event">
-            {/* @ts-ignore dynamic component */}
             <AddEventModalLazy
               CustomAddEventModal={
                 CustomComponents?.CustomEventModal?.CustomAddEventModal?.CustomForm
@@ -179,26 +177,35 @@ export default function SchedulerViewFilteration({
                 <ModernViewSwitcher currentView={activeView as any} onViewChange={(v: any) => setActiveView(v)} allowedViews={viewsSelector as any} />
               </div>
 
-              {/* Add Event Button */}
-              <div className="ml-auto">
+              {/* Action Buttons */}
+              <div className="ml-auto flex items-center gap-2">
                 {CustomComponents?.customButtons?.CustomAddEventButton ? (
                   <div onClick={() => handleAddEvent()}>
                     {CustomComponents?.customButtons.CustomAddEventButton}
                   </div>
                 ) : (
-                  <Button
-                    onClick={() => {
-                      setActiveView("day");
-                      try {
-                        window.dispatchEvent(new CustomEvent('scheduler:goToDate', { detail: { date: new Date().toISOString() } }));
-                      } catch (e) {}
-                    }}
-                    className={cn(classNames?.buttons?.addEvent, "text-white")}
-                    variant="default"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-white" />
-                    Today
-                  </Button>
+                  <>
+                    <Button
+                      onClick={() => {
+                        setActiveView("day");
+                        try {
+                          window.dispatchEvent(new CustomEvent('scheduler:goToDate', { detail: { date: new Date().toISOString() } }));
+                        } catch (e) {}
+                      }}
+                      variant="outline"
+                      className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      Today
+                    </Button>
+                    <Button
+                      onClick={() => handleAddEvent()}
+                      className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg shadow-purple-500/25"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Event
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

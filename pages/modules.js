@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
-import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings, Info, Sparkles, Layers } from 'lucide-react';
 import Notification from '../src/components/Notification';
 import SemesterSettings from '../src/components/SemesterSettings';
 import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
 import HygraphSidebar from '@/components/HygraphSidebar';
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
+   ───────────────────────────────────────────────────────────── */
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 rounded-2xl mb-6',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/5 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+  statCard: 'p-4 rounded-xl bg-white/90 dark:bg-[#16161f] border border-slate-200/60 dark:border-slate-800/60 shadow-sm',
+};
 
 const ModulesManager = () => {
   const [courses, setCourses] = useState([]);
@@ -490,14 +501,14 @@ const ModulesManager = () => {
 
   return (
   <HygraphSidebar pageName="Modules">
-  <div className="modules-root min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+  <div className={`modules-root ${ds.pageBg} p-4 sm:p-6`}>
       <Head>
         <title>Modules — StraturaOS</title>
       </Head>
       <style>{`
         /* Enhanced Dark mode overrides for Modules Manager */
-        html.dark .modules-root { background: linear-gradient(180deg,#071023,#071423); }
-        html.dark .cozy { background-color: #071423; border-color: rgba(255,255,255,0.04); box-shadow: none; }
+        html.dark .modules-root { background: linear-gradient(180deg,#0a0a0f,#12121a); }
+        html.dark .cozy { background-color: #12121a; border-color: rgba(255,255,255,0.04); box-shadow: none; }
         html.dark .cozy .text-gray-800 { color: rgba(255,255,255,0.92); }
         html.dark .text-gray-600 { color: rgba(255,255,255,0.72); }
         html.dark .text-gray-500 { color: rgba(255,255,255,0.6); }
@@ -511,7 +522,7 @@ const ModulesManager = () => {
         html.dark .border-gray-100 { border-color: rgba(255,255,255,0.04); }
         
         /* Enhanced card borders and shadows */
-        html.dark .cozy { border: 1px solid rgba(139, 92, 246, 0.15); }
+        html.dark .cozy { border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 1rem; }
         html.dark .course-card-container { border: 1px solid rgba(139, 92, 246, 0.15); }
         html.dark .course-card-container:hover { border-color: rgba(139, 92, 246, 0.25); box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
         
@@ -520,7 +531,7 @@ const ModulesManager = () => {
         html.dark .cozy textarea,
         html.dark .cozy select {
           color: rgba(255,255,255,0.92) !important;
-          background: #0b1220 !important;
+          background: #0b0b10 !important;
           caret-color: rgba(255,255,255,0.92) !important;
           -webkit-text-fill-color: rgba(255,255,255,0.92) !important;
           border-color: rgba(255,255,255,0.06);
@@ -533,7 +544,7 @@ const ModulesManager = () => {
         html.dark .cozy select option { color: #0f1724; background: #fff; }
         html.dark .cozy input[type="number"] { color: rgba(255,255,255,0.92) !important; }
         html.dark .cozy input:focus, html.dark .cozy textarea:focus, html.dark .cozy select:focus {
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
         }
         
         @keyframes slideDown {
@@ -547,93 +558,96 @@ const ModulesManager = () => {
       <div className="fixed top-6 right-6 z-50">
         <Notification type={notification?.type} message={notification?.message} onClose={() => setNotification(null)} />
       </div>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-  <div className="cozy rounded-xl shadow-lg p-6 mb-6">
-          <style>{`
-            /* Modules page: increase spacing for the first cozy card for better breathing room */
-            .modules-root .cozy:first-of-type { margin-top: 12px; padding: 20px; }
-            @media (max-width: 768px) { .modules-root .cozy:first-of-type { padding: 16px; } }
-          `}</style>
-          {/* Success Message */}
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <CheckCircle className="text-green-500 flex-shrink-0" size={20} />
-              <span className="text-green-700 flex-1">{success}</span>
-              <button
-                onClick={() => setSuccess(null)}
-                className="ml-auto text-green-500 hover:text-green-700 text-lg font-bold"
-                aria-label="Dismiss success message"
-              >
-                ×
-              </button>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-              <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
-              <span className="text-red-700 flex-1">{error}</span>
-              <button
-                onClick={() => setError(null)}
-                className="ml-auto text-red-500 hover:text-red-700 text-lg font-bold"
-                aria-label="Dismiss error"
-              >
-                ×
-              </button>
-            </div>
-          )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* ─────────── Hero Header Band ─────────── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 dark:from-purple-700 dark:via-purple-800 dark:to-purple-900 p-6 sm:p-8 mb-6 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/2" />
+          </div>
           
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <BookOpen className="text-indigo-600" size={24} />
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/20">
+                <Layers className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">Modules Manager</h1>
-                <p className="text-gray-600">Manage your university courses and modules</p>
-                {!loading && (
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                    <span>{courses.length} total modules</span>
-                    <span>•</span>
-                    <span>{getTotalCredits(courses)} total credits</span>
-                  </div>
-                )}
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Modules</h1>
+                <p className="text-purple-100 dark:text-purple-200 text-sm mt-1">
+                  {courses.length} {courses.length === 1 ? 'module' : 'modules'} • {getTotalCredits(courses)} credits
+                </p>
               </div>
             </div>
-            <button
-              onClick={handleAddCourse}
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
-              <Plus size={20} />
-              Add Module
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowSemesterConfig(true)}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-xl text-sm font-medium transition-all flex items-center gap-2 border border-white/10"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Semesters</span>
+              </button>
+              <button 
+                onClick={handleAddCourse}
+                className="px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 border border-white/20"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Module</span>
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Success/Error Messages - only render if there's a message */}
+        {success && (
+          <div className="mb-4 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-xl flex items-center gap-2">
+            <CheckCircle className="text-emerald-500 flex-shrink-0" size={20} />
+            <span className="text-emerald-700 dark:text-emerald-400 flex-1">{success}</span>
+            <button
+              onClick={() => setSuccess(null)}
+              className="ml-auto text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 text-lg font-bold"
+              aria-label="Dismiss success message"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl flex items-center gap-2">
+            <AlertCircle className="text-red-500 flex-shrink-0" size={20} />
+            <span className="text-red-700 dark:text-red-400 flex-1">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-500 hover:text-red-700 dark:hover:text-red-300 text-lg font-bold"
+              aria-label="Dismiss error"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Semester Configuration */}
-        <div className="mb-8">
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="mb-6">
+          <div className={`${ds.card} overflow-hidden`}>
             <button
               onClick={() => setShowSemesterConfig(!showSemesterConfig)}
-              className="w-full p-6 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between"
+              className="w-full p-4 sm:p-6 border-b border-slate-200/60 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <div className="p-2 bg-gradient-to-br from-purple-500/20 to-purple-600/20 dark:from-purple-500/30 dark:to-purple-600/30 rounded-lg">
+                  <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     Semester Configuration
                     {semesters.length > 0 && (
-                      <span className="text-xs font-normal px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+                      <span className="text-xs font-normal px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded-full">
                         {semesters.length} {semesters.length === 1 ? 'semester' : 'semesters'}
                       </span>
                     )}
                   </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 hidden sm:block">
                     Manage your academic semesters for course organization
                   </p>
                 </div>
@@ -643,7 +657,7 @@ const ModulesManager = () => {
               />
             </button>
             {showSemesterConfig && (
-              <div className="p-6 animate-in">
+              <div className="p-4 sm:p-6 animate-in">
                 <SemesterSettings />
               </div>
             )}
@@ -1308,7 +1322,7 @@ const CourseCard = ({ course, onEdit, onDelete, onShowDetails, isPrevious = fals
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={() => onShowDetails(course)}
-            className="text-gray-400 hover:text-purple-600 transition-colors p-1.5 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            className="text-gray-400 hover:text-purple-600 transition-colors p-1.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
             aria-label="View details"
             title="Contact info & resources"
           >

@@ -11,14 +11,92 @@ import Layout from '../src/components/Layout'
 import * as NextUI from '@nextui-org/react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { NextUIProvider as NextUISystemProvider } from '@nextui-org/system'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import ModalProvider from '@/providers/modal-context'
 import { ToastProvider } from '@/providers/toast-provider'
 import { ConfirmProvider } from '@/providers/confirm-provider'
 import { SessionProvider } from 'next-auth/react'
 
 // Pages that should always use light mode (unauthenticated/public pages)
-const LIGHT_MODE_ONLY_PAGES = ['/', '/landing', '/signin', '/signup', '/signout', '/forgot-password', '/reset-password'];
+const LIGHT_MODE_ONLY_PAGES = ['/', '/landing', '/signin', '/signup', '/signout', '/forgot-password', '/reset-password', '/docs'];
+
+// Pages where transitions should apply (only auth/landing pages)
+const TRANSITION_PAGES = ['/', '/landing', '/signin', '/signup', '/signout', '/forgot-password', '/reset-password'];
+
+// Page transition wrapper - only applies transitions between auth/landing pages
+function PageTransition({ children }) {
+  const router = useRouter();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayChildren, setDisplayChildren] = useState(children);
+  const transitionRef = useRef(null);
+  const lastPathRef = useRef(router.asPath);
+
+  // Check if a path is a transition page
+  const isTransitionPage = (path) => {
+    const cleanPath = path.split('?')[0];
+    return TRANSITION_PAGES.includes(cleanPath);
+  };
+
+  useEffect(() => {
+    const handleStart = (url) => {
+      if (url !== router.asPath) {
+        const fromPath = lastPathRef.current;
+        const toPath = url.split('?')[0];
+        
+        // Only transition if BOTH from and to are auth/landing pages
+        if (isTransitionPage(fromPath) && isTransitionPage(toPath)) {
+          setIsTransitioning(true);
+        }
+      }
+    };
+
+    const handleComplete = (url) => {
+      const fromPath = lastPathRef.current;
+      const toPath = url.split('?')[0];
+      lastPathRef.current = url;
+      
+      // Only delay for auth/landing page transitions, update immediately for app pages
+      if (isTransitionPage(fromPath) && isTransitionPage(toPath)) {
+        setTimeout(() => {
+          setDisplayChildren(children);
+          setIsTransitioning(false);
+        }, 150);
+      } else {
+        // Immediate update for app pages - no delay
+        setDisplayChildren(children);
+        setIsTransitioning(false);
+      }
+    };
+
+    router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeComplete', handleComplete);
+    router.events.on('routeChangeError', handleComplete);
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart);
+      router.events.off('routeChangeComplete', handleComplete);
+      router.events.off('routeChangeError', handleComplete);
+    };
+  }, [router, children]);
+
+  // Update children when not transitioning
+  useEffect(() => {
+    if (!isTransitioning) {
+      setDisplayChildren(children);
+    }
+  }, [children, isTransitioning]);
+
+  return (
+    <div
+      ref={transitionRef}
+      className={`${
+        isTransitioning ? 'transition-all duration-300 ease-out opacity-0 scale-[0.99]' : ''
+      }`}
+    >
+      {displayChildren}
+    </div>
+  );
+}
 
 function NavEnhancer() {
   useEffect(() => {
@@ -152,7 +230,9 @@ export default function App({ Component, pageProps }) {
       {/* stylesheet moved to pages/_document.js */}
       <Layout>
         <NavEnhancer />
-        <Component {...pageProps} />
+        <PageTransition>
+          <Component {...pageProps} />
+        </PageTransition>
       </Layout>
     </>
   );

@@ -9,7 +9,7 @@ export const TimerControls = ({ isRunning, isPaused, onToggle, onReset }) => {
       <button
         onClick={onToggle}
         className="w-16 h-16 rounded-full bg-indigo-600 hover:bg-indigo-700 
-                   text-white shadow-lg hover:shadow-xl transition-all duration-200
+                   text-white shadow-lg shadow-indigo-500/20 hover:shadow-xl transition-all duration-200
                    flex items-center justify-center group active:scale-95"
         aria-label={isRunning && !isPaused ? 'Pause timer' : 'Start timer'}
       >

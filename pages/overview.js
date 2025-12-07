@@ -7,9 +7,6 @@ import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
-import HeroSection from '@/components/overview/HeroSection';
-import RecentTasks from '@/components/overview/RecentTasks';
-import TodaysSchedule from '@/components/overview/TodaysSchedule';
 import HygraphSidebar from '@/components/HygraphSidebar';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 
@@ -1448,534 +1445,416 @@ export default function UniversityOverview() {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PRESENTATIONAL COMPONENTS (inline for simplicity)
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  // KPI Stat Card - matches landing page metric style
+  const OverviewStatCard = ({ icon: Icon, label, value, caption, statusChip, bgColor, iconColor, loading: isLoading }) => (
+    <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg dark:hover:shadow-purple-900/10">
+      <div className="flex items-start justify-between gap-3">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bgColor} transition-transform duration-200 group-hover:scale-105`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} strokeWidth={2} />
+        </div>
+        <div className="text-right flex-1 min-w-0">
+          {isLoading ? (
+            <div className="h-9 w-16 ml-auto bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
+          ) : (
+            <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              {value}
+            </p>
+          )}
+          {caption && !isLoading && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{caption}</p>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          {label}
+        </p>
+        {statusChip && !isLoading && statusChip}
+      </div>
+    </div>
+  );
+
+  // Section Card wrapper - consistent with landing page card styling
+  const OverviewSectionCard = ({ icon: Icon, title, subtitle, action, children, className = '' }) => (
+    <div className={`bg-white dark:bg-[#12121a] rounded-2xl border border-gray-200/60 dark:border-white/5 shadow-sm overflow-hidden ${className}`}>
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-white/5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-900/10 rounded-xl">
+              <Icon className="w-4 h-4 text-purple-600 dark:text-purple-400" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+              {subtitle && <p className="text-[11px] text-gray-500 dark:text-gray-400">{subtitle}</p>}
+            </div>
+          </div>
+          {action}
+        </div>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+
+  // Get greeting and status line
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getStatusLine = () => {
+    const pendingCount = visibleUpcomingDeadlines.length;
+    const nextClass = todayClasses.find(cls => cls.startTs && cls.startTs > Date.now());
+    
+    if (nextClass) {
+      const diffMs = nextClass.startTs - Date.now();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      if (diffMins < 60) return `Next class in ${diffMins}min • ${nextClass.code || nextClass.name}`;
+      return `Next: ${nextClass.code || nextClass.name} at ${nextClass.startTime}`;
+    }
+    if (pendingCount === 0) return "You're all caught up! Time to relax.";
+    if (pendingCount === 1) return "1 task pending today";
+    return `${pendingCount} tasks pending`;
+  };
+
+  // GPA status chip
+  const getGpaStatusChip = () => {
+    if (stats.gpa === null) return null;
+    if (stats.gpa >= 3.5) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+        <CheckCircle className="w-3 h-3" /> On Track
+      </span>
+    );
+    if (stats.gpa >= 2.5) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+        <AlertCircle className="w-3 h-3" /> Needs Focus
+      </span>
+    );
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+        <AlertTriangle className="w-3 h-3" /> At Risk
+      </span>
+    );
+  };
+
+  // Attendance status chip
+  const getAttendanceStatusChip = () => {
+    if (stats.attendanceRate === null) return null;
+    if (stats.attendanceRate >= 90) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+        <CheckCircle className="w-3 h-3" /> Excellent
+      </span>
+    );
+    if (stats.attendanceRate >= 75) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+        Good
+      </span>
+    );
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+        <AlertTriangle className="w-3 h-3" /> Needs Attention
+      </span>
+    );
+  };
+
   return (
     <HygraphSidebar pageName="Overview">
       <Head>
         <title>Overview — StraturaOS</title>
       </Head>
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0f]">
       
       {/* Main container with max-width */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         
-        {/* Hero Section */}
-        <HeroSection 
-          userName={userName}
-          tasksInProgress={upcomingDeadlines.filter(d => !completedDeadlines.has(String(d.id))).length}
-          onViewTasks={() => router.push('/tasks')}
-        />
-
-        {/* Academic Overview - Detailed */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm p-4 sm:p-6 mb-6">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Academic Overview</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your academic performance</p>
-            </div>
-            <Link href="/grades" prefetch={true}>
-              <button className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-3 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                View Details
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </Link>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            HERO SUMMARY BAND - Command Center Header
+            ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 dark:from-purple-700 dark:via-purple-800 dark:to-purple-900 p-6 sm:p-8 mb-6 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/2" />
+            <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2" />
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {/* GPA - Horizontal Layout */}
-            <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-gray-200/60 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-3">
-                {/* Icon left */}
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <Award className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                {/* Number right */}
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {loading ? '...' : stats.gpa !== null ? stats.gpa.toFixed(2) : 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">/ 4.0</p>
-                </div>
-              </div>
-              {/* Label below */}
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Current GPA</p>
-            </div>
 
-            {/* Credits - Horizontal Layout */}
-            <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-gray-200/60 dark:border-slate-700/60">
-              <div className="flex items-start justify-between mb-3">
-                {/* Icon left */}
-                <div className="p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                {/* Number right */}
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {loading ? '...' : stats.credits !== null ? stats.credits : 'N/A'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{courses.length} {courses.length === 1 ? 'module' : 'modules'}</p>
-                </div>
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            {/* Left: Greeting & Status */}
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full mb-4">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs font-medium text-white/90">Welcome back</span>
               </div>
-              
-              {/* Label */}
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Credits Enrolled</p>
-            </div>
-
-            {/* Attendance - Horizontal Layout */}
-            <div className="bg-white dark:bg-slate-800/50 rounded-xl p-5 border border-gray-200/60 dark:border-slate-700/60">
-              <div className="flex items-center justify-between mb-3">
-                {/* Icon left */}
-                <div className="p-2.5 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                {/* Number right */}
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {loading ? '...' : stats.attendanceRate !== null ? `${Math.round(stats.attendanceRate)}%` : 'N/A'}
-                  </p>
-                  {!loading && stats.attendanceRate !== null && stats.attendanceRate >= 90 && (
-                    <p className="text-xs text-green-600 dark:text-green-400">On Track</p>
-                  )}
-                </div>
-              </div>
-              {/* Label below */}
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Attendance Rate</p>
-            </div>
-          </div>
-          
-          {!loading && stats.gpa === null && showGpaTip && (
-            <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
-              <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-700 dark:text-amber-300 flex-1">
-                <strong>Tip:</strong> Add grades to your assessments to see your GPA here.
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
+                {getGreeting()}, {userName}
+              </h1>
+              <p className="text-base sm:text-lg text-white/80 font-medium">
+                {getStatusLine()}
               </p>
-              <button 
-                onClick={dismissGpaTip}
-                className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
-                aria-label="Dismiss tip"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
             </div>
-          )}
+
+            {/* Right: Quick Action Pills */}
+            <div className="flex flex-wrap items-center gap-3">
+              {visibleUpcomingDeadlines.length > 0 && (
+                <button
+                  onClick={() => router.push('/tasks')}
+                  className="group flex items-center gap-3 px-5 py-3 bg-white/95 dark:bg-white/90 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02]"
+                >
+                  <div>
+                    <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Tasks Pending</p>
+                    <p className="text-2xl font-extrabold text-gray-900">{visibleUpcomingDeadlines.length}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition-transform duration-200" />
+                </button>
+              )}
+              {overdueList.length > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-red-500/20 backdrop-blur-sm rounded-xl border border-red-400/30">
+                  <AlertTriangle className="w-4 h-4 text-red-200" />
+                  <div>
+                    <p className="text-[10px] font-bold text-red-200 uppercase tracking-wider">Overdue</p>
+                    <p className="text-lg font-extrabold text-white">{overdueList.length}</p>
+                  </div>
+                </div>
+              )}
+              {overdueList.length === 0 && visibleUpcomingDeadlines.length === 0 && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/20 backdrop-blur-sm rounded-xl border border-emerald-400/30">
+                  <CheckCircle className="w-4 h-4 text-emerald-200" />
+                  <span className="text-sm font-semibold text-white">All caught up!</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Main Content Grid: 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          
-          {/* LEFT COLUMN: Today's Schedule + Tasks */}
-          <div className="space-y-6">
-            <TodaysSchedule
-              events={events}
-              currentDate={currentDate}
-              onViewDetails={(event) => console.log('View event:', event)}
-            />
-          
-            {/* TASKS CARD */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-              {/* Consistent header styling */}
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" strokeWidth={2} />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Tasks</h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {visibleUpcomingDeadlines.length} pending
-                      </p>
-                    </div>
-                  </div>
-                  <Link href="/tasks" prefetch={true}>
-                    <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
-                      View All →
-                    </button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="p-4">
-
-              {visibleUpcomingDeadlines.length > 0 ? (
-                  <div className="space-y-2">
-                    {visibleUpcomingDeadlines.slice(0, 4).map((deadline, index) => {
-                      // Use embedded course data from the event, fallback to lookup
-                      const lookupCourse = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
-                      const displayCourseName = deadline.courseCode || deadline.courseName || lookupCourse?.code || lookupCourse?.name || '';
-                      const courseColor = deadline.courseColor || lookupCourse?.color || getCourseColor(lookupCourse, index);
-                      const dueDate = new Date(deadline.due || deadline.date);
-                      const now = new Date();
-                      const isOverdue = dueDate < now;
-                      const diffMs = dueDate - now;
-                      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                      
-                      // Priority configuration with softer colors
-                      const priorityConfig = {
-                        'urgent-important': { 
-                          label: 'Do First', 
-                          color: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400',
-                          Icon: AlertCircle
-                        },
-                        'not-urgent-important': { 
-                          label: 'Schedule', 
-                          color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
-                          Icon: Target
-                        },
-                        'urgent-not-important': { 
-                          label: 'Delegate', 
-                          color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
-                          Icon: Clock
-                        },
-                        'not-urgent-not-important': { 
-                          label: 'Low Priority', 
-                          color: 'bg-gray-50 dark:bg-gray-800/20 text-gray-600 dark:text-gray-400',
-                          Icon: FileText
-                        },
-                      };
-                      
-                      const priority = priorityConfig[deadline.priority] || priorityConfig['not-urgent-not-important'];
-                      const PriorityIcon = priority.Icon;
-                      
-                      // Time display
-                      let timeText = '';
-                      let timeColor = 'text-gray-600 dark:text-gray-400';
-                      let urgencyBadge = null;
-                      
-                      if (isOverdue) {
-                        const overdueDays = Math.abs(diffDays);
-                        timeText = '';
-                        timeColor = 'text-red-600 dark:text-red-400 font-semibold';
-                        urgencyBadge = (
-                          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500 text-white rounded-md font-bold text-xs uppercase tracking-wide shadow-sm">
-                            <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
-                            Overdue
-                          </span>
-                        );
-                      } else if (diffDays === 0) {
-                        if (diffHours < 3) {
-                          timeText = `Due in ${diffHours} ${diffHours === 1 ? 'hour' : 'hours'}`;
-                          timeColor = 'text-red-600 dark:text-red-400 font-semibold';
-                        } else {
-                          timeText = 'Due today';
-                          timeColor = 'text-orange-600 dark:text-orange-400 font-semibold';
-                        }
-                        urgencyBadge = (
-                          <span className="px-2.5 py-1 bg-orange-500 text-white rounded-md font-bold text-xs uppercase tracking-wide shadow-sm">
-                            Today
-                          </span>
-                        );
-                      } else if (diffDays === 1) {
-                        timeText = 'Due tomorrow';
-                        timeColor = 'text-yellow-600 dark:text-yellow-400 font-medium';
-                      } else if (diffDays <= 3) {
-                        timeText = `Due in ${diffDays} days`;
-                        timeColor = 'text-yellow-600 dark:text-yellow-400 font-medium';
-                      } else if (diffDays <= 7) {
-                        timeText = `Due in ${diffDays} days`;
-                        timeColor = 'text-blue-600 dark:text-blue-400';
-                      } else {
-                        timeText = dueDate.toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: dueDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-                        });
-                        timeColor = 'text-gray-600 dark:text-gray-400';
-                      }
-                      
-                      const isChecked = completedDeadlines.has(String(deadline.id));
-                      
-                      const handleCheckTask = async () => {
-                        const taskId = String(deadline.id);
-                        const willBeChecked = !isChecked;
-                        
-                        // Optimistic update
-                        setCompletedDeadlines(prev => {
-                          const next = new Set(prev);
-                          if (willBeChecked) {
-                            next.add(taskId);
-                          } else {
-                            next.delete(taskId);
-                          }
-                          return next;
-                        });
-                        
-                        // Update completedAtMap
-                        if (willBeChecked) {
-                          setCompletedAtMap(prev => ({ ...prev, [taskId]: new Date().toISOString() }));
-                        } else {
-                          setCompletedAtMap(prev => {
-                            const next = { ...prev };
-                            delete next[taskId];
-                            return next;
-                          });
-                        }
-                        
-                        try {
-                          const body = { completed: willBeChecked };
-                          if (willBeChecked) {
-                            body.completedAt = new Date().toISOString();
-                          } else {
-                            body.completedAt = null;
-                          }
-                          
-                          const response = await fetch(`/api/events/${deadline.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body)
-                          });
-                          
-                          if (response.ok) {
-                            const json = await response.json();
-                            const updatedEvent = json.event || json;
-                            
-                            // Update the events array with the new completed status
-                            setEvents(prev => prev.map(e => 
-                              String(e.id) === taskId ? { ...e, completed: willBeChecked } : e
-                            ));
-                            
-                            showToast(willBeChecked ? 'Task completed!' : 'Task uncompleted', 'success');
-                          } else {
-                            // Revert on failure
-                            setCompletedDeadlines(prev => {
-                              const next = new Set(prev);
-                              if (willBeChecked) {
-                                next.delete(taskId);
-                              } else {
-                                next.add(taskId);
-                              }
-                              return next;
-                            });
-                            setCompletedAtMap(prev => {
-                              if (!willBeChecked) {
-                                return { ...prev, [taskId]: new Date().toISOString() };
-                              }
-                              const next = { ...prev };
-                              delete next[taskId];
-                              return next;
-                            });
-                            showToast('Failed to update task', 'error');
-                          }
-                        } catch (error) {
-                          console.error('Error updating task:', error);
-                          // Revert on error
-                          setCompletedDeadlines(prev => {
-                            const next = new Set(prev);
-                            if (willBeChecked) {
-                              next.delete(taskId);
-                            } else {
-                              next.add(taskId);
-                            }
-                            return next;
-                          });
-                          setCompletedAtMap(prev => {
-                            if (!willBeChecked) {
-                              return { ...prev, [taskId]: new Date().toISOString() };
-                            }
-                            const next = { ...prev };
-                            delete next[taskId];
-                            return next;
-                          });
-                          showToast('Failed to update task', 'error');
-                        }
-                      };
-                      
-                      // Get type icon for visual distinction
-                      const typeConfig = getTaskTypeConfig(deadline.type);
-                      const TypeIcon = typeConfig.Icon;
-                      
-                      return (
-                        <div 
-                          key={deadline.id} 
-                          onClick={() => router.push(`/tasks?openTask=${deadline.id}`)}
-                          className={`group relative cursor-pointer overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 ${
-                            isChecked ? 'opacity-60' : ''
-                          }`}
-                        >
-                          {/* Course color indicator */}
-                          <span 
-                            className="pointer-events-none absolute inset-y-2.5 left-2 w-[3px] rounded-full" 
-                            style={{ background: courseColor }} 
-                          />
-                          <div className="flex items-start gap-2.5 pl-3">
-                            {/* Checkbox */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleCheckTask(); }}
-                              className={`flex-shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-200 ${
-                                isChecked 
-                                  ? 'border-purple-400 dark:border-purple-600 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400' 
-                                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:border-purple-300 dark:hover:border-purple-600'
-                              }`}
-                            >
-                              <Check className="w-3 h-3" strokeWidth={2.5} />
-                            </button>
-                            
-                            {/* Content */}
-                            <div className="flex flex-1 flex-col gap-1.5">
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="h-2 w-2 rounded-full" style={{ background: courseColor }} aria-hidden />
-                                  <p className={`text-sm font-medium leading-tight ${isChecked ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>
-                                    {deadline.title}
-                                  </p>
-                                </div>
-                                {/* Time indicator */}
-                                {urgencyBadge ? (
-                                  <span className="px-1.5 py-0.5 bg-red-500 text-white rounded text-[10px] font-bold uppercase">
-                                    {isOverdue ? 'Late' : 'Today'}
-                                  </span>
-                                ) : (
-                                  <span className={`text-[10px] font-medium uppercase tracking-wide ${timeColor}`}>{timeText}</span>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                {/* Course pill */}
-                                {displayCourseName && (
-                                  <span 
-                                    className="flex items-center gap-1 rounded px-2 py-0.5 font-medium bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300"
-                                  >
-                                    {displayCourseName}
-                                  </span>
-                                )}
-                                {/* Tags */}
-                                {deadline.tags?.slice(0, 2).map((tag) => (
-                                  <span 
-                                    key={tag} 
-                                    className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    
-                    {/* "More tasks" indicator if there are more */}
-                    {visibleUpcomingDeadlines.length > 4 && (
-                      <Link href="/tasks" prefetch={true}>
-                        <button className="w-full py-2 text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
-                          + {visibleUpcomingDeadlines.length - 4} more tasks
-                        </button>
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">All caught up!</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">No pending deadlines</p>
-                    
-                    {/* 2x2 Action Button Grid */}
-                    <div className="max-w-md mx-auto">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-                        What to do next
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Link href="/timetable" prefetch={true}>
-                          <button className="w-full h-8 flex items-center justify-center gap-1.5 border border-gray-200 dark:border-slate-700 rounded-lg hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-xs font-medium text-gray-700 dark:text-gray-300">
-                            <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                            Schedule
-                          </button>
-                        </Link>
-                        <button 
-                          onClick={openCreateEventModal}
-                          className="w-full h-8 flex items-center justify-center gap-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-xs font-medium text-white"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add Task
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* ═══════════════════════════════════════════════════════════════════════
+            KPI ROW - 3 Stat Cards
+            ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <OverviewStatCard
+            icon={Award}
+            label="Current GPA"
+            value={stats.gpa !== null ? stats.gpa.toFixed(2) : '—'}
+            caption="/ 4.0 scale"
+            statusChip={getGpaStatusChip()}
+            bgColor="bg-blue-50 dark:bg-blue-900/20"
+            iconColor="text-blue-600 dark:text-blue-400"
+            loading={loading}
+          />
+          <OverviewStatCard
+            icon={BookOpen}
+            label="Credits Enrolled"
+            value={stats.credits !== null ? stats.credits : '—'}
+            caption={`${courses.length} ${courses.length === 1 ? 'module' : 'modules'}`}
+            bgColor="bg-purple-50 dark:bg-purple-900/20"
+            iconColor="text-purple-600 dark:text-purple-400"
+            loading={loading}
+          />
+          <OverviewStatCard
+            icon={CheckCircle}
+            label="Attendance"
+            value={stats.attendanceRate !== null ? `${Math.round(stats.attendanceRate)}%` : '—'}
+            caption="This semester"
+            statusChip={getAttendanceStatusChip()}
+            bgColor="bg-emerald-50 dark:bg-emerald-900/20"
+            iconColor="text-emerald-600 dark:text-emerald-400"
+            loading={loading}
+          />
+        </div>
+        
+        {/* GPA Tip - only show when needed */}
+        {!loading && stats.gpa === null && showGpaTip && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-xl flex items-start gap-3">
+            <Lightbulb className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-700 dark:text-amber-300 flex-1">
+              <strong>Tip:</strong> Add grades to your assessments to see your GPA calculated here.
+            </p>
+            <button 
+              onClick={dismissGpaTip}
+              className="text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors p-1"
+              aria-label="Dismiss tip"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
           </div>
+        )}
 
-          {/* RIGHT COLUMN: This Week Navigator */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200/60 dark:border-slate-800/60 shadow-sm overflow-hidden">
-              {/* Consistent header styling */}
-              <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">This Week</h3>
-                  </div>
-                  <Link href="/calendar" prefetch={true}>
-                    <button className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-3 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                      Calendar →
-                    </button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="p-4">
+        {/* ═══════════════════════════════════════════════════════════════════════
+            MAIN CONTENT GRID - Two Columns
+            ═══════════════════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-            {/* Week Navigator */}
-            <div className="grid grid-cols-7 gap-1.5 mb-4">
-                  {weekDays.map((day, i) => {
-                    const dayDate = new Date(startOfWeek);
-                    dayDate.setDate(dayDate.getDate() + i);
-                    const isToday = dayDate.toDateString() === currentDate.toDateString();
-                    const dayEvents = events.filter(e => {
-                      if (!e || !e.startDate) return false;
-                      const eventDate = new Date(e.startDate);
-                      return eventDate.toDateString() === dayDate.toDateString();
-                    });
-                    const hasClasses = dayEvents.some(e => ['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes((e.type || '').toLowerCase()));
+          {/* ─────────────────────────────────────────────────────────────────────
+              LEFT COLUMN: Today's Schedule + This Week Strip
+              ───────────────────────────────────────────────────────────────────── */}
+          <div className="space-y-6">
+            
+            {/* Today's Schedule Card */}
+            <OverviewSectionCard
+              icon={Clock}
+              title="Today's Schedule"
+              subtitle={`${todayClasses.length} ${todayClasses.length === 1 ? 'class' : 'classes'} today`}
+              action={
+                <Link href="/schedule" prefetch={true}>
+                  <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                    Full Schedule →
+                  </button>
+                </Link>
+              }
+            >
+              {todayClasses.length > 0 ? (
+                <div className="space-y-2">
+                  {todayClasses.slice(0, 5).map((cls, idx) => {
+                    const isNow = cls.startTs && cls.endTs && Date.now() >= cls.startTs && Date.now() <= cls.endTs;
+                    const isPast = cls.endTs && Date.now() > cls.endTs;
+                    const courseData = courses.find(c => String(c.id) === String(cls.course_id));
+                    const color = getCourseColor(courseData, idx);
                     
                     return (
-                      <button
-                        key={day}
-                        className={`flex flex-col items-center justify-center py-2.5 rounded-lg transition-all relative border-2 ${
-                          isToday 
-                            ? 'bg-purple-600 text-white shadow-sm border-purple-700' 
-                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 hover:border-purple-300 dark:hover:border-purple-700'
+                      <div
+                        key={cls.id || idx}
+                        className={`group relative flex items-center gap-4 p-3.5 rounded-xl border transition-all duration-200 ${
+                          isNow 
+                            ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700 shadow-sm' 
+                            : isPast 
+                              ? 'bg-gray-50 dark:bg-slate-800/30 border-gray-100 dark:border-slate-800 opacity-60' 
+                              : 'bg-gray-50 dark:bg-slate-800/50 border-gray-100 dark:border-slate-700/50 hover:border-purple-200 dark:hover:border-purple-800'
                         }`}
                       >
-                        <span className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${
-                          isToday ? 'text-purple-200' : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {day}
-                        </span>
-                        <span className={`text-lg font-bold ${
-                          isToday ? 'text-white' : 'text-gray-900 dark:text-white'
-                        }`}>
-                          {dayDate.getDate()}
-                        </span>
+                        {/* Color indicator */}
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full" style={{ background: color }} />
                         
-                        {/* Event Indicator */}
-                        {hasClasses && (
-                          <div className="absolute bottom-1 w-1.5 h-1.5 rounded-full" style={{
-                            backgroundColor: isToday ? 'white' : '#9333EA'
-                          }}></div>
-                        )}
-                      </button>
+                        {/* Time */}
+                        <div className="flex-shrink-0 text-center min-w-[60px]">
+                          <p className={`text-sm font-bold ${isNow ? 'text-purple-700 dark:text-purple-300' : 'text-gray-900 dark:text-white'}`}>
+                            {cls.startTime}
+                          </p>
+                          {cls.endTime && (
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">{cls.endTime}</p>
+                          )}
+                        </div>
+                        
+                        {/* Divider */}
+                        <div className="w-px h-10 bg-gray-200 dark:bg-slate-700" />
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {cls.code && (
+                              <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">
+                                {cls.code}
+                              </span>
+                            )}
+                            {isNow && (
+                              <span className="px-2 py-0.5 bg-purple-600 text-white rounded text-[10px] font-bold uppercase animate-pulse">
+                                Now
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-sm font-medium truncate mt-1 ${isPast ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                            {cls.name}
+                          </p>
+                          {cls.location && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" /> {cls.location}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-                
-                <div className="border-t border-gray-200 dark:border-slate-700 my-4"></div>
-                
-                {/* Week Summary */}
-                <div className="space-y-4">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Week Summary
+              ) : (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+                    <CalendarOff className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No classes today</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {tomorrowFirstClass 
+                      ? `Tomorrow: ${tomorrowFirstClass.code || tomorrowFirstClass.name} at ${tomorrowFirstClass.time}` 
+                      : 'Enjoy your free day!'}
                   </p>
+                </div>
+              )}
+            </OverviewSectionCard>
+
+            {/* This Week Strip Card */}
+            <OverviewSectionCard
+              icon={Calendar}
+              title="This Week"
+              subtitle={`${weekClassesCount} classes scheduled`}
+              action={
+                <Link href="/calendar" prefetch={true}>
+                  <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                    Calendar →
+                  </button>
+                </Link>
+              }
+            >
+              {/* Week Navigator - 7 Day Strip */}
+              <div className="grid grid-cols-7 gap-1.5 mb-5">
+                {weekDays.map((day, i) => {
+                  const dayDate = new Date(startOfWeek);
+                  dayDate.setDate(dayDate.getDate() + i);
+                  const isToday = dayDate.toDateString() === currentDate.toDateString();
+                  const isPast = dayDate < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+                  const dayEvents = events.filter(e => {
+                    if (!e || !e.startDate) return false;
+                    const eventDate = new Date(e.startDate);
+                    return eventDate.toDateString() === dayDate.toDateString();
+                  });
+                  const hasClasses = dayEvents.some(e => ['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes((e.type || '').toLowerCase()));
+                  const hasDeadlines = dayEvents.some(e => ['deadline', 'assignment', 'exam', 'quiz'].includes((e.type || '').toLowerCase()));
                   
-                  {/* Classes Progress */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">Classes</span>
-                      <span className="font-bold text-gray-900 dark:text-white">{(() => {
+                  return (
+                    <button
+                      key={day}
+                      className={`relative flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-200 ${
+                        isToday 
+                          ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/20 scale-105' 
+                          : isPast
+                            ? 'bg-gray-50 dark:bg-slate-800/30 text-gray-400 dark:text-gray-500'
+                            : 'bg-gray-50 dark:bg-slate-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-gray-100 dark:border-slate-700'
+                      }`}
+                    >
+                      <span className={`text-[10px] font-bold uppercase tracking-wider mb-0.5 ${
+                        isToday ? 'text-purple-200' : isPast ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {day}
+                      </span>
+                      <span className={`text-lg font-extrabold ${
+                        isToday ? 'text-white' : isPast ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'
+                      }`}>
+                        {dayDate.getDate()}
+                      </span>
+                      
+                      {/* Activity indicators */}
+                      <div className="flex items-center gap-0.5 mt-1.5 h-1.5">
+                        {hasClasses && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-white' : 'bg-purple-500'}`} />
+                        )}
+                        {hasDeadlines && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-amber-300' : 'bg-amber-500'}`} />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Week Summary Stats */}
+              <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4">
+                {/* Classes Progress */}
+                <div>
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">Classes attended</span>
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {(() => {
                         const endOfWeek = new Date(startOfWeek);
                         endOfWeek.setDate(endOfWeek.getDate() + 7);
                         const attended = events.filter(e => {
@@ -1988,78 +1867,275 @@ export default function UniversityOverview() {
                           return isThisWeek && isPast;
                         }).length;
                         return attended;
-                      })()}/{weekClassesCount}</span>
-                    </div>
-                    <div className="h-2.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-purple-600 dark:bg-purple-500" 
-                        style={{ width: `${weekClassesCount > 0 ? (((() => {
-                          const endOfWeek = new Date(startOfWeek);
-                          endOfWeek.setDate(endOfWeek.getDate() + 7);
-                          return events.filter(e => {
-                            if (!e || !e.startDate) return false;
-                            const t = (e.type || '').toLowerCase();
-                            if (!['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes(t)) return false;
-                            const d = new Date(e.startDate);
-                            const isThisWeek = d >= startOfWeek && d < endOfWeek;
-                            const isPast = e.endDate ? new Date(e.endDate) < currentDate : d < currentDate;
-                            return isThisWeek && isPast;
-                          }).length;
-                        })() / weekClassesCount) * 100) : 0}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{(() => {
-                      const endOfWeek = new Date(startOfWeek);
-                      endOfWeek.setDate(endOfWeek.getDate() + 7);
-                      const remaining = events.filter(e => {
-                        if (!e || !e.startDate) return false;
-                        const t = (e.type || '').toLowerCase();
-                        if (!['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes(t)) return false;
-                        const d = new Date(e.startDate);
-                        return d >= startOfWeek && d < endOfWeek && d >= currentDate;
-                      }).length;
-                      return remaining;
-                    })()} remaining this week</p>
+                      })()}/{weekClassesCount}
+                    </span>
                   </div>
-                  
-                  {/* Assignments */}
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Assignments</span>
-                    {assignmentsDueCount === 0 ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded">
-                        <Check className="w-3 h-3" />
-                        All caught up!
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold text-gray-900 dark:text-white">{assignmentsDueCount} due</span>
-                    )}
-                  </div>
-                  
-                  {/* Study Hours */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">Study Hours</span>
-                      <span className="font-bold text-gray-900 dark:text-white">{(Number(studyHoursLogged) || 0).toFixed(1)}h / 20h</span>
-                    </div>
-                    <div className="h-2.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600" 
-                        style={{ width: `${(studyHoursLogged / 20) * 100}%` }}
-                      ></div>
-                    </div>
-                    <Link href="/focus" prefetch={true}>
-                      <button className="w-full mt-2 flex items-center justify-between px-3 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors">
-                        <div className="flex items-center gap-2">
-                          <Timer className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm font-medium">Start Focus</span>
-                        </div>
-                        <ArrowRight className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                      </button>
-                    </Link>
+                  <div className="h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500" 
+                      style={{ width: `${weekClassesCount > 0 ? (((() => {
+                        const endOfWeek = new Date(startOfWeek);
+                        endOfWeek.setDate(endOfWeek.getDate() + 7);
+                        return events.filter(e => {
+                          if (!e || !e.startDate) return false;
+                          const t = (e.type || '').toLowerCase();
+                          if (!['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes(t)) return false;
+                          const d = new Date(e.startDate);
+                          const isThisWeek = d >= startOfWeek && d < endOfWeek;
+                          const isPast = e.endDate ? new Date(e.endDate) < currentDate : d < currentDate;
+                          return isThisWeek && isPast;
+                        }).length;
+                      })() / weekClassesCount) * 100) : 0}%` }}
+                    />
                   </div>
                 </div>
+                
+                {/* Focus Hours */}
+                <div>
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="text-gray-600 dark:text-gray-300 font-medium">Focus time</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{(Number(studyHoursLogged) || 0).toFixed(1)}h</span>
+                  </div>
+                  <Link href="/focus" prefetch={true}>
+                    <button className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-900/10 border border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-400 hover:from-purple-100 hover:to-purple-100 dark:hover:from-purple-900/30 dark:hover:to-purple-900/20 rounded-xl transition-all duration-200 group">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-200/50 dark:bg-purple-800/30 rounded-lg">
+                          <Timer className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <span className="text-sm font-semibold">Start Focus Session</span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </Link>
+                </div>
               </div>
-            </div>
+            </OverviewSectionCard>
+          </div>
+
+          {/* ─────────────────────────────────────────────────────────────────────
+              RIGHT COLUMN: Upcoming Deadlines + Focus Summary
+              ───────────────────────────────────────────────────────────────────── */}
+          <div className="space-y-6">
+            
+            {/* Upcoming Deadlines Card */}
+            <OverviewSectionCard
+              icon={Target}
+              title="Upcoming Deadlines"
+              subtitle={`${visibleUpcomingDeadlines.length} pending`}
+              action={
+                <Link href="/tasks" prefetch={true}>
+                  <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                    All Tasks →
+                  </button>
+                </Link>
+              }
+              className="max-h-[600px] flex flex-col"
+            >
+              <div className="flex-1 overflow-y-auto -mx-4 px-4 custom-scrollbar">
+
+              {visibleUpcomingDeadlines.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {visibleUpcomingDeadlines.slice(0, 6).map((deadline, index) => {
+                      const lookupCourse = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
+                      const displayCourseName = deadline.courseCode || deadline.courseName || lookupCourse?.code || lookupCourse?.name || '';
+                      const courseColor = deadline.courseColor || lookupCourse?.color || getCourseColor(lookupCourse, index);
+                      const dueDate = new Date(deadline.due || deadline.date);
+                      const now = new Date();
+                      const isOverdue = dueDate < now;
+                      const diffMs = dueDate - now;
+                      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                      const isChecked = completedDeadlines.has(String(deadline.id));
+                      
+                      // Urgency styling
+                      const urgency = getUrgencyLevel(deadline.due || deadline.date);
+                      const urgencyStyles = URGENCY_COLORS[urgency] || URGENCY_COLORS.normal;
+                      
+                      // Time display
+                      const timeText = getTimeUntilText(deadline.due || deadline.date);
+                      
+                      const handleCheckTask = async () => {
+                        const taskId = String(deadline.id);
+                        const willBeChecked = !isChecked;
+                        setCompletedDeadlines(prev => {
+                          const next = new Set(prev);
+                          if (willBeChecked) next.add(taskId);
+                          else next.delete(taskId);
+                          return next;
+                        });
+                        if (willBeChecked) {
+                          setCompletedAtMap(prev => ({ ...prev, [taskId]: new Date().toISOString() }));
+                        } else {
+                          setCompletedAtMap(prev => { const next = { ...prev }; delete next[taskId]; return next; });
+                        }
+                        try {
+                          const body = { completed: willBeChecked, completedAt: willBeChecked ? new Date().toISOString() : null };
+                          const response = await fetch(`/api/events/${deadline.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body)
+                          });
+                          if (response.ok) {
+                            setEvents(prev => prev.map(e => String(e.id) === taskId ? { ...e, completed: willBeChecked } : e));
+                            showToast(willBeChecked ? 'Task completed!' : 'Task uncompleted', 'success');
+                          } else {
+                            setCompletedDeadlines(prev => { const next = new Set(prev); if (willBeChecked) next.delete(taskId); else next.add(taskId); return next; });
+                            showToast('Failed to update task', 'error');
+                          }
+                        } catch (error) {
+                          setCompletedDeadlines(prev => { const next = new Set(prev); if (willBeChecked) next.delete(taskId); else next.add(taskId); return next; });
+                          showToast('Failed to update task', 'error');
+                        }
+                      };
+                      
+                      const typeConfig = getTaskTypeConfig(deadline.type);
+                      const TypeIcon = typeConfig.Icon;
+                      
+                      return (
+                        <div 
+                          key={deadline.id}
+                          onClick={() => router.push(`/tasks?openTask=${deadline.id}`)}
+                          className={`group relative cursor-pointer rounded-xl border transition-all duration-200 hover:shadow-md ${
+                            isChecked 
+                              ? 'bg-gray-50 dark:bg-slate-800/30 border-gray-100 dark:border-slate-800 opacity-60' 
+                              : `${urgencyStyles.bg} ${urgencyStyles.border}`
+                          }`}
+                        >
+                          {/* Course color accent */}
+                          <span className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full" style={{ background: courseColor }} />
+                          
+                          <div className="p-3.5 pl-4">
+                            <div className="flex items-start gap-3">
+                              {/* Checkbox */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCheckTask(); }}
+                                className={`flex-shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                                  isChecked 
+                                    ? 'border-purple-500 bg-purple-500 text-white' 
+                                    : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400'
+                                }`}
+                              >
+                                {isChecked && <Check className="w-3 h-3" strokeWidth={3} />}
+                              </button>
+                              
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <p className={`text-sm font-semibold leading-tight ${isChecked ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                    {deadline.title}
+                                  </p>
+                                  {/* Urgency badge */}
+                                  <span className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${urgencyStyles.badge}`}>
+                                    {timeText}
+                                  </span>
+                                </div>
+                                
+                                {/* Meta row */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {/* Type icon */}
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${typeConfig.bgColor}`}>
+                                    <TypeIcon className={`w-3 h-3 ${typeConfig.color}`} />
+                                    <span className={`text-[10px] font-semibold uppercase ${typeConfig.color}`}>{deadline.type}</span>
+                                  </span>
+                                  
+                                  {/* Course */}
+                                  {displayCourseName && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700/50 text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: courseColor }} />
+                                      {displayCourseName}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Due date */}
+                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                    {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {visibleUpcomingDeadlines.length > 6 && (
+                      <Link href="/tasks" prefetch={true}>
+                        <button className="w-full py-2.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-colors">
+                          View {visibleUpcomingDeadlines.length - 6} more tasks →
+                        </button>
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <div className="py-10 text-center">
+                    <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-900/10 flex items-center justify-center">
+                      <CheckCircle className="w-7 h-7 text-emerald-500 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">All caught up!</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">No pending deadlines. Great work!</p>
+                    
+                    <button 
+                      onClick={openQuickTaskModal}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all duration-200"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add New Task
+                    </button>
+                  </div>
+                )}
+              </div>
+            </OverviewSectionCard>
+
+            {/* Focus Summary Card */}
+            <OverviewSectionCard
+              icon={Flame}
+              title="Focus Summary"
+              subtitle="This week's productivity"
+              action={
+                <Link href="/focus" prefetch={true}>
+                  <button className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+                    Focus Mode →
+                  </button>
+                </Link>
+              }
+            >
+              <div className="space-y-4">
+                {/* Focus time stat */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-purple-200/50 dark:bg-purple-800/30 rounded-lg">
+                      <Timer className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-extrabold text-gray-900 dark:text-white">{(Number(studyHoursLogged) || 0).toFixed(1)}h</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">focused this week</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">Goal: 20h</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{Math.round((studyHoursLogged / 20) * 100)}% complete</p>
+                  </div>
+                </div>
+                
+                {/* Progress bar */}
+                <div>
+                  <div className="h-2.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500 transition-all duration-500 rounded-full" 
+                      style={{ width: `${Math.min((studyHoursLogged / 20) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                
+                {/* Quick start button */}
+                <Link href="/focus" prefetch={true}>
+                  <button className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl font-semibold text-sm shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 transition-all duration-200 group">
+                    <Flame className="w-4 h-4" />
+                    Start Focus Session
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </Link>
+              </div>
+            </OverviewSectionCard>
           </div>
         </div>
 
@@ -2068,32 +2144,35 @@ export default function UniversityOverview() {
       {/* Floating Action Button - Add Task */}
       <button
         onClick={openQuickTaskModal}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all z-40 group hover:scale-105"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-2xl shadow-xl shadow-purple-500/30 flex items-center justify-center transition-all z-40 group hover:scale-105 hover:shadow-purple-500/40"
         title="Add Task"
         aria-label="Add new task"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
-        <span className="absolute right-full mr-3 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg pointer-events-none">
+        <span className="absolute right-full mr-3 px-3 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-semibold rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg pointer-events-none">
           Add Task
         </span>
       </button>
       
-      {/* Toast Notification */}
       {/* Recently completed undo UI */}
       {recentlyCompleted && recentlyCompleted.length > 0 && (
-        <div className="fixed bottom-20 right-6 z-50 flex flex-col gap-2 items-end">
+        <div className="fixed bottom-24 right-6 z-50 flex flex-col gap-2 items-end">
           {recentlyCompleted.slice(0, 6).map(item => (
-            <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-lg">
-              <div className="text-sm text-slate-700 dark:text-slate-200 max-w-[220px] truncate">{item.title}</div>
-              <button onClick={() => undoRecentlyCompleted(item.id)} className="text-sm font-semibold text-blue-600 dark:text-blue-400">Undo</button>
+            <div key={item.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white dark:bg-[#12121a] border border-gray-200 dark:border-white/10 shadow-lg backdrop-blur-sm">
+              <CheckCircle className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[180px] truncate">{item.title}</span>
+              <button onClick={() => undoRecentlyCompleted(item.id)} className="text-sm font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
+                Undo
+              </button>
             </div>
           ))}
         </div>
       )}
 
+      {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg backdrop-blur-sm border ${
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
+          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl backdrop-blur-sm border ${
             toast.type === 'success' 
               ? 'bg-emerald-500/95 border-emerald-400 text-white' 
               : 'bg-red-500/95 border-red-400 text-white'
@@ -2103,7 +2182,7 @@ export default function UniversityOverview() {
             ) : (
               <XCircle className="w-5 h-5 flex-shrink-0" />
             )}
-            <p className="text-sm font-medium">{toast.message}</p>
+            <p className="text-sm font-semibold">{toast.message}</p>
           </div>
         </div>
       )}

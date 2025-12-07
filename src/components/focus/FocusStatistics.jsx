@@ -57,8 +57,8 @@ export const FocusStatistics = ({ stats }) => {
         ? `${Math.round((stats.totalSessions / stats.totalAttempted) * 100)}%` 
         : '—',
       icon: TrendingUp,
-      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-      textColor: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+      textColor: 'text-indigo-600 dark:text-indigo-400',
       subtitle: stats.totalInterrupted ? `${stats.totalInterrupted} interrupted` : 'No interrupts',
     },
   ];

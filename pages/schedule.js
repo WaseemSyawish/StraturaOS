@@ -5,10 +5,20 @@ import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../
 import dynamic from 'next/dynamic'
 import EditScopeModal from '@/components/Timetable/EditScopeModal';
 import { useRouter } from 'next/router';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, CalendarClock, Plus } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
 import { useReminders } from '../lib/useReminders';
 import HygraphSidebar from '@/components/HygraphSidebar';
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
+   ───────────────────────────────────────────────────────────── */
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 rounded-2xl mb-6',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/5 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+};
 
 function mapToSchedulerEvents(list) {
   if (!Array.isArray(list)) return []
@@ -206,6 +216,12 @@ const SchedulerProviderComp = dynamic(
 
 const SchedularViewComp = dynamic(
   () => import('@/components/schedule/_components/view/schedular-view-filteration').then((m) => m?.default || m?.SchedularView),
+  { ssr: false }
+)
+
+// New modern schedule container for improved UX
+const ModernScheduleContainer = dynamic(
+  () => import('@/components/schedule/_components/view/modern-schedule-container'),
   { ssr: false }
 )
 
@@ -705,7 +721,7 @@ export default function SchedulePage() {
 
   return (
     <HygraphSidebar pageName="Schedule">
-    <div className="schedule-root min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className={`schedule-root ${ds.pageBg}`}>
       <style jsx global>{`
         [data-nextui-dialog-backdrop], [data-nextui-dialog], .nextui-portal, .modal-portal, .modal-container, .modal-panel {
           z-index: 2147483647 !important;
@@ -729,14 +745,14 @@ export default function SchedulePage() {
         }
 
         html.dark .mina-scheduler-root {
-          background: #1e293b;
+          background: #12121a;
         }
         
         html.dark .mina-scheduler-root .scheduler-header,
         html.dark .mina-scheduler-root .scheduler-body,
         html.dark .mina-scheduler-root .calendar-cell {
-          background: #0f172a;
-          border-color: #334155;
+          background: #0a0a0f;
+          border-color: rgba(148, 163, 184, 0.1);
         }
 
         .mina-scheduler-root button,
@@ -777,18 +793,18 @@ export default function SchedulePage() {
         }
 
         html.dark .schedule-root ::-webkit-scrollbar-track {
-          background: #0f172a;
+          background: #0a0a0f;
           border-radius: 5px;
         }
 
         html.dark .schedule-root ::-webkit-scrollbar-thumb {
-          background: #334155;
+          background: #1e1e2d;
           border-radius: 5px;
-          border: 2px solid #0f172a;
+          border: 2px solid #0a0a0f;
         }
 
         html.dark .schedule-root ::-webkit-scrollbar-thumb:hover {
-          background: #475569;
+          background: #2d2d42;
         }
       `}</style>
 
@@ -797,27 +813,47 @@ export default function SchedulePage() {
       </Head>
 
       <main className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6">
+        {/* Simple page header - no hero banner */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-900/10 rounded-xl">
+              <CalendarClock className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Schedule</h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Manage your timetable & weekly events</p>
+            </div>
+          </div>
+          
+          {/* Smart Schedule Creator link */}
+          <button
+            onClick={() => router.push('/timetable-setup')}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            Smart Schedule Creator
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <div className="flex flex-col items-center gap-4">
               <div className="w-12 h-12 border-4 border-purple-600 dark:border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-gray-600 dark:text-slate-400">Loading scheduler...</p>
+              <p className="text-slate-600 dark:text-slate-400">Loading scheduler...</p>
             </div>
           </div>
-        ) : SchedulerProviderComp && SchedularViewComp ? (
-          <div className="mina-scheduler-root bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-slate-800 shadow-lg overflow-hidden">
-            <SchedulerProviderComp
-              initialState={events}
-              weekStartsOn={appWeekStartsOn}
-              onAddEvent={handleCreateEvent}
-              onUpdateEvent={handleUpdateEvent}
-              onDeleteEvent={handleDeleteEvent}
-              recurrenceOptions={recurrenceOptions}
-            >
-              <div style={{ minHeight: 600 }} className="p-2 sm:p-4 md:p-6">
-                <SchedularViewComp initialView={appDefaultView} events={events} views={{ views: ['day', 'week', 'month'], mobileViews: ['day', 'week', 'month'] }} />
-              </div>
-            </SchedulerProviderComp>
+        ) : SchedulerProviderComp && ModernScheduleContainer ? (
+          <SchedulerProviderComp
+            initialState={events}
+            weekStartsOn={appWeekStartsOn}
+            onAddEvent={handleCreateEvent}
+            onUpdateEvent={handleUpdateEvent}
+            onDeleteEvent={handleDeleteEvent}
+            recurrenceOptions={recurrenceOptions}
+          >
+            <ModernScheduleContainer 
+              initialView={appDefaultView}
+            />
             {/* Scope modal used when deleting a recurring event from timetable */}
             <EditScopeModal
               visible={showDeleteScope}
@@ -899,7 +935,7 @@ export default function SchedulePage() {
                 }
               }}
             />
-          </div>
+          </SchedulerProviderComp>
         ) : (
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-8 shadow-lg">
             <div className="text-center mb-8">

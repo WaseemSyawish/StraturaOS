@@ -121,13 +121,13 @@ export const TaskInput = ({ value, onChange, onTaskSelect, availableTasks = [], 
       {lastTask && !value && (
         <button
           onClick={() => handleTaskClick(lastTask)}
-          className="mb-3 w-full px-4 py-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20
+          className="mb-3 w-full px-4 py-3.5 bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-indigo-900/20 dark:to-indigo-900/20
                      border border-indigo-200 dark:border-indigo-700 rounded-xl
-                     hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/30 dark:hover:to-purple-900/30 
+                     hover:from-indigo-100 hover:to-indigo-100 dark:hover:from-indigo-900/30 dark:hover:to-indigo-900/30 
                      transition-all duration-200 text-left group shadow-sm"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-500 flex items-center justify-center shadow-md">
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -266,7 +266,7 @@ export const TaskInput = ({ value, onChange, onTaskSelect, availableTasks = [], 
                             task.type === 'exam' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
                             task.type === 'assignment' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
                             task.type === 'quiz' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
-                            task.type === 'project' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                            task.type === 'project' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' :
                             'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                           }`}>
                             {task.type}

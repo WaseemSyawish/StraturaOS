@@ -16,6 +16,8 @@ import { format } from 'date-fns';
 import { v4 as uuidv4 } from "uuid";
 import EditScopeModal from "@/components/Timetable/EditScopeModal";
 
+import { Flame, CalendarCheck, Zap, ClipboardList } from "lucide-react";
+
 const COLORS = [
   { key: "blue", name: "Blue", variant: "primary" as Variant, class: "bg-blue-500", hover: "hover:bg-blue-600" },
   { key: "red", name: "Red", variant: "danger" as Variant, class: "bg-red-500", hover: "hover:bg-red-600" },
@@ -31,10 +33,10 @@ const COLORS = [
 ];
 
 const PRIORITIES = [
-  { value: 'urgent-important', label: 'Urgent & Important', color: 'bg-red-500', icon: '🔥', desc: 'Do First' },
-  { value: 'not-urgent-important', label: 'Important, Not Urgent', color: 'bg-blue-500', icon: '📅', desc: 'Schedule' },
-  { value: 'urgent-not-important', label: 'Urgent, Not Important', color: 'bg-amber-500', icon: '⚡', desc: 'Delegate' },
-  { value: 'not-urgent-not-important', label: 'Neither', color: 'bg-gray-400', icon: '📋', desc: 'Minimize' },
+  { value: 'urgent-important', label: 'Urgent & Important', color: 'bg-red-500', Icon: Flame, desc: 'Do First' },
+  { value: 'not-urgent-important', label: 'Important, Not Urgent', color: 'bg-blue-500', Icon: CalendarCheck, desc: 'Schedule' },
+  { value: 'urgent-not-important', label: 'Urgent, Not Important', color: 'bg-amber-500', Icon: Zap, desc: 'Delegate' },
+  { value: 'not-urgent-not-important', label: 'Neither', color: 'bg-gray-400', Icon: ClipboardList, desc: 'Minimize' },
 ];
 
 const EVENT_TYPES = [
@@ -741,6 +743,16 @@ export default function AddEventModal({
     setSaveError(null);
     setSubmitting(true);
 
+    // Prevent creating events in the past (only for new events, not edits)
+    if (!eventData?.id && formData.startDate instanceof Date) {
+      const now = new Date();
+      if (formData.startDate < now) {
+        setSaveError("Can't schedule events in the past. Please select a future time.");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const newEvent: Event = {
         id: eventData?.id || uuidv4(),
@@ -795,6 +807,12 @@ export default function AddEventModal({
         body.durationMinutes = durationMinutes;
         body.startDate = startISO;
         body.endDate = endISO;
+      } else if (eventData?.id) {
+        // When editing an existing event and user removes date/time, explicitly clear them
+        body.date = null;
+        body.time = null;
+        body.startDate = null;
+        body.endDate = null;
       }
 
       try {
@@ -1275,9 +1293,9 @@ export default function AddEventModal({
                     <span className="font-semibold text-blue-600 dark:text-blue-400">
                       {selectedByDays.map(d => DAYS[d].full).join(', ')}
                     </span>
-                    {createTemplate && <span className="block mt-1">🔁 Creates reusable template</span>}
-                    {materializeCount && <span className="block mt-1">📊 {materializeCount} occurrences</span>}
-                    {materializeUntil && <span className="block mt-1">📅 Until {new Date(materializeUntil).toLocaleDateString()}</span>}
+                    {createTemplate && <span className="block mt-1 flex items-center gap-1"><svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Creates reusable template</span>}
+                    {materializeCount && <span className="block mt-1 flex items-center gap-1"><svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> {materializeCount} occurrences</span>}
+                    {materializeUntil && <span className="block mt-1 flex items-center gap-1"><svg className="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> Until {new Date(materializeUntil).toLocaleDateString()}</span>}
                   </p>
                 </div>
               </div>
@@ -1316,7 +1334,7 @@ export default function AddEventModal({
 
   // Main form - ENHANCED with compact layout
   return (
-  <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-b-2xl hide-modal-scrollbar">
+  <div style={{ transformOrigin: origin || 'center', animation: origin ? 'popIn 160ms cubic-bezier(.2,.9,.25,1)' : undefined }} className="w-full max-h-[85vh] bg-white dark:bg-[#0a0a0f] overflow-y-auto rounded-2xl hide-modal-scrollbar">
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes slideIn {
           from {
@@ -1332,8 +1350,18 @@ export default function AddEventModal({
           from { opacity: 0; transform: scale(0.96); }
           to { opacity: 1; transform: scale(1); }
         }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
         .animate-in {
           animation: slideIn 0.2s ease-out;
+        }
+        .premium-header {
+          background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, transparent 100%);
+        }
+        .dark .premium-header {
+          background: linear-gradient(180deg, rgba(59, 130, 246, 0.12) 0%, transparent 100%);
         }
         /* Hide dropdown scrollbars visually while keeping scroll functional */
         .dropdown-scroll {
@@ -1363,7 +1391,56 @@ export default function AddEventModal({
           filter: invert(1);
           cursor: pointer;
         }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator,
+        .dark input[type="time"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+        }
       `}} />
+      
+      {/* Premium Header */}
+      <div className="premium-header sticky top-0 z-10 px-5 py-4 border-b border-gray-200/50 dark:border-white/5 backdrop-blur-xl bg-white/80 dark:bg-[#0a0a0f]/80">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+              style={{ 
+                background: `linear-gradient(135deg, ${selectedColor === 'blue' ? '#3B82F6' : selectedColor === 'red' ? '#EF4444' : selectedColor === 'green' ? '#10B981' : selectedColor === 'purple' ? '#8B5CF6' : selectedColor === 'orange' ? '#F97316' : selectedColor === 'pink' ? '#EC4899' : selectedColor === 'cyan' ? '#06B6D4' : selectedColor === 'amber' ? '#F59E0B' : selectedColor === 'indigo' ? '#6366F1' : selectedColor === 'teal' ? '#14B8A6' : '#3B82F6'} 0%, ${selectedColor === 'blue' ? '#1D4ED8' : selectedColor === 'red' ? '#DC2626' : selectedColor === 'green' ? '#059669' : selectedColor === 'purple' ? '#7C3AED' : selectedColor === 'orange' ? '#EA580C' : selectedColor === 'pink' ? '#DB2777' : selectedColor === 'cyan' ? '#0891B2' : selectedColor === 'amber' ? '#D97706' : selectedColor === 'indigo' ? '#4F46E5' : selectedColor === 'teal' ? '#0D9488' : '#1D4ED8'} 100%)`,
+                boxShadow: `0 4px 15px -3px ${selectedColor === 'blue' ? 'rgba(59, 130, 246, 0.4)' : selectedColor === 'red' ? 'rgba(239, 68, 68, 0.4)' : selectedColor === 'green' ? 'rgba(16, 185, 129, 0.4)' : selectedColor === 'purple' ? 'rgba(139, 92, 246, 0.4)' : selectedColor === 'orange' ? 'rgba(249, 115, 22, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`
+              }}
+            >
+              {isTaskMode ? (
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                {eventData?.id 
+                  ? (isTaskMode ? 'Edit Task' : 'Edit Event')
+                  : (isTaskMode ? 'New Task' : 'New Event')
+                }
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {isTaskMode ? 'Organize your work' : 'Schedule your time'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setClose()}
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
       
       <div className="p-5 max-w-lg mx-auto">
         <div className="space-y-4">
@@ -1424,7 +1501,9 @@ export default function AddEventModal({
                   Priority
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {PRIORITIES.map((p) => (
+                  {PRIORITIES.map((p) => {
+                    const IconComponent = p.Icon;
+                    return (
                     <button
                       key={p.value}
                       type="button"
@@ -1441,12 +1520,7 @@ export default function AddEventModal({
                           "w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0",
                           p.color
                         )}>
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {p.value === 'urgent-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />}
-                            {p.value === 'not-urgent-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />}
-                            {p.value === 'urgent-not-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />}
-                            {p.value === 'not-urgent-not-important' && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />}
-                          </svg>
+                          <IconComponent className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className={cn(
@@ -1461,7 +1535,7 @@ export default function AddEventModal({
                         </div>
                       </div>
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
               )}

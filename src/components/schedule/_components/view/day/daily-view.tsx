@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
+import QuickAddEvent from "@/components/schedule/_modals/quick-add-event";
 import EventStyled from "../event-component/event-styled";
 import { CustomEventModal, Event } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -465,13 +466,14 @@ export default function DailyView({
       minutes
     );
 
-    handleAddEvent({
-      startDate: date,
-      endDate: new Date(date.getTime() + 60 * 60 * 1000),
-      title: "",
-      id: "",
-      variant: "primary",
-    });
+    // Use streamlined quick-add modal with pre-filled date/time
+    setOpen(
+      <QuickAddEvent 
+        initialDate={date}
+        initialTime={`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`}
+        isSchedulePage={isSchedulePage}
+      />
+    );
   }
 
   const handleNextDay = useCallback(() => {

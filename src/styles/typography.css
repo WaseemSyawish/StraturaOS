@@ -207,6 +207,51 @@ a {
   font-weight: var(--font-medium);
 }
 
+/* Content prose styles - for documentation-like content */
+.prose-content {
+  line-height: 1.8;
+}
+
+.prose-content p {
+  margin-bottom: 1.25rem;
+  line-height: 1.75;
+}
+
+.prose-content h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  letter-spacing: var(--tracking-tight);
+}
+
+.prose-content h3 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.prose-content ul,
+.prose-content ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.prose-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+/* Card content improvements */
+.card-content {
+  line-height: 1.6;
+}
+
+.card-content p {
+  margin-bottom: 0.75rem;
+}
+
 /* Responsive typography */
 @media (max-width: 768px) {
   :root {

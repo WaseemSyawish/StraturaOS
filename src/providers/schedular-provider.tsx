@@ -53,15 +53,17 @@ function normalizeEvent(ev: any) {
   if (!ev || typeof ev !== 'object') return ev;
   const clone: any = { ...ev };
 
-  // normalize color: prefer `color`, then `raw.color`, `raw.color_key`, or `color_key`.
+  // normalize color: prefer `color`, then course color (from relation),
+  // then `raw.color`, `raw.color_key`, or `color_key`.
   // If value looks like a variant name, map it to a sensible color key.
   const candidateColor =
     clone.color ||
+    // Use course color if event has a course relation
+    (clone.courses && clone.courses.color) ||
     (clone.raw && (clone.raw.color || clone.raw.color_key || clone.raw.colorKey)) ||
     clone.color_key ||
     clone.colorKey ||
     clone.variant ||
-    clone.type ||
     null;
 
   const variantToKey: Record<string, string> = {

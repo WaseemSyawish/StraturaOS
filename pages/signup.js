@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { signIn } from 'next-auth/react';
+import Link from 'next/link';
+import Head from 'next/head';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { Mail, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff, Check, X } from 'lucide-react';
 
-// StraturaOS Logo SVG Component
-const StraturaLogo = ({ size = 32, color = "gradient" }) => (
+// StraturaOS Logo - supports gradient or white color
+const StraturaLogo = ({ size = 28, color = "gradient" }) => (
   <svg 
     width={size} 
     height={size} 
@@ -13,589 +16,408 @@ const StraturaLogo = ({ size = 32, color = "gradient" }) => (
   >
     {color === "gradient" && (
       <defs>
-        <linearGradient id="logoGradientSignup" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3730A3"/>
-          <stop offset="50%" stopColor="#4F46E5"/>
-          <stop offset="100%" stopColor="#6366F1"/>
+        <linearGradient id="logoGradientAuth2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7C3AED"/>
+          <stop offset="50%" stopColor="#9333EA"/>
+          <stop offset="100%" stopColor="#A855F7"/>
         </linearGradient>
       </defs>
     )}
-    <g transform="translate(0,64) scale(0.1,-0.1)" fill={color === "gradient" ? "url(#logoGradientSignup)" : color}>
+    <g transform="translate(0,64) scale(0.1,-0.1)" fill={color === "gradient" ? "url(#logoGradientAuth2)" : color}>
       <path d="M169 567 c-75 -40 -144 -78 -153 -86 -13 -11 -16 -36 -16 -160 0 -80 4 -151 8 -157 4 -6 76 -46 160 -89 l154 -79 145 74 c80 41 152 80 159 88 20 20 20 305 0 324 -19 19 -291 158 -307 157 -8 0 -75 -33 -150 -72z m271 -74 l110 -58 0 -67 c0 -40 -4 -68 -10 -68 -6 0 -56 23 -112 51 l-102 51 28 23 28 22 -31 12 c-27 12 -36 10 -100 -25 -39 -21 -71 -41 -71 -44 0 -3 81 -45 180 -92 99 -48 180 -91 179 -95 0 -4 -49 -32 -108 -62 l-108 -53 -114 58 c-107 55 -114 61 -117 92 -2 18 1 32 8 32 5 0 56 -23 112 -51 l102 -51 35 17 36 17 -148 74 -148 75 3 42 3 42 110 57 c61 32 113 57 117 58 5 0 57 -26 118 -57z"/>
     </g>
   </svg>
 );
 
+const EyeIcon = ({ open }) => open ? (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+) : (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+  </svg>
+);
+
+// Password strength checker
+const getPasswordStrength = (password) => {
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+  
+  const passed = Object.values(checks).filter(Boolean).length;
+  let strength = 'weak';
+  let color = 'bg-red-500';
+  
+  if (passed >= 4) {
+    strength = 'strong';
+    color = 'bg-green-500';
+  } else if (passed >= 3) {
+    strength = 'medium';
+    color = 'bg-yellow-500';
+  }
+  
+  return { checks, passed, strength, color };
+};
+
+// Carousel slides
+const carouselSlides = [
+  { image: '/auth-bg.jpg', title: 'Organize Your,', subtitle: 'Academic Life' },
+  { image: '/auth-bg.jpg', title: 'Track Your,', subtitle: 'Progress Daily' },
+  { image: '/auth-bg.jpg', title: 'Achieve Your,', subtitle: 'Goals Faster' },
+];
+
 export default function SignUp() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-
-  // Password strength validation
-  const [passwordStrength, setPasswordStrength] = useState({
-    length: false,
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-    score: 0
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Password strength
+  const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
 
+  // Auto-rotate carousel
   useEffect(() => {
-    if (!password) {
-      setPasswordStrength({ length: false, uppercase: false, lowercase: false, number: false, special: false, score: 0 });
-      return;
-    }
-
-    const checks = {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[^A-Za-z0-9]/.test(password)
-    };
-
-    const score = Object.values(checks).filter(Boolean).length;
-    setPasswordStrength({ ...checks, score });
-  }, [password]);
-
-  // Force a remount after initial render to clear autofill styling
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 100);
-    return () => clearTimeout(timer);
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
-  // Ensure this page does not render in dark mode: temporarily remove the
-  // `dark` class from <html> while this page is mounted, and restore it on
-  // unmount if it was present before.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const root = document.documentElement;
-    const hadDark = root.classList.contains('dark');
-    if (hadDark) root.classList.remove('dark');
-    return () => {
-      if (hadDark) root.classList.add('dark');
-    };
-  }, []);
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  async function handleSubmit(e) {
-    e && e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError('');
 
-    if (!name || !email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    if (password.length < 8) {
+    if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
       return;
     }
 
-    // Enforce password requirements
-    if (!passwordStrength.uppercase) {
-      setError('Password must contain at least one uppercase letter');
-      return;
-    }
+    setIsLoading(true);
 
-    if (!passwordStrength.lowercase) {
-      setError('Password must contain at least one lowercase letter');
-      return;
-    }
-
-    if (!passwordStrength.number) {
-      setError('Password must contain at least one number');
-      return;
-    }
-
-    if (!passwordStrength.special) {
-      setError('Password must contain at least one special character (!@#$%^&*...)');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const r = await fetch('/api/users', {
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({
+          name: fullName,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setError(j && j.error ? String(j.error) : 'Registration failed');
-        setLoading(false);
-        return;
-      }
-      console.log('Account created successfully', j.user && j.user.id);
 
-      // Auto sign-in after signup for a smoother UX.
-      const isDev = (process.env.NODE_ENV === 'development');
-      try {
-        // Clear any existing dev/demo cookies so auto-signin will replace them
-        try {
-          if (isDev) await fetch('/api/auth/local-signout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
-        } catch (e) {}
+      const data = await res.json();
 
-        if (isDev) {
-          // Try local password signin which validates password and sets cookies
-          const lr = await fetch('/api/auth/local-signin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ email: String(email).trim(), password: String(password), returnTo: '/overview' })
-          });
-          if (lr.ok || lr.redirected) {
-            try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
-          }
-        } else {
-          const lr = await fetch('/api/auth/signin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ email: String(email).trim() })
-          });
-          const lj = await lr.json().catch(() => ({}));
-          if (lr.ok && lj && (lj.success || lj.id)) {
-            try { router.push('/overview'); return; } catch (e) { window.location.href = '/overview'; return; }
-          }
-        }
-      } catch (e) {
-        // ignore auto-signin errors and fall back to signin page
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong');
       }
 
-      setLoading(false);
-      // Fallback: navigate to sign-in with registered hint and prefilling email
-      router.push('/signin?registered=1&email=' + encodeURIComponent(String(email).trim()));
-    } catch (e) {
-      console.error('Signup error', e);
-      setError('Could not create account');
-      setLoading(false);
+      const signInRes = await fetch('/api/auth/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (signInRes.ok) {
+        router.push('/overview');
+      } else {
+        router.push('/signin');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
+
+  const handleGoogleSignUp = () => {
+    signIn('google', { callbackUrl: '/overview' });
+  };
 
   return (
     <>
-      <title>Create account — StraturaOS</title>
-      <style>{`
-        .signup-page button svg {
-          color: #ffffff !important;
-          stroke: #ffffff !important;
-        }
-      `}</style>
-      <div className="min-h-screen signup-page flex items-center justify-center p-4 bg-white" style={{
-        background: '#ffffff'
-      }}>
-        <div className="w-full max-w-md">
-          {/* Logo and Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex auth-brand-logo items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg" style={{
-              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)'
-            }}>
-              <StraturaLogo size={32} color="white" />
+      <Head>
+        <title>Create Account - StraturaOS</title>
+      </Head>
+
+      {/* Dark background with centered card */}
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        {/* Main card container */}
+        <div className="w-full max-w-[1100px] bg-[#12121a] rounded-3xl overflow-hidden flex min-h-[720px] shadow-2xl">
+          
+          {/* Left side - Image */}
+          <div className="hidden lg:block w-[45%] relative">
+            <div className="absolute inset-0">
+              {carouselSlides.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-700 ${
+                    index === currentSlide ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                                  <Image
+                    src={slide.image}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    quality={90}
+                    priority={index === 0}
+                  />
+                  {/* Subtle bottom fade only - no color overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#12121a] via-[#12121a]/20 to-transparent" />
+                </div>
+              ))}
             </div>
-            <h1 className="text-5xl font-black mb-2" style={{ color: '#0f172a', letterSpacing: '-0.02em' }}>
-              Create your account
-            </h1>
-            <p style={{ color: '#64748b' }}>
-              Get started with StraturaOS
-            </p>
+
+            {/* Logo top left - white for contrast */}
+            <div className="absolute top-6 left-6 z-10">
+              <div className="flex items-center gap-2">
+                <StraturaLogo size={24} color="white" />
+                <span className="text-white font-semibold">StraturaOS</span>
+              </div>
+            </div>
+
+            {/* Back to website button */}
+            <Link 
+              href="/landing" 
+              className="absolute top-6 right-6 z-10 flex items-center gap-1.5 text-white/70 hover:text-white text-sm bg-white/10 hover:bg-white/15 px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-all"
+            >
+              Back to website
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+
+            {/* Text overlay */}
+            <div className="absolute bottom-16 left-6 right-6 z-10">
+              {carouselSlides.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`transition-all duration-500 ${
+                    index === currentSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 absolute'
+                  }`}
+                >
+                  <h2 className="text-white text-3xl font-light leading-tight tracking-tight">
+                    {slide.title}
+                    <br />
+                    <span className="font-semibold">{slide.subtitle}</span>
+                  </h2>
+                </div>
+              ))}
+            </div>
+
+            {/* Carousel dots */}
+            <div className="absolute bottom-6 left-6 z-10 flex gap-1.5">
+              {carouselSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentSlide 
+                      ? 'w-6 bg-white' 
+                      : 'w-3 bg-white/30 hover:bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Sign Up Card */}
-          <div className="rounded-xl p-8 shadow-xl" style={{
-            background: '#ffffff',
-            border: '1px solid rgba(15, 23, 42, 0.06)',
-            boxShadow: '0 20px 50px rgba(15, 23, 42, 0.08)'
-          }}>
-            <div className="space-y-5">
-              {/* Name Field */}
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
-                  Full name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" style={{ zIndex: 10 }}>
-                    <User className="h-5 w-5" style={{ color: '#94a3b8' }} />
-                  </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                    placeholder="John Doe"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.75rem 1rem 0.75rem 2.5rem',
-                      borderRadius: '0.5rem',
-                      backgroundColor: '#f8fafc',
-                      color: '#0f172a',
-                      border: '1px solid #e2e8f0',
-                      outline: 'none',
-                      fontSize: '1rem',
-                      lineHeight: '1.5',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
+          {/* Right side - Form */}
+          <div className="flex-1 flex items-center justify-center px-8 sm:px-12 lg:px-14 py-10 overflow-y-auto">
+            <div className="w-full max-w-sm">
+              {/* Mobile logo */}
+              <div className="lg:hidden flex items-center gap-2 mb-6">
+                <StraturaLogo size={24} />
+                <span className="text-white font-semibold">StraturaOS</span>
               </div>
 
-              {/* Email Field */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
-                  Email address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" style={{ zIndex: 10 }}>
-                    <Mail className="h-5 w-5" style={{ color: '#94a3b8' }} />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                    placeholder="you@university.edu"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.75rem 1rem 0.75rem 2.5rem',
-                      borderRadius: '0.5rem',
-                      backgroundColor: '#f8fafc',
-                      color: '#0f172a',
-                      border: '1px solid #e2e8f0',
-                      outline: 'none',
-                      fontSize: '1rem',
-                      lineHeight: '1.5',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
+              {/* Header */}
+              <div className="mb-6">
+                <h1 className="text-white text-2xl font-semibold tracking-tight mb-1.5">
+                  Create an account
+                </h1>
+                <p className="text-gray-400 text-sm">
+                  Already have an account?{' '}
+                  <Link href="/signin" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">
+                    Log in
+                  </Link>
+                </p>
               </div>
 
-              {/* Password Field */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: '#334155' }}>
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" style={{ zIndex: 10 }}>
-                    <Lock className="h-5 w-5" style={{ color: '#94a3b8' }} />
-                  </div>
-                  <input
-                    key={mounted ? (showPassword ? 'text' : 'password') : 'initial'}
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="off"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                    placeholder="••••••••"
-                    className="password-input"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.75rem 3rem 0.75rem 2.5rem',
-                      borderRadius: '0.5rem',
-                      backgroundColor: '#f8fafc',
-                      color: '#0f172a',
-                      border: '1px solid #e2e8f0',
-                      outline: 'none',
-                      fontSize: '1rem',
-                      lineHeight: '1.5',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    style={{ color: '#64748b', zIndex: 10 }}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Password Requirements */}
-                {password && (
-                  <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                    <div className="text-xs font-medium mb-2" style={{ color: '#64748b' }}>
-                      Password must contain:
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        {passwordStrength.length ? (
-                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
-                        ) : (
-                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        )}
-                        <span className="text-xs" style={{ color: passwordStrength.length ? '#10b981' : '#64748b' }}>
-                          At least 8 characters
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {passwordStrength.uppercase ? (
-                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
-                        ) : (
-                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        )}
-                        <span className="text-xs" style={{ color: passwordStrength.uppercase ? '#10b981' : '#64748b' }}>
-                          One uppercase letter (A-Z)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {passwordStrength.lowercase ? (
-                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
-                        ) : (
-                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        )}
-                        <span className="text-xs" style={{ color: passwordStrength.lowercase ? '#10b981' : '#64748b' }}>
-                          One lowercase letter (a-z)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {passwordStrength.number ? (
-                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
-                        ) : (
-                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        )}
-                        <span className="text-xs" style={{ color: passwordStrength.number ? '#10b981' : '#64748b' }}>
-                          One number (0-9)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {passwordStrength.special ? (
-                          <Check className="w-4 h-4" style={{ color: '#10b981' }} />
-                        ) : (
-                          <X className="w-4 h-4" style={{ color: '#ef4444' }} />
-                        )}
-                        <span className="text-xs" style={{ color: passwordStrength.special ? '#10b981' : '#64748b' }}>
-                          One special character (!@#$%^&*...)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Strength Bar */}
-                    <div className="mt-3">
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            className="h-1 flex-1 rounded-full transition-colors"
-                            style={{
-                              backgroundColor: level <= passwordStrength.score
-                                ? passwordStrength.score <= 2 ? '#ef4444'
-                                : passwordStrength.score === 3 ? '#f59e0b'
-                                : passwordStrength.score === 4 ? '#3b82f6'
-                                : '#10b981'
-                                : '#e2e8f0'
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <div className="text-xs mt-1.5" style={{
-                        color: passwordStrength.score <= 2 ? '#ef4444'
-                          : passwordStrength.score === 3 ? '#f59e0b'
-                          : passwordStrength.score === 4 ? '#3b82f6'
-                          : '#10b981'
-                      }}>
-                        {passwordStrength.score === 0 ? 'Very Weak'
-                          : passwordStrength.score === 1 ? 'Very Weak'
-                          : passwordStrength.score === 2 ? 'Weak'
-                          : passwordStrength.score === 3 ? 'Fair'
-                          : passwordStrength.score === 4 ? 'Good'
-                          : 'Strong'}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Error Message */}
+              {/* Error */}
               {error && (
-                <div className="rounded-lg p-4 flex items-start gap-3" style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)'
-                }}>
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
-                  <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
+                <div className="mb-4 text-red-400 text-sm flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  {error}
                 </div>
               )}
 
-              {/* Create Account Button */}
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full py-3 px-4 rounded-lg font-medium focus:outline-none transition-all flex items-center justify-center gap-2 shadow-lg"
-                style={{
-                  background: loading ? '#9333ea' : 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                  color: '#ffffff',
-                  opacity: loading ? 0.7 : 1,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 10px 30px rgba(168, 85, 247, 0.3)'
-                }}
-              >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" 
-                         style={{ animation: 'spin 0.8s linear infinite' }} />
-                    Creating account...
-                  </>
-                ) : (
-                  <>
-                    Create account
-                    <span style={{ display: 'inline-flex', color: '#ffffff' }}>
-                      <ArrowRight className="w-5 h-5" style={{ color: '#ffffff', stroke: '#ffffff', fill: 'none' }} />
-                    </span>
-                  </>
-                )}
-              </button>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Name row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1.5">First name</label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      required
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      placeholder="John"
+                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1.5">Last name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Doe"
+                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email"
+                    className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-sm mb-1.5">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Create a password"
+                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 pr-10 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                      <EyeIcon open={showPassword} />
+                    </button>
+                  </div>
+                  
+                  {/* Password Strength Indicator */}
+                  {formData.password && (
+                    <div className="mt-2.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                            style={{ width: `${(passwordStrength.passed / 5) * 100}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium capitalize ${
+                          passwordStrength.strength === 'strong' ? 'text-green-400' :
+                          passwordStrength.strength === 'medium' ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
+                          {passwordStrength.strength}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+                        <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-green-400' : 'text-gray-500'}`}>
+                          {passwordStrength.checks.length ? '✓' : '○'} 8+ characters
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
+                          {passwordStrength.checks.uppercase ? '✓' : '○'} Uppercase
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
+                          {passwordStrength.checks.lowercase ? '✓' : '○'} Lowercase
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-green-400' : 'text-gray-500'}`}>
+                          {passwordStrength.checks.number ? '✓' : '○'} Number
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordStrength.checks.special ? 'text-green-400' : 'text-gray-500'}`}>
+                          {passwordStrength.checks.special ? '✓' : '○'} Special char
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm mt-2"
+                >
+                  {isLoading ? 'Creating account...' : 'Create account'}
+                </button>
+
+                {/* Divider */}
+                <div className="relative flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px bg-gray-800" />
+                  <span className="text-gray-500 text-xs">Or register with</span>
+                  <div className="flex-1 h-px bg-gray-800" />
+                </div>
+
+                {/* Social buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignUp}
+                    className="flex items-center justify-center gap-2 bg-[#1a1a24] border border-gray-800 hover:border-gray-700 text-white py-2.5 rounded-lg transition-all text-sm"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Google
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 bg-[#1a1a24] border border-gray-800 hover:border-gray-700 text-white py-2.5 rounded-lg transition-all text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    Apple
+                  </button>
+                </div>
+              </form>
             </div>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full" style={{ borderTop: '1px solid #e2e8f0' }} />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4" style={{ background: '#ffffff', color: '#64748b' }}>
-                  Already have an account?
-                </span>
-              </div>
-            </div>
-
-            {/* Sign In Link */}
-            <button
-              onClick={() => router.push('/signin')}
-              className="block w-full text-center py-3 px-4 rounded-lg font-medium transition-all"
-              style={{
-                border: '1px solid #cbd5e1',
-                color: '#334155',
-                backgroundColor: 'transparent',
-                cursor: 'pointer'
-              }}
-            >
-              Sign in instead
-            </button>
-          </div>
-
-          {/* Back to Landing */}
-          <div className="mt-6 text-center">
-            <a href="/landing" className="text-sm transition-colors" style={{ color: '#64748b' }}>
-              ← Back to home
-            </a>
           </div>
         </div>
-
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-          
-          * {
-            box-sizing: border-box;
-          }
-          
-          /* Nuclear option - force override everything */
-          input[type="text"],
-          input[type="email"],
-          input[type="password"],
-          input[name="name"],
-          input[name="email"],
-          input[name="password"],
-          input#name,
-          input#email,
-          input#password,
-          .password-input {
-            background-color: #f8fafc !important;
-            background: #f8fafc !important;
-            background-image: none !important;
-            color: #0f172a !important;
-            border: 1px solid #e2e8f0 !important;
-            -webkit-text-fill-color: #0f172a !important;
-            -webkit-background-clip: padding-box !important;
-            background-clip: padding-box !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            color-scheme: light !important;
-            caret-color: #0f172a !important;
-            box-shadow: none !important;
-            -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
-          }
-          
-          input[type="text"]:hover,
-          input[type="email"]:hover,
-          input[type="password"]:hover,
-          input[type="text"]:focus,
-          input[type="email"]:focus,
-          input[type="password"]:focus,
-          input[type="text"]:active,
-          input[type="email"]:active,
-          input[type="password"]:active {
-            background-color: #f8fafc !important;
-            background: #f8fafc !important;
-            background-image: none !important;
-            color: #0f172a !important;
-            border: 1px solid #e2e8f0 !important;
-            outline: none !important;
-            -webkit-text-fill-color: #0f172a !important;
-            color-scheme: light !important;
-          }
-          
-          input[type="text"]::placeholder,
-          input[type="email"]::placeholder,
-          input[type="password"]::placeholder {
-            color: #94a3b8 !important;
-            opacity: 1 !important;
-          }
-          
-          /* Autofill overrides (stronger) */
-          input:-webkit-autofill,
-          input:-webkit-autofill:hover,
-          input:-webkit-autofill:focus,
-          input:-webkit-autofill:active,
-          textarea:-webkit-autofill,
-          select:-webkit-autofill,
-          input[type="password"]:-webkit-autofill,
-          :-internal-autofill-selected,
-          ::-internal-autofill-selected,
-          input:-internal-autofill-selected {
-            /* force background color above UA/autofill overlay */
-            -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
-            box-shadow: 0 0 0 1000px #f8fafc inset !important;
-            /* fallback background-image override (helps some versions) */
-            background-image: none !important;
-            background-repeat: no-repeat !important;
-            background-size: 100% 100% !important;
-            -webkit-text-fill-color: #0f172a !important;
-            background-color: #f8fafc !important;
-            color: #0f172a !important;
-            border: 1px solid #e2e8f0 !important;
-            -webkit-background-clip: padding-box !important;
-            background-clip: padding-box !important;
-            -webkit-appearance: none !important;
-            appearance: none !important;
-            transition: background-color 9999s ease-in-out 0s !important;
-            filter: none !important;
-          }
-        `}</style>
       </div>
     </>
   );

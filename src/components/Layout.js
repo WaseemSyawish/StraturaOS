@@ -79,7 +79,7 @@ const Layout = ({ children }) => {
         } catch (e) {
           console.error('[Layout] failed to force reload', e);
         }
-      }, 2500);
+      }, 1500);  // Reduced from 2500ms for faster fallback
     };
     const onFinish = () => { if (t) { clearTimeout(t); t = null; } };
 

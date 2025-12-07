@@ -5,7 +5,7 @@ A comprehensive academic planning and productivity platform built for students. 
 ## Features
 
 - 📅 **Smart Timetable** - Intelligent class scheduling with recurrence patterns
-- ✅ **Task Management** - Inbox workflow with subtasks, priorities, and due dates  
+- ✅ **Task Management** - Inbox workflow with subtasks, priorities, and due dates
 - 🎯 **Focus Sessions** - Pomodoro timer with task integration and analytics
 - 📊 **Grade Calculator** - Track grades and predict final scores
 - 📋 **Attendance Tracking** - Monitor your class attendance

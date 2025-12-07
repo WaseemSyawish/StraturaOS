@@ -7,6 +7,7 @@ import {
   Bell,
   BookOpen,
   CalendarDays,
+  Calendar,
   CalendarIcon,
   CalendarRange,
   Check,
@@ -38,6 +39,7 @@ import {
   TrendingUp,
   Users,
   X,
+  ListTodo,
 } from 'lucide-react';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
@@ -47,9 +49,19 @@ import { initializeNotifications, scheduleNotification, requestNotificationPermi
 import HygraphSidebar from '@/components/HygraphSidebar';
 import { useToast } from '@/providers/toast-provider';
 
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
+   ───────────────────────────────────────────────────────────── */
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 rounded-2xl mb-4',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/5 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+};
+
 const accentPurple = '#8b5cf6';
 const themePalette = {
-  background: '#F5F7FB',
+  background: 'linear-gradient(to bottom, #f8fafc, #ffffff, #f1f5f9)',
   surface: '#FFFFFF',
   primary: '#4338CA',
   primaryAlt: '#2563EB',
@@ -380,6 +392,13 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
   const [time, setTime] = useState(value ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
   const [viewMonth, setViewMonth] = useState(new Date());
 
+  // Helper to apply with explicit values (bypasses async state issues)
+  const applyWithValues = (dateVal, timeVal) => {
+    onChange?.(dateVal);
+    onTimeChange?.(timeVal);
+    onApply?.(dateVal, timeVal);
+  };
+
   const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay(); // 0=Sunday
   const today = new Date();
@@ -388,11 +407,10 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
 
   const applyShortcut = (daysOffset, defaultTime = '') => {
     if (daysOffset === null) {
-      // "Someday" - clear the date and time
+      // "Someday" - clear the date and time immediately
       setDate('');
       setTime('');
-      onChange?.(null);
-      onTimeChange?.(null);
+      applyWithValues(null, null);
       return;
     }
     const target = new Date();
@@ -424,9 +442,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
   const handleSet = () => {
     if (!date) {
       // If no date selected, treat as "Someday" (clear date)
-      onChange?.(null);
-      onTimeChange?.(null);
-      onApply?.();
+      applyWithValues(null, null);
       return;
     }
     const dateTime = new Date(date + 'T00:00:00');
@@ -434,9 +450,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
       const [hours, minutes] = time.split(':');
       dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
     }
-    onChange?.(dateTime.toISOString());
-    onTimeChange?.(time || null);
-    onApply?.();
+    applyWithValues(dateTime.toISOString(), time || null);
   };
 
   const handleDateClick = (day) => {
@@ -480,7 +494,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
           </div>
           <div>
             <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
-            <div className="relative">
+            <div className="flex gap-2">
               <input
                 type="time"
                 value={time}
@@ -496,7 +510,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
                     onTimeChange?.(newTime);
                   }
                 }}
-                className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 pr-8 text-sm font-medium text-slate-900 dark:text-slate-100"
+                className="flex-1 rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100"
                 placeholder="No time"
               />
               {time && (
@@ -506,10 +520,10 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
                     setTime('');
                     onTimeChange?.(null);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                   title="Clear time"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               )}
             </div>
@@ -583,7 +597,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
       </div>
 
       <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800">
-        <button type="button" onClick={() => { setDate(''); setTime(''); onChange?.(null); onTimeChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+        <button type="button" onClick={() => { setDate(''); setTime(''); onChange?.(null); onTimeChange?.(null); onApply?.({ date: null, time: null }); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
           Clear all
         </button>
         <div className="flex gap-2">
@@ -918,15 +932,20 @@ const TaskDetailPanel = ({
               setTempDueDate(null);
               setTempDueTime(null);
             }}
-            onApply={() => {
+            onApply={(params) => {
+              // Use direct values from params if provided (for shortcuts/clear), else fall back to state
+              const finalDate = params?.date !== undefined ? params.date : tempDueDate;
+              const finalTime = params?.time !== undefined ? params.time : tempDueTime;
+              
               if (isCreateMode) {
-                setDueStartInput(tempDueDate || '');
+                setDueStartInput(finalDate || '');
               } else {
-                setLocalDueDate(tempDueDate || '');
+                setLocalDueDate(finalDate || '');
                 // Send both dueDate and time to properly handle clearing time
-                const updates = { dueDate: tempDueDate };
-                if (tempDueTime !== undefined) {
-                  updates.time = tempDueTime;
+                const updates = { dueDate: finalDate };
+                if (finalTime !== undefined) {
+                  updates.time = finalTime;
+                  updates.dueTime = finalTime; // Also clear dueTime for optimistic update
                 }
                 onUpdateFields?.(task.id, updates);
               }
@@ -2172,57 +2191,54 @@ const FloatingHeader = ({ onAdd = () => {}, onQuickFocus = () => {}, onFilterCha
           </div>
         </div>
         
-        {/* Stats Cards Row - Real Data */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {/* Total Tasks Card - Purple */}
+        {/* Stats Cards Row - Compact Design */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {/* Today's Focus Card */}
           <button
             onClick={() => onFilterChange?.('today')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-800/80 rounded-lg p-3 sm:p-4 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200 cursor-pointer text-left w-full group backdrop-blur-sm"
           >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
-                <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-105 transition-transform">
+                <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="text-right">
-                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{todayCount}</p>
+              <div>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-none">{todayCount}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">Today</p>
               </div>
             </div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Today's Focus</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tasks scheduled for today</p>
           </button>
           
-          {/* Completed This Week Card - Emerald */}
+          {/* Completed Card */}
           <button
             onClick={() => onFilterChange?.('completed')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-800/80 rounded-lg p-3 sm:p-4 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all duration-200 cursor-pointer text-left w-full group backdrop-blur-sm"
           >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="p-2 sm:p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
-                <Check className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg group-hover:scale-105 transition-transform">
+                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-right">
-                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{completedWeek}</p>
+              <div>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-none">{completedWeek}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">This week</p>
               </div>
             </div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Completed (7d)</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tasks finished this week</p>
           </button>
           
-          {/* Overdue Tasks Card - Rose */}
+          {/* Overdue Card */}
           <button
             onClick={() => onFilterChange?.('overdue')}
-            className="bg-white dark:bg-slate-900 rounded-lg p-4 sm:p-5 border border-gray-200 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-lg transition-all duration-200 cursor-pointer text-left w-full group"
+            className="bg-white dark:bg-slate-800/80 rounded-lg p-3 sm:p-4 border border-slate-200/80 dark:border-slate-700/80 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-md transition-all duration-200 cursor-pointer text-left w-full group backdrop-blur-sm"
           >
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="p-2 sm:p-3 bg-rose-100 dark:bg-rose-900/30 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform">
-                <AlarmClock className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-rose-100 dark:bg-rose-900/30 rounded-lg group-hover:scale-105 transition-transform">
+                <AlarmClock className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400" />
               </div>
-              <div className="text-right">
-                <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{overdueCount}</p>
+              <div>
+                <p className={`text-xl sm:text-2xl font-bold leading-none ${overdueCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>{overdueCount}</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">Overdue</p>
               </div>
             </div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Overdue</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{overdueCount > 0 ? 'Need attention' : 'All clear!'}</p>
           </button>
         </div>
       </div>
@@ -2518,152 +2534,117 @@ const AddTaskBar = ({ value, onChange, onSubmit, detectedDate, highlight, inputR
 const TaskCard = ({ task, onToggleComplete, onQuickAction, onOpenDetail }) => {
   const priorityInfo = getPriorityMeta(task.priority);
   const dueDate = toDateSafe(task.dueDate);
-  const dueLabel = dueDate ? dueDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No date set';
+  const dueLabel = dueDate ? dueDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null;
   const dueTimeLabel = task.dueTime || (dueDate && hasDueTime(task) ? dueDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null);
   const relative = dueDate ? formatRelativeDue(task.dueDate) : null;
-  const reminderDate = toDateSafe(task.reminder);
-  const reminderLabel = reminderDate
-    ? reminderDate.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })
-    : null;
+  
+  // Priority styling
+  const getPriorityBadge = () => {
+    if (!task.priority || task.priority === 'none') return null;
+    const priorities = {
+      'urgent-important': { label: 'Urgent', bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400' },
+      'not-urgent-important': { label: 'Important', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400' },
+      'urgent-not-important': { label: 'Soon', bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
+      'not-urgent-not-important': { label: 'Later', bg: 'bg-slate-100 dark:bg-slate-700', text: 'text-slate-500 dark:text-slate-400' },
+    };
+    const p = priorities[task.priority] || priorities['not-urgent-not-important'];
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${p.bg} ${p.text}`}>
+        <Flag size={10} />
+        {p.label}
+      </span>
+    );
+  };
+  
   return (
     <div
       onClick={() => onOpenDetail && onOpenDetail(task)}
-      className={`group relative overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 ${
-        task.completed ? 'opacity-60' : ''
+      className={`group relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-3 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-purple-200 dark:hover:border-purple-700 ${
+        task.completed ? 'opacity-50' : ''
       }`}
     >
-      <span className="pointer-events-none absolute inset-y-2.5 left-2 w-[3px] rounded-full" style={{ background: task.borderColor }} />
-      <div className="flex gap-2.5 pl-3">
+      {/* Left color indicator */}
+      <div className="absolute left-0 top-3 bottom-3 w-1 rounded-full" style={{ background: priorityInfo.color }} />
+      
+      <div className="flex items-start gap-3 pl-2">
+        {/* Checkbox */}
         <button
           aria-label="Toggle completion"
           onClick={(e) => {
             e.stopPropagation();
             onToggleComplete(task.id);
           }}
-          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 transition-all duration-200 ${
-            task.completed ? 'border-purple-400 dark:border-purple-600 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400' : 'hover:border-purple-300 dark:hover:border-purple-600'
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+            task.completed 
+              ? 'border-purple-500 bg-purple-500 text-white' 
+              : 'border-slate-300 dark:border-slate-600 hover:border-purple-400'
           }`}
         >
-          <Check size={12} />
+          {task.completed && <Check size={12} strokeWidth={3} />}
         </button>
-        <div className="flex flex-1 flex-col gap-1.5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ background: priorityInfo.color }} aria-hidden />
-              <p className={`text-sm font-medium leading-tight ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>{task.title}</p>
-            </div>
-            {relative ? <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">{relative}</span> : null}
+        
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Title row */}
+          <p className={`text-sm font-medium ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
+            {task.title}
+          </p>
+          
+          {/* Meta row - Priority, Module, Type */}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/* Priority badge */}
+            {getPriorityBadge()}
+            
+            {/* Course/Module pill */}
+            {task.course && (
+              <span 
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                style={{ 
+                  backgroundColor: `${task.courseColor || '#8b5cf6'}15`,
+                  color: task.courseColor || '#8b5cf6'
+                }}
+              >
+                <BookOpen size={10} />
+                {task.course}
+              </span>
+            )}
+            
+            {/* My Day badge */}
+            {task.addedToMyDay && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-[10px] font-semibold text-purple-600 dark:text-purple-300">
+                <Sun size={10} />
+                My Day
+              </span>
+            )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1 rounded px-2 py-0.5 font-medium bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300">
-              {task.type === 'class' && <BookOpen size={10} />}
-              {task.type === 'lab' && (
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 2h12M9 2v6l-4 8a4 4 0 003.6 6h6.8a4 4 0 003.6-6l-4-8V2" />
-                </svg>
-              )}
-              {task.type === 'tutorial' && (
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              )}
-              {task.type === 'exam' && <AlertTriangle size={10} />}
-              {task.type === 'quiz' && (
-                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              )}
-              {task.type === 'assignment' && <FileText size={12} />}
-              {task.type === 'project' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              )}
-              {task.type === 'deadline' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
-              {task.type === 'meeting' && <Users size={12} />}
-              {task.type === 'study-session' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              )}
-              {task.type === 'personal' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              )}
-              {task.type === 'task' && <Target size={12} />}
-              {task.type === 'other' && (
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                </svg>
-              )}
-              {task.type ? task.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Task'}
-            </span>
-            <span className="flex items-center gap-1 font-medium">
-              <Clock3 size={12} />
-              {dueLabel}
-              {dueTimeLabel ? ` · ${dueTimeLabel}` : ''}
-            </span>
-            {task.addedToMyDay ? <span className="rounded-full bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-[10px] font-semibold text-purple-600 dark:text-purple-300">My Day</span> : null}
-          </div>
-          {task.location ? (
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <MapPin size={12} />
-              <span>{task.location}</span>
-            </div>
-          ) : null}
-          {reminderLabel ? (
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <AlarmClock size={12} className="text-purple-500 dark:text-purple-400" />
-              <span>Reminder: {reminderLabel}</span>
-            </div>
-          ) : null}
-          {task.tags?.length ? (
-            <div className="flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-              {task.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100/70 dark:bg-slate-700/70 px-2 py-0.5 font-semibold">
-                  {tag}
+          
+          {/* Due date row */}
+          {dueDate && (
+            <div className="mt-2 flex items-center gap-3 text-xs">
+              {/* Relative due */}
+              {relative && (
+                <span className={`font-semibold ${
+                  relative.includes('Overdue') ? 'text-red-500' : 
+                  relative === 'Today' ? 'text-amber-500' :
+                  relative === 'Tomorrow' ? 'text-blue-500' : 
+                  'text-slate-500 dark:text-slate-400'
+                }`}>
+                  {relative}
                 </span>
-              ))}
+              )}
+              {/* Separator */}
+              {relative && <span className="text-slate-300 dark:text-slate-600">·</span>}
+              {/* Actual date */}
+              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <Calendar size={12} />
+                {dueLabel}{dueTimeLabel && ` at ${dueTimeLabel}`}
+              </span>
             </div>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            <span
-              className="rounded-full px-2 py-0.5 font-semibold text-white"
-              style={{ backgroundColor: priorityInfo.color }}
-            >
-              {priorityInfo.label}
-            </span>
-            <div className="ml-auto flex flex-wrap justify-end gap-2">
-              {quickActions.slice(0, 2).map((action) => {
-                const isActive = action.isActive ? action.isActive(task) : false;
-                const dynamicLabel = action.getLabel ? action.getLabel(task) : action.label;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onQuickAction(task.id, action.id);
-                    }}
-                    title={action.description || dynamicLabel}
-                    className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-all duration-200 ${
-                      isActive
-                        ? 'border-purple-200 dark:border-purple-700 bg-purple-600 dark:bg-purple-500 text-white shadow-lg shadow-purple-400/30'
-                        : 'border-gray-100 dark:border-slate-600 bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm hover:-translate-y-0.5'
-                    }`}
-                  >
-                    {dynamicLabel}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </div>
-        <ChevronRight className="mt-1 text-slate-300 transition-transform duration-300 group-hover:translate-x-1" size={16} />
+        
+        {/* Chevron */}
+        <ChevronRight className="mt-0.5 shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-purple-400 transition-colors" size={16} />
       </div>
     </div>
   );
@@ -3371,44 +3352,54 @@ const InsightsPanel = ({ insightSummary, widgetFactory, order }) => {
     })
     .filter(Boolean);
   return (
-    <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <Lightbulb size={18} className="text-purple-600 dark:text-purple-400" />
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Quick Insights</h3>
+    <section className="rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 backdrop-blur-sm p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+          <Lightbulb size={14} className="text-purple-600 dark:text-purple-400" />
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Quick Insights</h3>
       </div>
-      <div className="grid gap-2 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-3">
-        <div className="rounded-xl border border-purple-200 dark:border-purple-700 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/20 dark:to-purple-800/20 px-4 py-3">
-          <div className="flex items-center gap-2 mb-1">
-            <CalendarDays size={14} className="text-purple-600 dark:text-purple-400" />
-            <p className="text-[10px] font-semibold tracking-wider text-purple-700 dark:text-purple-300">Next due</p>
+      
+      {/* Compact stat row */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {/* Next Due */}
+        <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-slate-800 p-3 border border-purple-100 dark:border-purple-800/50 hover:border-purple-300 dark:hover:border-purple-600 transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <CalendarDays size={12} className="text-purple-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400">Next Due</span>
           </div>
-          <p className="mt-1 font-semibold text-slate-900 dark:text-slate-100 truncate">{insightSummary.nextTask?.title || 'No deadlines'}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400">{insightSummary.nextTask?.timeLabel || '—'}</p>
+          <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{insightSummary.nextTask?.title || 'No deadlines'}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{insightSummary.nextTask?.timeLabel || '—'}</p>
         </div>
-        <div className="rounded-xl border border-rose-200 dark:border-rose-700 bg-gradient-to-br from-rose-100 to-rose-50 dark:from-rose-900/20 dark:to-rose-800/20 px-4 py-3">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={14} className="text-rose-600 dark:text-rose-400" />
-            <p className="text-[10px] font-semibold tracking-wider text-rose-700 dark:text-rose-300">Overdue</p>
+        
+        {/* Overdue */}
+        <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-rose-50 to-white dark:from-rose-900/20 dark:to-slate-800 p-3 border border-rose-100 dark:border-rose-800/50 hover:border-rose-300 dark:hover:border-rose-600 transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <AlertTriangle size={12} className="text-rose-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Overdue</span>
           </div>
-          <p className="mt-1 text-2xl font-bold text-rose-700 dark:text-rose-300">{insightSummary.overdue}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400">{insightSummary.overdue ? 'Needs attention' : 'All clear'}</p>
+          <p className={`text-xl font-bold ${insightSummary.overdue > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>{insightSummary.overdue}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{insightSummary.overdue ? 'Needs attention' : 'All clear'}</p>
         </div>
-        <div className="rounded-xl border border-amber-200 dark:border-amber-700 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/20 dark:to-amber-800/20 px-4 py-3">
-          <div className="flex items-center gap-2 mb-1">
-            <ClipboardList size={14} className="text-amber-700 dark:text-amber-400" />
-            <p className="text-[10px] font-semibold tracking-wider text-amber-800 dark:text-amber-300">Pending</p>
+        
+        {/* Pending */}
+        <div className="group relative overflow-hidden rounded-lg bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/20 dark:to-slate-800 p-3 border border-amber-100 dark:border-amber-800/50 hover:border-amber-300 dark:hover:border-amber-600 transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <ClipboardList size={12} className="text-amber-500" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Pending</span>
           </div>
-          <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{insightSummary.pendingTasks}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400">{insightSummary.pendingTasks ? 'Not started' : 'All clear'}</p>
+          <p className="text-xl font-bold text-slate-900 dark:text-white">{insightSummary.pendingTasks}</p>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{insightSummary.pendingTasks ? 'Not started' : 'All clear'}</p>
         </div>
       </div>
+      
       {widgets.length ? (
-        <details className="group mt-3 text-sm text-slate-500 dark:text-slate-400" open>
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-2">
-            <ChevronRight size={16} className="transition duration-200 group-open:rotate-90" />
-            Study Focus & Insights
+        <details className="group text-sm" open>
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors mb-3 select-none">
+            <ChevronRight size={14} className="transition duration-200 group-open:rotate-90" />
+            More Insights
           </summary>
-          <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:items-start lg:gap-2">
+          <div className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:items-start lg:gap-3">
             {widgets}
           </div>
         </details>
@@ -4390,32 +4381,99 @@ export default function TasksPage() {
       <Head>
         <title>Tasks | StraturaOS</title>
       </Head>
-      <div className="min-h-screen px-2 sm:px-4 py-6 sm:py-10 text-slate-900 dark:text-white dark:bg-slate-950" style={{ background: themePalette.background }}>
+      <div className={`${ds.pageBg} px-2 sm:px-4 py-4 sm:py-6 text-slate-900 dark:text-white`}>
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-2 pb-16">
-          <FloatingHeader
-            onAdd={openComposerModal}
-            onQuickFocus={() => composerInputRef.current?.focus()}
-            onFilterChange={(filter) => {
-              setViewMode('list');
-              // Scroll to the relevant section based on filter
-              if (filter === 'today') {
-                document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              } else if (filter === 'completed') {
-                document.getElementById('done-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              } else if (filter === 'overdue') {
-                document.getElementById('overdue-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }
-            }}
-            stats={headerStats}
-          />
-          
+          {/* ─────────── Hero Header Band ─────────── */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 dark:from-purple-700 dark:via-purple-800 dark:to-purple-900 p-6 sm:p-8 mb-2 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
+            {/* Decorative background elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/2" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl transform -translate-x-1/3 translate-y-1/2" />
+            </div>
+            
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/20">
+                  <ListTodo className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Tasks</h1>
+                  <p className="text-purple-100 dark:text-purple-200 text-sm mt-1">Manage your assignments & to-dos</p>
+                </div>
+              </div>
+              <button 
+                onClick={openComposerModal}
+                className="px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 border border-white/20"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Task</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats row - below hero, matching overview style */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <AlarmClock className="w-5 h-5 text-rose-600 dark:text-rose-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{metrics.overdue}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Overdue</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <Sun className="w-5 h-5 text-amber-600 dark:text-amber-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{metrics.today}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Today</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <ListTodo className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{actionableTasks.length}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Active</p>
+              </div>
+            </div>
+            <div className="group relative bg-white dark:bg-[#12121a] rounded-2xl p-5 border border-gray-200/60 dark:border-white/5 hover:border-purple-300 dark:hover:border-purple-800/50 transition-all duration-200 hover:shadow-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20 transition-transform duration-200 group-hover:scale-105">
+                  <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
+                </div>
+                <div className="text-right flex-1 min-w-0">
+                  <p className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{completedThisWeek}</p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Done (7d)</p>
+              </div>
+            </div>
+          </div>
+
           {notificationPermission === 'default' && (
-            <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-100 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-5 py-3 shadow-sm">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200/60 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20 px-5 py-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <Bell size={18} className="text-amber-600 dark:text-amber-400" />
                 <div>
                   <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Enable task reminders</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">Get browser notifications for your upcoming tasks</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300/80">Get browser notifications for your upcoming tasks</p>
                 </div>
               </div>
               <button
@@ -4426,7 +4484,7 @@ export default function TasksPage() {
                     initializeNotifications(tasks);
                   }
                 }}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+                className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700 transition-colors shadow-sm"
               >
                 Enable
               </button>
@@ -4435,7 +4493,7 @@ export default function TasksPage() {
           
           <div className="flex flex-col gap-2">
             {loading ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/90 px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 shadow-sm">
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-[#12121a] px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 shadow-sm backdrop-blur-sm">
                 <Loader2 size={16} className="animate-spin text-purple-500" />
                 <span>Fetching planner data…</span>
               </div>

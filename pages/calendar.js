@@ -1,11 +1,21 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin, CalendarDays, Sparkles } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 import { toYMDLocal } from '@/lib/dateHelpers';
 import HygraphSidebar from '@/components/HygraphSidebar';
+
+/* ─────────────────────────────────────────────────────────────
+   DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
+   ───────────────────────────────────────────────────────────── */
+const ds = {
+  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
+  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 rounded-2xl mb-6',
+  card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/5 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm',
+  headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
+};
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -288,30 +298,30 @@ export default function CalendarPage() {
       <Head>
         <title>Calendar — StraturaOS</title>
       </Head>
-      <div className="calendar-page min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className={`calendar-page ${ds.pageBg}`}>
       <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-2 sm:p-4`}>
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
           <div className="flex-1 flex flex-col h-full w-full">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col h-full dark:bg-slate-900/80 dark:border-slate-800">
-              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-blue-50/20 to-white dark:border-slate-800 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-900">
+            <div className={`${ds.card} overflow-hidden flex flex-col h-full`}>
+              <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-slate-50/50 to-white dark:border-slate-800/60 dark:from-[#12121a] dark:via-[#16161f] dark:to-[#12121a]">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
+                  <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-xl h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
                     <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <div className="text-xl sm:text-3xl font-black text-slate-800 dark:text-slate-100" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-xl sm:text-3xl font-black text-slate-800 dark:text-white" style={{ letterSpacing: '-0.02em' }}>
                     {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                   </div>
-                  <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-lg h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
+                  <button onClick={() => navigateMonth(1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-xl h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
                     <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => openModal('create')}
-                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-2"
+                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Add Event</span>
+                    <span className="hidden sm:inline">New Event</span>
                   </button>
                   <button 
                     onClick={() => { 
@@ -319,7 +329,7 @@ export default function CalendarPage() {
                       setCurrentDate(t); 
                       setSelectedDate(toYMD(t)); 
                     }} 
-                    className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-2"
+                    className="px-3 sm:px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2"
                   >
                     <Calendar className="w-4 h-4" />
                     <span>Today</span>
@@ -347,12 +357,12 @@ export default function CalendarPage() {
                       <div
                         key={idx}
                         onClick={() => day.isCurrentMonth && handleDateClick(day.date)}
-                        className={`p-1 sm:p-2 border sm:border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-150 flex flex-col min-h-0 overflow-hidden ${
+                        className={`p-1 sm:p-2 border sm:border-2 rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-150 flex flex-col min-h-0 overflow-hidden ${
                           day.isCurrentMonth
                             ? (isSelected
-                              ? 'bg-white border-purple-400 shadow-md shadow-purple-100/50 dark:bg-slate-800 dark:border-purple-500 dark:shadow-purple-500/20'
-                              : 'bg-white border-slate-200 hover:border-purple-300 hover:shadow-md hover:shadow-purple-100/50 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-purple-500 dark:hover:bg-slate-800')
-                            : 'bg-slate-50/50 border-slate-100 dark:bg-slate-900/30 dark:border-slate-800'
+                              ? 'bg-white border-purple-400 shadow-md shadow-purple-100/50 dark:bg-[#16161f] dark:border-purple-500/60 dark:shadow-purple-500/10'
+                              : 'bg-white border-slate-200/60 hover:border-purple-300 hover:shadow-md hover:shadow-purple-100/50 dark:bg-[#12121a] dark:border-slate-800/60 dark:hover:border-purple-500/50 dark:hover:bg-[#16161f]')
+                            : 'bg-slate-50/50 border-slate-100 dark:bg-[#0a0a0f]/50 dark:border-slate-800/40'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-0.5 sm:mb-2 flex-shrink-0">
@@ -398,8 +408,8 @@ export default function CalendarPage() {
           </div>
 
           <aside className="w-full lg:w-96 flex-shrink-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden lg:sticky lg:top-24 dark:bg-slate-900/80 dark:border-slate-800" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
-              <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-4 sm:p-6 text-white flex-shrink-0">
+            <div className={`${ds.card} overflow-hidden lg:sticky lg:top-24`} style={{ maxHeight: 'calc(100vh - 7rem)' }}>
+              <div className="bg-gradient-to-br from-purple-600 to-purple-700 dark:from-purple-800 dark:to-indigo-800 p-4 sm:p-6 text-white flex-shrink-0">
                 <div className="text-xs sm:text-sm font-medium opacity-90 mb-1">Selected Day</div>
                 <div className="text-xl sm:text-2xl font-extrabold">{formatSelectedDate()}</div>
                 <div className="text-xs sm:text-sm opacity-80 mt-2">
@@ -419,7 +429,7 @@ export default function CalendarPage() {
                     if (evs.length === 0 && !hol) {
                       return (
                         <div className="text-center py-12 text-slate-400 dark:text-slate-500">
-                          <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                          <Calendar className="w-12 h-12 mx-auto mb-3 text-slate-300 dark:text-slate-700" />
                           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No events scheduled</p>
                           <p className="text-xs mt-1 text-slate-500 dark:text-slate-500">Click New Event to add one</p>
                         </div>

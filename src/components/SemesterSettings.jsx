@@ -134,7 +134,7 @@ export default function SemesterSettings() {
   const activeSemester = settings.find(s => s.is_active);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-sm p-6 mb-6 border border-indigo-100 dark:border-slate-700">
+    <div className="bg-gradient-to-br from-indigo-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-sm p-6 mb-6 border border-indigo-100 dark:border-slate-700">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">

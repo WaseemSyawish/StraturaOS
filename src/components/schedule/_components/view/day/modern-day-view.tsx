@@ -363,28 +363,17 @@ export default function ModernDayView({
 
   return (
     <div 
-      className="flex flex-col h-full rounded-2xl overflow-hidden"
-      style={{
-        background: 'rgba(255, 255, 255, 0.95)',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03)'
-      }}
+      className="flex flex-col h-full rounded-2xl overflow-hidden relative bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/50 shadow-lg dark:shadow-2xl dark:shadow-black/20"
     >
-      {/* Dark mode container */}
-      <div className="hidden dark:block absolute inset-0 rounded-2xl" style={{
-        background: 'linear-gradient(180deg, rgba(18, 18, 26, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%)',
-        boxShadow: '0 4px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-      }} />
 
       {/* Header - Premium styling */}
       <div 
-        className="flex items-center justify-between px-5 py-4 relative"
-        style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}
+        className="flex items-center justify-between px-5 py-4 relative border-b border-slate-200/80 dark:border-slate-700/50 bg-white dark:bg-slate-900/80"
       >
         <div className="flex items-center gap-4">
           {/* Navigation buttons with premium hover */}
           <div 
-            className="flex items-center gap-1 p-1 rounded-xl"
-            style={{ background: 'rgba(148, 163, 184, 0.08)' }}
+            className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/60"
           >
             <button
               onClick={goToPrevDay}
@@ -454,16 +443,11 @@ export default function ModernDayView({
       {/* Time Grid - Premium dark styling */}
       <div
         ref={gridRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden relative"
+        className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50 dark:bg-slate-900"
         style={{ 
           maxHeight: "calc(100vh - 300px)",
-          background: 'linear-gradient(180deg, rgba(250, 250, 252, 1) 0%, rgba(248, 248, 250, 1) 100%)',
         }}
       >
-        {/* Dark mode background */}
-        <div className="absolute inset-0 hidden dark:block" style={{
-          background: 'linear-gradient(180deg, rgba(15, 15, 20, 1) 0%, rgba(10, 10, 15, 1) 100%)',
-        }} />
         
         <div className="relative" style={{ minHeight: HOURS.length * HOUR_HEIGHT }}>
           {/* Hour rows */}
@@ -485,42 +469,26 @@ export default function ModernDayView({
                 className={cn(
                   "flex-1 cursor-pointer group relative border-l",
                   "transition-all duration-200",
-                  "border-l-slate-200/50 dark:border-l-slate-800/30"
+                  "border-l-slate-200/50 dark:border-l-slate-700/50"
                 )}
                 onMouseEnter={() => setHoveredHour(hour)}
                 onMouseLeave={() => setHoveredHour(null)}
                 onClick={(e) => handleSlotClick(hour, e)}
               >
-                {/* Hour line - subtle gradient */}
-                <div 
-                  className="absolute top-0 left-0 right-0 h-px"
-                  style={{
-                    background: 'linear-gradient(90deg, rgba(148, 163, 184, 0.3) 0%, rgba(148, 163, 184, 0.1) 50%, transparent 100%)'
-                  }}
-                />
-                <div 
-                  className="absolute top-0 left-0 right-0 h-px hidden dark:block"
-                  style={{
-                    background: 'linear-gradient(90deg, rgba(71, 85, 105, 0.4) 0%, rgba(71, 85, 105, 0.15) 50%, transparent 100%)'
-                  }}
-                />
+                {/* Hour line - subtle */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-slate-300/50 via-slate-200/30 to-transparent dark:from-slate-600/40 dark:via-slate-700/20 dark:to-transparent" />
 
                 {/* Half-hour line - very subtle */}
                 <div
-                  className="absolute w-full h-px"
-                  style={{ 
-                    top: HOUR_HEIGHT / 2,
-                    background: 'linear-gradient(90deg, rgba(148, 163, 184, 0.15) 0%, transparent 70%)'
-                  }}
+                  className="absolute w-full h-px bg-gradient-to-r from-slate-200/40 to-transparent dark:from-slate-700/30 dark:to-transparent"
+                  style={{ top: HOUR_HEIGHT / 2 }}
                 />
 
                 {/* Hover effect - premium gradient */}
                 <div className={cn(
-                  "absolute inset-0 opacity-0 transition-opacity duration-200",
+                  "absolute inset-0 opacity-0 transition-opacity duration-200 bg-gradient-to-r from-purple-500/10 to-transparent dark:from-purple-500/15",
                   hoveredHour === hour && "opacity-100"
-                )} style={{
-                  background: 'linear-gradient(90deg, rgba(147, 51, 234, 0.08) 0%, transparent 100%)'
-                }} />
+                )} />
 
                 {/* Hover indicator - premium pill */}
                 {hoveredHour === hour && !inlineCreator && (
@@ -653,16 +621,8 @@ export default function ModernDayView({
 
       {/* Footer with event count - Premium */}
       <div 
-        className="px-5 py-3 relative"
-        style={{
-          borderTop: '1px solid rgba(148, 163, 184, 0.1)',
-          background: 'linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%)'
-        }}
+        className="px-5 py-3 relative border-t border-slate-200/80 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/80"
       >
-        <div className="hidden dark:block absolute inset-0" style={{
-          background: 'linear-gradient(180deg, rgba(18, 18, 26, 0.98) 0%, rgba(15, 15, 20, 1) 100%)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)'
-        }} />
         <div className="flex items-center justify-between relative">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             {dayEvents.length === 0

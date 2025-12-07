@@ -1,5 +1,6 @@
 // pages/_app.js
 
+// eslint-disable-next-line no-unused-vars
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import '../src/App.css'
@@ -8,6 +9,7 @@ import '../src/styles/typography.css'
 import '../src/styles/calendar-theme.css'
 import '../src/styles/dark-input-fix.css'
 import Layout from '../src/components/Layout'
+// eslint-disable-next-line no-unused-vars
 import * as NextUI from '@nextui-org/react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { NextUIProvider as NextUISystemProvider } from '@nextui-org/system'
@@ -142,6 +144,7 @@ function NavEnhancer() {
 export default function App({ Component, pageProps }) {
   const router = useRouter();
   // Track and apply theme for global CSS vars and NextUI provider
+  // eslint-disable-next-line no-unused-vars
   const [activeTheme, setActiveTheme] = useState('light');
 
   // Check if current page should force light mode

@@ -3335,7 +3335,7 @@ const LecturesTab = ({ groups = [], syncing = false }) => {
 };
 
 
-
+// eslint-disable-next-line no-unused-vars
 const InsightsPanel = ({ insightSummary, widgetFactory, order }) => {
   if (!insightSummary) return null;
   const widgets = order

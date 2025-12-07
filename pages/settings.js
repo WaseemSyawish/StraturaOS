@@ -174,7 +174,9 @@ export default function Settings() {
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const { theme: currentTheme, setTheme } = useTheme();
+  // eslint-disable-next-line no-unused-vars
   const [themeMounted, setThemeMounted] = useState(false);
   
   // Track when theme is ready (avoid hydration mismatch)

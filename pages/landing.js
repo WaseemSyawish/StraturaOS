@@ -54,7 +54,7 @@ export default function Landing() {
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
       <Head>
-        <title>StraturaOS - Your academic command center</title>
+        <title>StraturaOS</title>
         <meta name="description" content="One place for courses, grades, schedules, and everything academic. Built by students who needed it." />
       </Head>
 

@@ -331,9 +331,9 @@ export default function ModernMonthView({
             key={day}
             className={cn(
               "py-3 text-center text-xs font-semibold uppercase tracking-wider",
-              "text-slate-400 dark:text-slate-500",
-              idx > 0 && "border-l border-slate-100 dark:border-slate-800/50",
-              (idx === 0 || idx === 6) && "text-slate-500/80 dark:text-slate-600"
+              "text-slate-500 dark:text-slate-400",
+              idx > 0 && "border-l border-slate-200 dark:border-slate-700",
+              (idx === 0 || idx === 6) && "text-slate-500/80 dark:text-slate-500"
             )}
           >
             {day}
@@ -355,7 +355,7 @@ export default function ModernMonthView({
             <div
               key={idx}
               className={cn(
-                "min-h-[110px] p-2 border-t border-l border-slate-100 dark:border-slate-800/50 relative group",
+                "min-h-[110px] p-2 border-t border-l border-slate-200 dark:border-slate-700 relative group",
                 "transition-all duration-200",
                 !cell.isCurrentMonth && "bg-slate-50/80 dark:bg-slate-900/80",
                 cell.isToday && "bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/10",

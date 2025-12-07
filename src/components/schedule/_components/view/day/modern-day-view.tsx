@@ -443,7 +443,7 @@ export default function ModernDayView({
       {/* Time Grid - Premium dark styling */}
       <div
         ref={gridRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50 dark:bg-slate-900"
+        className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50 dark:bg-slate-950"
         style={{ 
           maxHeight: "calc(100vh - 300px)",
         }}
@@ -459,7 +459,7 @@ export default function ModernDayView({
             >
               {/* Time label - premium styling */}
               <div className="w-16 flex-shrink-0 pr-3 text-right relative">
-                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 -mt-2 block tabular-nums tracking-tight">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 -mt-2 block tabular-nums tracking-tight">
                   {formatHour(hour)}
                 </span>
               </div>
@@ -469,18 +469,18 @@ export default function ModernDayView({
                 className={cn(
                   "flex-1 cursor-pointer group relative border-l",
                   "transition-all duration-200",
-                  "border-l-slate-200/50 dark:border-l-slate-700/50"
+                  "border-l-slate-200 dark:border-l-slate-700"
                 )}
                 onMouseEnter={() => setHoveredHour(hour)}
                 onMouseLeave={() => setHoveredHour(null)}
                 onClick={(e) => handleSlotClick(hour, e)}
               >
                 {/* Hour line - subtle */}
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-slate-300/50 via-slate-200/30 to-transparent dark:from-slate-600/40 dark:via-slate-700/20 dark:to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-slate-300/50 via-slate-200/30 to-transparent dark:from-slate-600/80 dark:via-slate-600/50 dark:to-transparent" />
 
                 {/* Half-hour line - very subtle */}
                 <div
-                  className="absolute w-full h-px bg-gradient-to-r from-slate-200/40 to-transparent dark:from-slate-700/30 dark:to-transparent"
+                  className="absolute w-full h-px bg-gradient-to-r from-slate-200/40 to-transparent dark:from-slate-700/60 dark:to-transparent"
                   style={{ top: HOUR_HEIGHT / 2 }}
                 />
 

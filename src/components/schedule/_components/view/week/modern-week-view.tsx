@@ -498,7 +498,7 @@ export default function ModernWeekView({
                 className="absolute w-full pr-3 text-right"
                 style={{ top: hour * HOUR_HEIGHT - 6 }}
               >
-                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   {formatHour(hour)}
                 </span>
               </div>
@@ -514,7 +514,7 @@ export default function ModernWeekView({
               <div
                 key={dayIndex}
                 className={cn(
-                  "week-day-column flex-1 relative border-l border-slate-100 dark:border-slate-800/50",
+                  "week-day-column flex-1 relative border-l border-slate-200 dark:border-slate-700",
                   isToday && "bg-gradient-to-b from-blue-50/30 to-transparent dark:from-blue-900/10 dark:to-transparent"
                 )}
               >
@@ -523,7 +523,7 @@ export default function ModernWeekView({
                   <div
                     key={hour}
                     className={cn(
-                      "absolute w-full border-t border-slate-100/80 dark:border-slate-800/50 cursor-pointer group",
+                      "absolute w-full border-t border-slate-200 dark:border-slate-700 cursor-pointer group",
                       "transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent dark:hover:from-blue-900/20 dark:hover:to-transparent"
                     )}
                     style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
@@ -531,7 +531,7 @@ export default function ModernWeekView({
                   >
                     {/* Half-hour line */}
                     <div
-                      className="absolute w-full border-t border-dashed border-slate-100/50 dark:border-slate-800/30"
+                      className="absolute w-full border-t border-dashed border-slate-200/70 dark:border-slate-700/70"
                       style={{ top: HOUR_HEIGHT / 2 }}
                     />
                     {/* Hover indicator */}

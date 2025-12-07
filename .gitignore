@@ -122,3 +122,6 @@ Desktop.ini
 !public/*.html
 *.gif
 !public/**/*.gif
+
+# Database backups (contains sensitive data)
+backups/

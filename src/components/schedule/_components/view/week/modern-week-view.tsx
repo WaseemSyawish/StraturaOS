@@ -543,17 +543,17 @@ export default function ModernWeekView({
                   </div>
                 ))}
 
-                {/* Events - Google Calendar style solid blocks */}
+                {/* Events - Google Calendar style rounded pills */}
                 <div className="absolute inset-0 px-0.5 pointer-events-none overflow-hidden">
                   {dayEventsPositioned.map(({ event, top, height, left, width, zIndex }) => {
                     // Color priority: course.color → event.color → event.variant → fallback
                     const courseColor = (event as any).courses?.color;
-                    const colorKey = courseColor || event.color || (event as any).variant || 'purple';
+                    const colorKey = courseColor || event.color || (event as any).variant || 'blue';
                     const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
-                    const isCompact = height < 28;
-                    const isTiny = height < 18;
+                    const isCompact = height < 32;
+                    const isTiny = height < 20;
                     
-                    // Hex color mapping - using Google Calendar inspired palette
+                    // Hex color mapping - Google Calendar palette
                     const hexColors: Record<string, string> = {
                       purple: '#9333EA', blue: '#4285F4', green: '#0F9D58', emerald: '#0F9D58',
                       red: '#DB4437', rose: '#E91E63', orange: '#F4511E', amber: '#F09300',
@@ -565,14 +565,24 @@ export default function ModernWeekView({
                     return (
                       <div
                         key={event.id}
-                        className="absolute rounded cursor-pointer pointer-events-auto overflow-hidden transition-all duration-150 hover:brightness-90 hover:shadow-lg group"
+                        className="absolute rounded-md cursor-pointer pointer-events-auto overflow-hidden group"
                         style={{
                           top: top + 1,
-                          height: Math.max(height - 2, 16),
+                          height: Math.max(height - 2, 18),
                           left,
-                          width: `calc(${width} - 2px)`,
+                          width: `calc(${width} - 3px)`,
                           zIndex,
                           backgroundColor: hex,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.92)';
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLDivElement).style.filter = 'brightness(1)';
+                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)';
                         }}
                         onClick={() => {
                           if (onEventClick) {
@@ -582,15 +592,15 @@ export default function ModernWeekView({
                           }
                         }}
                       >
-                        <div className={cn("px-1 h-full flex flex-col justify-start overflow-hidden", isTiny ? "py-0" : "py-0.5")}>
+                        <div className={cn("px-1.5 h-full flex flex-col justify-center overflow-hidden", isTiny ? "py-0" : "py-0.5")}>
                           <div 
                             className="font-medium truncate leading-tight text-white"
-                            style={{ fontSize: isTiny ? '9px' : '10px' }}
+                            style={{ fontSize: isTiny ? '10px' : '11px' }}
                           >
                             {event.title}
                           </div>
                           {!isCompact && (
-                            <div className="text-[9px] truncate text-white/80 mt-0.5">
+                            <div className="text-[10px] truncate text-white/75 mt-0.5">
                               {formatEventTime(startDate)}
                             </div>
                           )}

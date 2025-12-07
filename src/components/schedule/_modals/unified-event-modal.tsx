@@ -451,34 +451,35 @@ export default function UnifiedEventModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 10 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg mx-4 rounded-xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900 max-h-[90vh] flex flex-col"
+          className="relative w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900 max-h-[85vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              {mode === 'edit' ? 'Edit Event' : 'New Event'}
+          {/* Header - cleaner, more breathing room */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              {mode === 'edit' ? 'Edit Event' : 'Create Event'}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-            <div className="px-6 py-5 space-y-4">
-              {/* Title Input - Large and prominent like Tasks */}
+            <div className="px-6 py-6 space-y-5">
+              {/* Title Input - Large and prominent */}
               <input
                 ref={titleInputRef}
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border-none bg-transparent text-2xl font-bold text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+                className="w-full border-none bg-transparent text-xl font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
                 placeholder="Event title"
               />
 
-              <div className="space-y-3.5">
+              <div className="space-y-4">
                 {/* Date Row */}
                 <div className="flex items-center gap-3 text-[13px]">
                   <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />

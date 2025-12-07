@@ -53,13 +53,19 @@ function normalizeEvent(ev: any) {
   if (!ev || typeof ev !== 'object') return ev;
   const clone: any = { ...ev };
 
-  // normalize color: prefer `color`, then course color (from relation),
+  // IMPORTANT: Preserve the courses relation for UI components to access
+  // The views will prioritize courses.color over event.color
+  if (ev.courses && typeof ev.courses === 'object') {
+    clone.courses = { ...ev.courses };
+  }
+
+  // normalize color: prefer course color FIRST (from relation), then event's own color,
   // then `raw.color`, `raw.color_key`, or `color_key`.
   // If value looks like a variant name, map it to a sensible color key.
   const candidateColor =
-    clone.color ||
-    // Use course color if event has a course relation
+    // Use course color FIRST if event has a course relation
     (clone.courses && clone.courses.color) ||
+    clone.color ||
     (clone.raw && (clone.raw.color || clone.raw.color_key || clone.raw.colorKey)) ||
     clone.color_key ||
     clone.colorKey ||

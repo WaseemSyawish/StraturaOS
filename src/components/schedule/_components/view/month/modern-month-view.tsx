@@ -398,12 +398,12 @@ export default function ModernMonthView({
                 </button>
               </div>
 
-              {/* Events list - Google Calendar style */}
-              <div className="space-y-0.5">
+              {/* Events list - Google Calendar style pills */}
+              <div className="space-y-1">
                 {displayEvents.map((event) => {
                   // Color priority: course.color → event.color → variant → default
                   const courseColor = (event as any).courses?.color;
-                  const colorKey = courseColor || event.color || (event as any).variant || 'purple';
+                  const colorKey = courseColor || event.color || (event as any).variant || 'blue';
                   const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
                   const timeStr = startDate.toLocaleTimeString("en-US", {
                     hour: "numeric",
@@ -430,10 +430,18 @@ export default function ModernMonthView({
                           setSelectedEvent(event);
                         }
                       }}
-                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] truncate transition-all duration-150 hover:brightness-90"
+                      className="w-full text-left px-2 py-1 rounded-md text-[11px] truncate"
                       style={{
                         backgroundColor: hex,
                         color: 'white',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(0.92)';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1)';
                       }}
                       title={`${event.title} at ${timeStr}`}
                     >

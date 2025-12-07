@@ -182,9 +182,10 @@ export default function Settings() {
     setThemeMounted(true);
   }, []);
   
-  // Use the actual theme from useTheme hook, not from settings state
-  // Only use currentTheme after mounting to avoid hydration issues
-  const activeTheme = themeMounted ? (currentTheme || settings.theme) : settings.theme;
+  // Use the actual theme from useTheme hook (reflects what next-themes applied)
+  // For the settings UI, we compare against settings.theme to show what the USER selected
+  // (not necessarily what's active, since 'system' resolves to light/dark)
+  const activeTheme = settings.theme;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -281,10 +282,25 @@ export default function Settings() {
   }
 
   function update(key, value) {
-    setSettings((s) => ({ ...s, [key]: value }));
-    // Immediately apply theme changes
+    setSettings((s) => {
+      const newSettings = { ...s, [key]: value };
+      // Persist to localStorage immediately for theme changes
+      if (key === 'theme') {
+        try { 
+          localStorage.setItem('up:settings', JSON.stringify(newSettings)); 
+        } catch (e) {
+          console.warn('Failed to persist settings:', e);
+        }
+      }
+      return newSettings;
+    });
+    // Immediately apply theme changes via next-themes
     if (key === 'theme' && setTheme && typeof setTheme === 'function') {
       setTheme(value);
+      // Also dispatch event so _app.js can sync
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:settings:changed', { detail: { theme: value } }));
+      }
     }
   }
 

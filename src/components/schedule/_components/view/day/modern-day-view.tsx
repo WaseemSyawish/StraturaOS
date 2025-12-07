@@ -547,13 +547,13 @@ export default function ModernDayView({
             {positionedEvents.map(({ event, top, height, left, width, zIndex }) => {
               // Color priority: course.color → event.color → variant → default
               const courseColor = (event as any).courses?.color;
-              const colorKey = courseColor || event.color || (event as any).variant || 'purple';
+              const colorKey = courseColor || event.color || (event as any).variant || 'blue';
               const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
               const endDate = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
-              const isCompact = height < 40;
-              const isVeryCompact = height < 25;
+              const isCompact = height < 45;
+              const isVeryCompact = height < 28;
               
-              // Hex colors - Google Calendar inspired palette
+              // Hex colors - Google Calendar palette
               const hexColors: Record<string, string> = {
                 purple: '#9333EA', blue: '#4285F4', green: '#0F9D58', emerald: '#0F9D58',
                 red: '#DB4437', rose: '#E91E63', orange: '#F4511E', amber: '#F09300',
@@ -565,10 +565,10 @@ export default function ModernDayView({
               return (
                 <div
                   key={event.id}
-                  className="absolute rounded cursor-pointer pointer-events-auto transition-all duration-150 hover:brightness-90 hover:shadow-lg group overflow-hidden"
+                  className="absolute rounded-lg cursor-pointer pointer-events-auto overflow-hidden group"
                   style={{
                     top: top + 1,
-                    height: Math.max(height - 2, 20),
+                    height: Math.max(height - 2, 22),
                     left: 0,
                     right: 0,
                     marginLeft: left,
@@ -576,6 +576,16 @@ export default function ModernDayView({
                     maxWidth: 'calc(100% - 8px)',
                     zIndex,
                     backgroundColor: hex,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.92)';
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 16px rgba(0,0,0,0.18)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.filter = 'brightness(1)';
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)';
                   }}
                   onClick={() => {
                     if (onEventClick) {
@@ -586,11 +596,11 @@ export default function ModernDayView({
                   }}
                 >
                   <div className={cn(
-                    "h-full flex flex-col justify-start overflow-hidden",
-                    isVeryCompact ? "px-2 py-0.5" : "px-3 py-1.5"
+                    "h-full flex flex-col justify-center overflow-hidden",
+                    isVeryCompact ? "px-2.5 py-0.5" : "px-3 py-2"
                   )}>
                     <div 
-                      className={cn("font-medium truncate leading-tight text-white", isVeryCompact ? "text-xs" : "text-sm")}
+                      className={cn("font-semibold truncate leading-tight text-white", isVeryCompact ? "text-xs" : "text-sm")}
                     >
                       {event.title}
                     </div>

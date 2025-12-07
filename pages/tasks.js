@@ -4575,7 +4575,6 @@ export default function TasksPage() {
             ) : null}
             {viewMode === 'lectures' ? <LecturesTab groups={lectureGroups} syncing={loading} /> : null}
             
-            <InsightsPanel insightSummary={insightSummary} widgetFactory={widgetFactory} order={insightWidgetOrder} />
             <RecentlyCompletedPills items={recentlyCompleted} onUndo={undoRecentlyCompleted} />
           </div>
         </div>

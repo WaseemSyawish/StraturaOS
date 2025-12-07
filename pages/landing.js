@@ -390,8 +390,8 @@ export default function Landing() {
               
               {/* Events list */}
               {[
-                { title: 'Data Structures Lecture', time: 'Today, 10:00 AM', color: '#9333EA', type: 'Class' },
-                { title: 'Algorithm Assignment', time: 'Tomorrow, 11:59 PM', color: '#F59E0B', type: 'Due' },
+                { title: 'Data Structures', time: 'Today, 10:00 AM', color: '#9333EA', type: 'Class' },
+                { title: 'Algorithm - Assignment', time: 'Tomorrow, 11:59 PM', color: '#F59E0B', type: 'Assignment' },
                 { title: 'Database Systems', time: 'Wed, 2:00 PM', color: '#A855F7', type: 'Class' },
               ].map((event, i) => (
                 <div key={i} style={{

@@ -19,14 +19,8 @@ const ds = {
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-// Layout constants (extracted here so other parts of this file can use them)
-const HEADER_HEIGHT = '4rem'; // matches h-16
-const HEADER_HEIGHT_TAILWIND = 'h-16';
-const ASIDE_WIDTH_CLASS = 'w-96';
-// slightly less wide than before; tweak: slightly narrower
+// Layout constants
 const CONTAINER_MAX_WIDTH_CLASS = 'max-w-[1450px]';
-// grid rows will be determined dynamically (5 or 6) based on month length
-const DAYS_GRID_AUTO_ROWS = '1fr';
 
 const toYMD = (d) => toYMDLocal(d);
 
@@ -189,14 +183,19 @@ export default function CalendarPage() {
   .filter(x => !(x.e && (x.e.type === 'deadline' || x.e.type === 'assignment') && (x.isExpired || !!x.e.completed)))
         .map(x => x.e)
         .map(e => {
-        // Prefer the server-provided `date` (YYYY-MM-DD) when available. If not,
-        // derive from startDate (ISO) using the local-preserving helper to avoid
-        // timezone-induced shifts.
+        // Always derive date from startDate (ISO) using the local-preserving helper
+        // to get the correct local date. The server's `date` field may be computed
+        // in the server's timezone which differs from the client's.
         let dateStr = '';
         try {
-          if (e && typeof e.date === 'string' && e.date.length >= 10) dateStr = e.date.slice(0,10);
-          else if (e && e.startDate) dateStr = toYMD(e.startDate);
-          else if (e && e.date) dateStr = String(e.date).slice(0,10);
+          if (e && e.startDate) {
+            // Use local timezone conversion for ISO dates
+            dateStr = toYMD(e.startDate);
+          } else if (e && typeof e.date === 'string' && e.date.length >= 10) {
+            dateStr = e.date.slice(0,10);
+          } else if (e && e.date) {
+            dateStr = String(e.date).slice(0,10);
+          }
         } catch (err) { dateStr = e && e.date ? String(e.date).slice(0,10) : ''; }
         return {
           id: String(e.id),
@@ -298,11 +297,11 @@ export default function CalendarPage() {
       <Head>
         <title>Calendar — StraturaOS</title>
       </Head>
-      <div className={`calendar-page ${ds.pageBg}`}>
-      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-2 sm:p-4`}>
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
-          <div className="flex-1 flex flex-col h-full w-full">
-            <div className={`${ds.card} overflow-hidden flex flex-col h-full`}>
+      <div className={`calendar-page ${ds.pageBg} flex flex-col`} style={{ minHeight: 'calc(100vh - 4rem)' }}>
+      <main className={`${CONTAINER_MAX_WIDTH_CLASS} mx-auto p-2 sm:p-4 flex-1 flex flex-col`}>
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 w-full">
+            <div className={`${ds.card} overflow-hidden flex flex-col flex-1 min-h-0`}>
               <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-white via-slate-50/50 to-white dark:border-slate-800/60 dark:from-[#12121a] dark:via-[#16161f] dark:to-[#12121a]">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <button onClick={() => navigateMonth(-1)} className="hover:bg-purple-100 hover:text-purple-700 transition-colors rounded-xl h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center dark:hover:bg-purple-500/20 dark:hover:text-purple-400 dark:text-slate-300">
@@ -337,7 +336,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="p-3 sm:p-6 flex-1 flex flex-col min-h-0">
+              <div className="p-3 sm:p-6 flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="grid grid-cols-7 gap-1 sm:gap-4 mb-2 sm:mb-4 flex-shrink-0">
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
                     <div key={d} className="text-center text-[10px] sm:text-sm font-semibold uppercase tracking-wider text-slate-600 py-1 sm:py-2 dark:text-slate-400">
@@ -346,7 +345,7 @@ export default function CalendarPage() {
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1 sm:gap-3 flex-1 min-h-0" style={{ gridAutoRows: '1fr', ...gridStyle }}>
+                <div className="grid grid-cols-7 gap-1 sm:gap-3 flex-1 min-h-0 auto-rows-fr" style={gridStyle}>
                   {days.map((day, idx) => {
                     const dayEvents = getEventsForDate(day.date);
                     const holiday = isHoliday(day.date);
@@ -407,8 +406,8 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <aside className="w-full lg:w-96 flex-shrink-0">
-            <div className={`${ds.card} overflow-hidden lg:sticky lg:top-24`} style={{ maxHeight: 'calc(100vh - 7rem)' }}>
+          <aside className="w-full lg:w-80 xl:w-96 flex-shrink-0 lg:max-h-[calc(100vh-6rem)]">
+            <div className={`${ds.card} overflow-hidden lg:sticky lg:top-24 flex flex-col max-h-[400px] lg:max-h-full`}>
               <div className="bg-gradient-to-br from-purple-600 to-purple-700 dark:from-purple-800 dark:to-indigo-800 p-4 sm:p-6 text-white flex-shrink-0">
                 <div className="text-xs sm:text-sm font-medium opacity-90 mb-1">Selected Day</div>
                 <div className="text-xl sm:text-2xl font-extrabold">{formatSelectedDate()}</div>
@@ -420,7 +419,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 overflow-y-auto calendar-scrollbar-hide" style={{ maxHeight: 'calc(100vh - 20rem)' }}>
+              <div className="p-4 sm:p-6 overflow-y-auto calendar-scrollbar-hide flex-1 min-h-0">
                 {selectedDate ? (
                   (() => {
                     const evs = getEventsForDate(selectedDate);

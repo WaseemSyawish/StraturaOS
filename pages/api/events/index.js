@@ -294,27 +294,27 @@ async function handler(req, res) {
         } catch (e) {
           // swallow extraction errors
         }
-        // Normalize `date` to the creator's wall-clock Y-M-D. Prefer deriving
-        // it from `startDate` when present (startDate is a deterministic ISO
-        // representing local components converted to an instant). This mirrors
-        // client parsing and avoids server timezone-dependent Date parsing.
+        // Normalize `date` to the user's local wall-clock Y-M-D. If startDate
+        // is a full ISO instant (with Z or offset), parse it properly to get
+        // the correct local date. Otherwise extract components directly.
         try {
           if (out && out.startDate && typeof out.startDate === 'string') {
-            const m = String(out.startDate).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-            if (m) {
-              const y = Number(m[1]);
-              const mo = Number(m[2]) - 1;
-              const d = Number(m[3]);
-              const hh = Number(m[4]);
-              const mm = Number(m[5]);
-              try {
-                const localDt = new Date(y, mo, d, hh, mm, 0);
-                const y2 = localDt.getFullYear();
-                const m2 = String(localDt.getMonth() + 1).padStart(2, '0');
-                const day2 = String(localDt.getDate()).padStart(2, '0');
+            const sDate = String(out.startDate);
+            // Check if it's a full ISO instant with timezone (Z or +/-offset)
+            if (/Z$|[+-]\d{2}:\d{2}$/.test(sDate)) {
+              // Parse as ISO instant and extract local date components
+              const dt = new Date(sDate);
+              if (!isNaN(dt.getTime())) {
+                const y2 = dt.getFullYear();
+                const m2 = String(dt.getMonth() + 1).padStart(2, '0');
+                const day2 = String(dt.getDate()).padStart(2, '0');
                 out.date = `${y2}-${m2}-${day2}`;
-              } catch (e) {
-                // ignore and fall back to the existing date handling
+              }
+            } else {
+              // No timezone indicator - treat as local time components
+              const m = sDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+              if (m) {
+                out.date = `${m[1]}-${m[2]}-${m[3]}`;
               }
             }
           } else if (out && out.date) {

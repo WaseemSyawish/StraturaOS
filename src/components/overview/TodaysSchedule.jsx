@@ -218,6 +218,25 @@ export default function TodaysSchedule({ events, currentDate, onViewDetails }) {
                       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <Clock className="w-4 h-4" />
                         {(() => {
+                          // Check if the event has an explicit time set
+                          const hasTime = event.meta?.hasTime !== false && (
+                            event.time || 
+                            event.meta?.hasTime === true ||
+                            // Check if startDate/time is not midnight (00:00)
+                            (() => {
+                              const startVal = event.startTime || event.startDate || event.date || event.time;
+                              if (!startVal) return false;
+                              const d = new Date(startVal);
+                              if (isNaN(d.getTime())) return false;
+                              // If hours or minutes are non-zero, time was set
+                              return d.getHours() !== 0 || d.getMinutes() !== 0;
+                            })()
+                          );
+                          
+                          if (!hasTime) {
+                            return <span className="text-gray-400 dark:text-gray-500">All day</span>;
+                          }
+                          
                           const fallback = event.startDate || event.date || currentDate;
                           const startVal = event.startTime || event.startDate || event.date || event.time;
                           const endVal = event.endTime || event.endDate || null;

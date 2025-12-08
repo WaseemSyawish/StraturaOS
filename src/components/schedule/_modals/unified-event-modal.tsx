@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Calendar, Clock, MapPin, ChevronDown, Check,
-  Repeat, BookOpen, Palette, AlertTriangle, Users, FileText, Target, GraduationCap
+  Repeat, BookOpen, Palette, AlertTriangle, Users, FileText, Target, GraduationCap, Trash2
 } from "lucide-react";
 import { Event } from "@/types";
 
@@ -64,20 +64,39 @@ const RECURRENCE_PRESETS = [
   { label: "No repeat", days: [], interval: 0 },
   { label: "Daily", days: [0, 1, 2, 3, 4, 5, 6], interval: 1 },
   { label: "Weekdays (Mon-Fri)", days: [1, 2, 3, 4, 5], interval: 1 },
+  { label: "Weekends (Sat-Sun)", days: [0, 6], interval: 1 },
   { label: "MWF", days: [1, 3, 5], interval: 1 },
   { label: "Tue/Thu", days: [2, 4], interval: 1 },
   { label: "Weekly", days: [-1], interval: 1 },
+  { label: "Biweekly", days: [-1], interval: 2 },
+  { label: "Monthly", days: [-2], interval: 1 }, // -2 = same day of month
+  { label: "Custom...", days: [], interval: 0, isCustom: true },
 ];
 
-// Duration options with cleaner labels
+// Day abbreviations for custom recurrence
+const DAY_ABBREVIATIONS = [
+  { value: 0, label: 'S', fullLabel: 'Sun' },
+  { value: 1, label: 'M', fullLabel: 'Mon' },
+  { value: 2, label: 'T', fullLabel: 'Tue' },
+  { value: 3, label: 'W', fullLabel: 'Wed' },
+  { value: 4, label: 'T', fullLabel: 'Thu' },
+  { value: 5, label: 'F', fullLabel: 'Fri' },
+  { value: 6, label: 'S', fullLabel: 'Sat' },
+];
+
+// Duration options with cleaner labels - more granular
 const DURATION_OPTIONS = [
   { value: 15, label: "15 min" },
   { value: 30, label: "30 min" },
   { value: 45, label: "45 min" },
   { value: 60, label: "1 hour" },
+  { value: 75, label: "1h 15min" },
   { value: 90, label: "1.5 hours" },
   { value: 120, label: "2 hours" },
+  { value: 150, label: "2.5 hours" },
   { value: 180, label: "3 hours" },
+  { value: 240, label: "4 hours" },
+  { value: -1, label: "Custom...", isCustom: true },
 ];
 
 interface UnifiedEventModalProps {
@@ -149,6 +168,13 @@ export default function UnifiedEventModal({
   const [location, setLocation] = useState((event as any)?.location || "");
   const [description, setDescription] = useState((event as any)?.description || "");
   const [recurrencePreset, setRecurrencePreset] = useState("No repeat");
+  
+  // Custom input states
+  const [showCustomDuration, setShowCustomDuration] = useState(false);
+  const [customDurationHours, setCustomDurationHours] = useState(1);
+  const [customDurationMinutes, setCustomDurationMinutes] = useState(0);
+  const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
+  const [customRecurrenceDays, setCustomRecurrenceDays] = useState<number[]>([]);
   
   // Module state - fetch from /api/courses
   const [modules, setModules] = useState<Module[]>([]);
@@ -271,10 +297,28 @@ export default function UnifiedEventModal({
       const startDate = new Date(y, mo - 1, d, h, m);
       const endDate = new Date(startDate.getTime() + duration * 60000);
 
-      const preset = RECURRENCE_PRESETS.find(p => p.label === recurrencePreset);
-      let recurrenceDays = preset?.days || [];
-      if (recurrenceDays.includes(-1)) {
-        recurrenceDays = [startDate.getDay()];
+      // Handle custom recurrence or preset
+      let recurrenceDays: number[] = [];
+      let recurrenceInterval = 1;
+      
+      if (showCustomRecurrence && customRecurrenceDays.length > 0) {
+        // Use custom selected days
+        recurrenceDays = [...customRecurrenceDays];
+        recurrenceInterval = 1;
+      } else {
+        const preset = RECURRENCE_PRESETS.find(p => p.label === recurrencePreset);
+        recurrenceDays = preset?.days || [];
+        recurrenceInterval = preset?.interval || 1;
+        
+        // -1 means "same day as start date" (Weekly)
+        if (recurrenceDays.includes(-1)) {
+          recurrenceDays = [startDate.getDay()];
+        }
+        // -2 means "monthly" - same day of month
+        if (recurrenceDays.includes(-2)) {
+          recurrenceDays = [];
+          // Monthly recurrence - handled differently
+        }
       }
 
       const eventData = {
@@ -298,7 +342,7 @@ export default function UnifiedEventModal({
         ...(recurrenceDays.length > 0 && {
           repeatOption: 'weekly',
           byDays: recurrenceDays,
-          interval: preset?.interval || 1,
+          interval: recurrenceInterval,
         }),
       };
 
@@ -350,8 +394,8 @@ export default function UnifiedEventModal({
             className="relative w-full max-w-lg mx-4 rounded-xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{event.title}</h2>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+              <h2 className="text-base font-medium text-slate-700 dark:text-slate-200">{event.title}</h2>
               <button
                 onClick={onClose}
                 className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -451,20 +495,33 @@ export default function UnifiedEventModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 10 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900 max-h-[85vh] flex flex-col"
+          className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900 max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - cleaner, more breathing room */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          {/* Header - compact and subtle */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+            <h2 className="text-base font-medium text-slate-700 dark:text-slate-200">
               {mode === 'edit' ? 'Edit Event' : 'Create Event'}
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              {mode === 'edit' && onDelete && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  title={isDeleting ? 'Deleting...' : 'Delete event'}
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
@@ -510,44 +567,36 @@ export default function UnifiedEventModal({
                   </div>
                 </div>
 
-                {/* Duration Row */}
+                {/* Duration Row - Input with quick presets */}
                 <div className="flex items-center gap-3 text-[13px]">
-                  <div className="w-4 h-4 flex-shrink-0" /> {/* Spacer for alignment */}
+                  <div className="w-4 h-4 flex-shrink-0" />
                   <span className="min-w-[80px] text-slate-500">Duration</span>
-                  <div className="relative flex-1" data-dropdown>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown('duration'); }}
-                      className={cn(
-                        "w-full h-9 px-3 rounded-lg border text-sm text-left flex items-center justify-between transition-all",
-                        activeDropdown === 'duration' 
-                          ? "border-purple-500 ring-2 ring-purple-500 bg-white dark:bg-slate-800" 
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                      )}
-                    >
-                      <span className="text-slate-900 dark:text-white">
-                        {DURATION_OPTIONS.find(d => d.value === duration)?.label || `${duration} min`}
-                      </span>
-                      <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeDropdown === 'duration' && "rotate-180")} />
-                    </button>
-                    {activeDropdown === 'duration' && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-                        {DURATION_OPTIONS.map((d) => (
-                          <button
-                            key={d.value}
-                            type="button"
-                            onClick={() => { setDuration(d.value); closeAllDropdowns(); }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between",
-                              duration === d.value && "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                            )}
-                          >
-                            <span>{d.label}</span>
-                            {duration === d.value && <Check className="w-4 h-4" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex-1 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={duration}
+                      onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+                      className="w-20 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    />
+                    <span className="text-slate-500 text-xs">min</span>
+                    <div className="flex flex-wrap gap-1">
+                      {[30, 60, 90, 120].map((mins) => (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => setDuration(mins)}
+                          className={cn(
+                            "px-2 py-1 text-[10px] font-medium rounded transition-all",
+                            duration === mins
+                              ? "bg-purple-600 text-white"
+                              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                          )}
+                        >
+                          {mins < 60 ? `${mins}m` : `${mins/60}h`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -734,70 +783,80 @@ export default function UnifiedEventModal({
                 </div>
                 )}
 
-                {/* Location Row */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Location</span>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Add location..."
-                    className="flex-1 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  />
-                </div>
-
-                {/* Recurrence Row */}
+                {/* Recurrence Row - Preset buttons with custom option */}
                 <div className="flex items-center gap-3 text-[13px]">
                   <Repeat className="w-4 h-4 text-slate-400 flex-shrink-0" />
                   <span className="min-w-[80px] text-slate-500">Repeat</span>
-                  <div className="relative flex-1" data-dropdown>
+                  <div className="flex-1 flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'None', value: 'No repeat' },
+                      { label: 'Daily', value: 'Daily' },
+                      { label: 'Weekly', value: 'Weekly' },
+                      { label: 'MWF', value: 'MWF' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setRecurrencePreset(opt.value);
+                          setShowCustomRecurrence(false);
+                          setCustomRecurrenceDays([]);
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                          recurrencePreset === opt.value && !showCustomRecurrence
+                            ? "bg-purple-600 text-white shadow-sm"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown('recurrence'); }}
+                      onClick={() => setShowCustomRecurrence(!showCustomRecurrence)}
                       className={cn(
-                        "w-full h-9 px-3 rounded-lg border text-sm text-left flex items-center justify-between transition-all",
-                        activeDropdown === 'recurrence' 
-                          ? "border-purple-500 ring-2 ring-purple-500 bg-white dark:bg-slate-800" 
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
+                        "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                        showCustomRecurrence
+                          ? "bg-purple-600 text-white shadow-sm"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                       )}
                     >
-                      <span className="text-slate-900 dark:text-white">{recurrencePreset}</span>
-                      <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeDropdown === 'recurrence' && "rotate-180")} />
+                      Custom
                     </button>
-                    {activeDropdown === 'recurrence' && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-                        {RECURRENCE_PRESETS.map((preset) => (
-                          <button
-                            key={preset.label}
-                            type="button"
-                            onClick={() => { setRecurrencePreset(preset.label); closeAllDropdowns(); }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between",
-                              recurrencePreset === preset.label && "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                            )}
-                          >
-                            <span>{preset.label}</span>
-                            {recurrencePreset === preset.label && <Check className="w-4 h-4" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
+                
+                {/* Custom Day Selector */}
+                {showCustomRecurrence && (
+                  <div className="flex items-center gap-3 text-[13px] ml-[100px]">
+                    <div className="flex-1 flex gap-1.5">
+                      {DAY_ABBREVIATIONS.map((day) => (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            setCustomRecurrenceDays(prev => 
+                              prev.includes(day.value) 
+                                ? prev.filter(d => d !== day.value)
+                                : [...prev, day.value].sort()
+                            );
+                          }}
+                          className={cn(
+                            "w-8 h-8 rounded-full text-xs font-medium transition-all",
+                            customRecurrenceDays.includes(day.value)
+                              ? "bg-purple-600 text-white shadow-md"
+                              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                          )}
+                          title={day.fullLabel}
+                        >
+                          {day.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* Description Row - Expandable */}
-                <div className="flex items-start gap-3 text-[13px]">
-                  <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-2" />
-                  <span className="min-w-[80px] text-slate-500 mt-2">Notes</span>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add notes..."
-                    rows={2}
-                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                  />
-                </div>
               </div>
             </div>
           </form>

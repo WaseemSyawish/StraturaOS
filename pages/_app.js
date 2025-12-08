@@ -41,9 +41,11 @@ function PageTransition({ children }) {
 
   useEffect(() => {
     const handleStart = (url) => {
-      if (url !== router.asPath) {
+      // Safely handle url - ensure it's a string
+      const urlStr = typeof url === 'string' ? url : (url?.pathname || url?.toString?.() || '');
+      if (urlStr && urlStr !== router.asPath) {
         const fromPath = lastPathRef.current;
-        const toPath = url.split('?')[0];
+        const toPath = urlStr.split('?')[0];
         
         // Only transition if BOTH from and to are auth/landing pages
         if (isTransitionPage(fromPath) && isTransitionPage(toPath)) {
@@ -53,9 +55,11 @@ function PageTransition({ children }) {
     };
 
     const handleComplete = (url) => {
+      // Safely handle url - ensure it's a string
+      const urlStr = typeof url === 'string' ? url : (url?.pathname || url?.toString?.() || router.asPath || '');
       const fromPath = lastPathRef.current;
-      const toPath = url.split('?')[0];
-      lastPathRef.current = url;
+      const toPath = urlStr.split('?')[0];
+      lastPathRef.current = urlStr;
       
       // Only delay for auth/landing page transitions, update immediately for app pages
       if (isTransitionPage(fromPath) && isTransitionPage(toPath)) {

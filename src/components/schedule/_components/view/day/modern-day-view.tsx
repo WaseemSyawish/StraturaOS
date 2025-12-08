@@ -6,7 +6,6 @@ import { parseDatePreserveLocal } from "@/lib/dateHelpers";
 import { ChevronLeft, ChevronRight, Plus, Clock, CalendarDays, Sparkles } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
-import InlineEventCreator from "../../inline-event-creator";
 import UnifiedEventModal from "../../../_modals/unified-event-modal";
 import { Event, CustomEventModal } from "@/types";
 
@@ -132,10 +131,9 @@ export default function ModernDayView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [inlineCreator, setInlineCreator] = useState<{
+  const [createEventModal, setCreateEventModal] = useState<{
     date: Date;
     time: string;
-    position: { top: number; left: number; width: number };
   } | null>(null);
 
   // Current time indicator
@@ -178,7 +176,6 @@ export default function ModernDayView({
       newDate.setDate(d.getDate() - 1);
       return newDate;
     });
-    setInlineCreator(null);
   }, []);
 
   const goToNextDay = useCallback(() => {
@@ -187,15 +184,13 @@ export default function ModernDayView({
       newDate.setDate(d.getDate() + 1);
       return newDate;
     });
-    setInlineCreator(null);
   }, []);
 
   const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-    setInlineCreator(null);
   }, []);
 
-  // Handle click on time slot
+  // Handle click on time slot - open create modal directly
   const handleSlotClick = useCallback(
     (hour: number, e: React.MouseEvent) => {
       if (!gridRef.current) return;
@@ -206,60 +201,30 @@ export default function ModernDayView({
       const clickedHour = Math.floor(offsetY / HOUR_HEIGHT);
       const time = `${String(clickedHour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
 
-      const slotTop = clickedHour * HOUR_HEIGHT + (minuteOffset / 60) * HOUR_HEIGHT;
-
-      setInlineCreator({
+      // Open create modal directly instead of inline creator
+      setCreateEventModal({
         date: new Date(currentDate),
         time,
-        position: {
-          top: slotTop,
-          left: 60, // After time column
-          width: rect.width - 80,
-        },
       });
     },
     [currentDate]
   );
 
-  // Save event from inline creator
-  const handleInlineSave = useCallback(
-    async (data: { title: string; startTime: string; endTime: string; color: string }) => {
-      if (!inlineCreator) return;
-
-      const [startH, startM] = data.startTime.split(":").map(Number);
-      const [endH, endM] = data.endTime.split(":").map(Number);
-
-      const startDate = new Date(inlineCreator.date);
-      startDate.setHours(startH, startM, 0, 0);
-
-      const endDate = new Date(inlineCreator.date);
-      endDate.setHours(endH, endM, 0, 0);
-
-      const eventData = {
-        id: `temp-${Date.now()}`, // Temporary ID, server will assign real one
-        title: data.title,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        color: data.color,
-        variant: data.color,
-        date: inlineCreator.date.toISOString().split("T")[0],
-        type: "event",
-      };
-
+  // Save event from create modal
+  const handleCreateSave = useCallback(
+    async (eventData: any) => {
       if (handlers?.handleAddEvent) {
-        await handlers.handleAddEvent(eventData as any);
+        await handlers.handleAddEvent(eventData);
       } else {
-        // Fallback to direct API
         await fetch("/api/events", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(eventData),
         });
       }
-
-      setInlineCreator(null);
+      setCreateEventModal(null);
     },
-    [inlineCreator, handlers]
+    [handlers]
   );
 
   // Calculate event positioning with overlap handling
@@ -491,7 +456,7 @@ export default function ModernDayView({
                 )} />
 
                 {/* Hover indicator - premium pill */}
-                {hoveredHour === hour && !inlineCreator && (
+                {hoveredHour === hour && !createEventModal && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
                     <div 
                       className="flex items-center gap-1.5 px-4 py-2 text-white text-xs font-semibold rounded-full transform group-hover:scale-100 scale-90 transition-transform duration-200"
@@ -509,51 +474,54 @@ export default function ModernDayView({
             </div>
           ))}
 
-          {/* Events Layer - Google Calendar style solid blocks */}
+          {/* Events Layer - Today's Schedule style cards */}
           <div className="absolute inset-0 pl-16 pr-3 pointer-events-none overflow-hidden">
             <div className="relative w-full h-full">
             {positionedEvents.map(({ event, top, height, left, width, zIndex }) => {
               // Color priority: course.color → event.color → variant → default
               const courseColor = (event as any).courses?.color;
-              const colorKey = courseColor || event.color || (event as any).variant || 'blue';
+              const rawColor = courseColor || event.color || (event as any).variant || 'blue';
               const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
               const endDate = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
-              const isCompact = height < 45;
-              const isVeryCompact = height < 28;
+              const isCompact = height < 50;
+              const isVeryCompact = height < 30;
               
-              // Hex colors - Google Calendar palette
+              // Check if event is in the past
+              const now = new Date();
+              const isPast = endDate < now;
+              
+              // Hex colors
               const hexColors: Record<string, string> = {
                 purple: '#9333EA', blue: '#4285F4', green: '#0F9D58', emerald: '#0F9D58',
                 red: '#DB4437', rose: '#E91E63', orange: '#F4511E', amber: '#F09300',
                 pink: '#E91E63', cyan: '#00ACC1', teal: '#009688', yellow: '#F6BF26',
                 indigo: '#3F51B5', lime: '#7CB342', slate: '#607D8B', gray: '#616161'
               };
-              const hex = hexColors[colorKey.toLowerCase()] || hexColors.blue;
+              
+              const hex = rawColor.startsWith('#') 
+                ? rawColor 
+                : (hexColors[rawColor.toLowerCase()] || hexColors.blue);
+              
+              const courseCode = (event as any).courses?.code || (event as any).course_code || null;
 
               return (
                 <div
                   key={event.id}
-                  className="absolute rounded-lg cursor-pointer pointer-events-auto overflow-hidden group"
+                  className={cn(
+                    "absolute cursor-pointer pointer-events-auto overflow-hidden group rounded-xl border transition-all",
+                    isPast 
+                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 opacity-60 hover:opacity-80" 
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600"
+                  )}
                   style={{
                     top: top + 1,
-                    height: Math.max(height - 2, 22),
+                    height: Math.max(height - 2, 24),
                     left: 0,
                     right: 0,
                     marginLeft: left,
                     width: `min(${width}, calc(100% - 8px))`,
                     maxWidth: 'calc(100% - 8px)',
                     zIndex,
-                    backgroundColor: hex,
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.92)';
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 16px rgba(0,0,0,0.18)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.filter = 'brightness(1)';
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)';
                   }}
                   onClick={() => {
                     if (onEventClick) {
@@ -563,20 +531,64 @@ export default function ModernDayView({
                     }
                   }}
                 >
+                  {/* Left color indicator */}
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
+                    style={{ backgroundColor: hex, opacity: isPast ? 0.5 : 1 }}
+                  />
+                  
                   <div className={cn(
-                    "h-full flex flex-col justify-center overflow-hidden",
-                    isVeryCompact ? "px-2.5 py-0.5" : "px-3 py-2"
+                    "h-full flex items-center gap-3 overflow-hidden pl-4 pr-3",
+                    isVeryCompact ? "py-1" : "py-2"
                   )}>
-                    <div 
-                      className={cn("font-semibold truncate leading-tight text-white", isVeryCompact ? "text-xs" : "text-sm")}
-                    >
-                      {event.title}
+                    {/* Time column */}
+                    <div className="flex-shrink-0 text-center min-w-[50px]">
+                      <p className={cn(
+                        "text-sm font-bold",
+                        isPast ? "text-slate-500 dark:text-slate-500" : "text-slate-900 dark:text-white"
+                      )}>
+                        {formatEventTime(startDate)}
+                      </p>
+                      {!isVeryCompact && (
+                        <p className={cn(
+                          "text-[10px]",
+                          isPast ? "text-slate-400 dark:text-slate-600" : "text-slate-400 dark:text-slate-500"
+                        )}>
+                          {formatEventTime(endDate)}
+                        </p>
+                      )}
                     </div>
-                    {!isCompact && (
-                      <div className="text-xs truncate mt-0.5 text-white/80">
-                        {formatEventTime(startDate)} – {formatEventTime(endDate)}
-                      </div>
+                    
+                    {/* Divider */}
+                    {!isVeryCompact && (
+                      <div className={cn(
+                        "w-px h-8 flex-shrink-0",
+                        isPast ? "bg-slate-200 dark:bg-slate-700/50" : "bg-slate-200 dark:bg-slate-700"
+                      )} />
                     )}
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Course badge */}
+                      {!isVeryCompact && courseCode && (
+                        <span 
+                          className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold mb-1",
+                            isPast && "opacity-70"
+                          )}
+                          style={{ backgroundColor: `${hex}20`, color: hex }}
+                        >
+                          {courseCode}
+                        </span>
+                      )}
+                      <p className={cn(
+                        "font-semibold truncate",
+                        isVeryCompact ? "text-xs" : "text-sm",
+                        isPast ? "text-slate-500 dark:text-slate-500" : "text-slate-900 dark:text-white"
+                      )}>
+                        {event.title}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -604,17 +616,6 @@ export default function ModernDayView({
                 }}
               />
             </div>
-          )}
-
-          {/* Inline event creator */}
-          {inlineCreator && (
-            <InlineEventCreator
-              date={inlineCreator.date}
-              time={inlineCreator.time}
-              position={inlineCreator.position}
-              onSave={handleInlineSave}
-              onCancel={() => setInlineCreator(null)}
-            />
           )}
         </div>
       </div>
@@ -660,17 +661,12 @@ export default function ModernDayView({
         </div>
       </div>
 
-      {/* Event Detail Modal */}
+      {/* Event Edit Modal - Goes directly to edit mode */}
       {selectedEvent && (
         <UnifiedEventModal
           event={selectedEvent}
-          mode="view"
+          mode="edit"
           onClose={() => setSelectedEvent(null)}
-          onEdit={(event) => {
-            setSelectedEvent(null);
-            // Re-open in edit mode
-            setTimeout(() => setSelectedEvent(event), 50);
-          }}
           onSave={async (eventData) => {
             if (handlers?.handleUpdateEvent) {
               await handlers.handleUpdateEvent(eventData, eventData.id);
@@ -687,6 +683,17 @@ export default function ModernDayView({
               await handlers.handleDeleteEvent(event.id);
             }
           }}
+        />
+      )}
+
+      {/* Create Event Modal */}
+      {createEventModal && (
+        <UnifiedEventModal
+          mode="create"
+          initialDate={createEventModal.date}
+          initialTime={createEventModal.time}
+          onClose={() => setCreateEventModal(null)}
+          onSave={handleCreateSave}
         />
       )}
     </div>

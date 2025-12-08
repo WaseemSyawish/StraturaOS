@@ -365,9 +365,15 @@ async function handler(req, res) {
               // Default to local noon when no explicit time is provided to avoid
               // off-by-one-day shifts when converting to ISO instants across timezones.
               let hh = 12, mm = 0;
+              let hasExplicitTime = false;
               try {
+                // Check meta.hasTime first (set during task creation)
+                if (out.meta && out.meta.hasTime !== undefined) {
+                  hasExplicitTime = Boolean(out.meta.hasTime);
+                }
                 let t = out.time || out.startTime || null;
                 if (t && typeof t === 'string') {
+                  hasExplicitTime = true;
                   // If time is a range like "08:30-10:00", extract start time
                   if (t.indexOf('-') !== -1) {
                     t = t.split('-')[0].trim();
@@ -379,6 +385,8 @@ async function handler(req, res) {
                   }
                 }
               } catch (e) {}
+              // Expose hasTime flag for clients to know if time was explicitly set
+              out.hasTime = hasExplicitTime;
               // Build an ISO-like string without timezone suffix (not UTC).
               // This represents the local date/time as entered by the user.
               // Clients will parse this as local time since it has no Z suffix.

@@ -417,7 +417,8 @@ export default function ModernMonthView({
                     pink: '#E91E63', cyan: '#00ACC1', teal: '#009688', yellow: '#F6BF26',
                     indigo: '#3F51B5', slate: '#607D8B', gray: '#616161'
                   };
-                  const hex = hexColors[colorKey.toLowerCase()] || hexColors.blue;
+                  // Support both hex strings directly and named colors
+                  const hex = colorKey.startsWith('#') ? colorKey : (hexColors[colorKey.toLowerCase()] || hexColors.blue);
 
                   return (
                     <button

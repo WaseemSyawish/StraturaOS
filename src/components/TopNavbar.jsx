@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Menu, Search, Bell, User, AlertTriangle } from 'lucide-react';
+import { Menu, Search, Bell, User, AlertTriangle, X, CheckCircle2, Calendar, FileText, Clock } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7c3aed', avatarUrl, pageName, pageActions }) {
@@ -10,6 +10,14 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
   const [notifications, setNotifications] = useState([]);
   const [overdueNotifications, setOverdueNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Global search state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState({ tasks: [], events: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Fetch notification count on mount and periodically
   useEffect(() => {
@@ -19,71 +27,115 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
       try {
         const now = new Date();
         const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-        // Fetch upcoming task reminders
-        const tasksRes = await fetch('/api/tasks/search');
-        const tasks = await tasksRes.json();
-        
-        // Fetch upcoming assessment deadlines
-        const assessmentsRes = await fetch('/api/assessments');
-        const assessments = await assessmentsRes.json();
+        const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         const notificationsList = [];
         const overdueList = [];
 
-        // Add tasks with reminders in next 24 hours or overdue
-        if (Array.isArray(tasks)) {
-          tasks.forEach(task => {
-            if (!task.dueDate && !task.reminder) return;
-            if (task.completed) return; // Skip completed tasks
+        // Fetch events (which include tasks/deadlines)
+        try {
+          const eventsRes = await fetch('/api/events');
+          const events = await eventsRes.json();
+          
+          if (Array.isArray(events)) {
+            const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework', 'task'];
             
-            const taskDate = new Date(task.dueDate || task.reminder);
-            const isOverdue = taskDate < now;
-            const daysOverdue = isOverdue ? Math.ceil((now - taskDate) / (1000 * 60 * 60 * 24)) : 0;
-            
-            if (isOverdue) {
-              // Overdue task
-              overdueList.push({
-                type: 'overdue',
-                title: task.title,
-                dueDate: task.dueDate || task.reminder,
-                priority: task.priority || 'not-urgent-not-important',
-                id: task.id,
-                daysOverdue
-              });
-            } else if (taskDate <= next24Hours) {
-              // Due soon
-              notificationsList.push({
-                type: 'task',
-                title: task.title,
-                dueDate: task.reminder || task.dueDate,
-                priority: task.priority || 'not-urgent-not-important',
-                id: task.id
-              });
-            }
-          });
+            events.forEach(event => {
+              const eventType = (event.type || '').toLowerCase();
+              if (!deadlineTypes.includes(eventType)) return;
+              if (event.completed) return;
+              
+              const dueDate = event.end_date || event.endDate || event.startDate || event.date;
+              if (!dueDate) return;
+              
+              const eventDate = new Date(dueDate);
+              if (isNaN(eventDate.getTime())) return;
+              
+              const isOverdue = eventDate < now;
+              const daysOverdue = isOverdue ? Math.ceil((now - eventDate) / (1000 * 60 * 60 * 24)) : 0;
+              
+              if (isOverdue) {
+                overdueList.push({
+                  type: 'overdue',
+                  title: event.title || 'Untitled',
+                  dueDate: dueDate,
+                  priority: event.meta?.priority || 'not-urgent-not-important',
+                  id: event.id,
+                  daysOverdue,
+                  eventType: eventType
+                });
+              } else if (eventDate <= next7Days) {
+                notificationsList.push({
+                  type: 'event',
+                  title: event.title || 'Untitled',
+                  dueDate: dueDate,
+                  priority: event.meta?.priority || 'not-urgent-not-important',
+                  id: event.id,
+                  courseName: event.courses?.name || event.course || '',
+                  eventType: eventType
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to fetch events for notifications:', e);
         }
 
-        // Add assessments due in next 7 days
-        const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        if (Array.isArray(assessments)) {
-          assessments.filter(assessment => {
-            if (!assessment.dueDate) return false;
-            const dueDate = new Date(assessment.dueDate);
-            return dueDate >= now && dueDate <= next7Days;
-          }).forEach(assessment => {
-            notificationsList.push({
-              type: 'assessment',
-              title: assessment.title || assessment.name,
-              dueDate: assessment.dueDate,
-              courseName: assessment.courseName,
-              id: assessment.id
-            });
-          });
+        // Also fetch tasks if available
+        try {
+          const tasksRes = await fetch('/api/tasks/search');
+          if (tasksRes.ok) {
+            const tasks = await tasksRes.json();
+            
+            if (Array.isArray(tasks)) {
+              tasks.forEach(task => {
+                if (!task.dueDate && !task.reminder) return;
+                if (task.completed) return;
+                
+                const taskDate = new Date(task.dueDate || task.reminder);
+                if (isNaN(taskDate.getTime())) return;
+                
+                const isOverdue = taskDate < now;
+                const daysOverdue = isOverdue ? Math.ceil((now - taskDate) / (1000 * 60 * 60 * 24)) : 0;
+                
+                // Avoid duplicates with events
+                const alreadyAdded = isOverdue 
+                  ? overdueList.some(o => o.title === task.title && o.id !== task.id)
+                  : notificationsList.some(n => n.title === task.title && n.id !== task.id);
+                
+                if (alreadyAdded) return;
+                
+                if (isOverdue) {
+                  overdueList.push({
+                    type: 'overdue',
+                    title: task.title,
+                    dueDate: task.dueDate || task.reminder,
+                    priority: task.priority || 'not-urgent-not-important',
+                    id: task.id,
+                    daysOverdue,
+                    eventType: 'task'
+                  });
+                } else if (taskDate <= next24Hours) {
+                  notificationsList.push({
+                    type: 'task',
+                    title: task.title,
+                    dueDate: task.reminder || task.dueDate,
+                    priority: task.priority || 'not-urgent-not-important',
+                    id: task.id,
+                    eventType: 'task'
+                  });
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch tasks for notifications:', e);
         }
 
         // Sort overdue by most overdue first
         overdueList.sort((a, b) => b.daysOverdue - a.daysOverdue);
+        // Sort upcoming by soonest first
+        notificationsList.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
         setNotifications(notificationsList);
         setOverdueNotifications(overdueList);
@@ -100,6 +152,64 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
     
     return () => clearInterval(interval);
   }, [session]);
+  
+  // Global search functionality
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults({ tasks: [], events: [] });
+      return;
+    }
+    
+    // Debounce search
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        // Search tasks - fetch all and filter client-side
+        const tasksRes = await fetch(`/api/tasks`);
+        const tasksData = await tasksRes.json();
+        const allTasks = tasksData.tasks || tasksData || [];
+        const filteredTasks = Array.isArray(allTasks) 
+          ? allTasks.filter(t => t.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
+          : [];
+        
+        // Search events 
+        const eventsRes = await fetch(`/api/events`);
+        const events = await eventsRes.json();
+        const filteredEvents = Array.isArray(events)
+          ? events.filter(e => e.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
+          : [];
+        
+        setSearchResults({
+          tasks: filteredTasks,
+          events: filteredEvents
+        });
+      } catch (err) {
+        console.error('Search error:', err);
+        setSearchResults({ tasks: [], events: [] });
+      }
+      setSearchLoading(false);
+    }, 300);
+  }, [searchQuery]);
+  
+  // Keyboard shortcut for search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      }
+      if (e.key === 'Escape') {
+        setShowSearch(false);
+        setSearchQuery('');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   return (
     <header className="h-14 sm:h-16 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between px-2 sm:px-4 flex-shrink-0">
@@ -125,6 +235,145 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
             <div className="hidden sm:flex">{pageActions}</div>
             <div className="hidden sm:block w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1"></div>
           </>
+        )}
+
+        {/* Global Search Button */}
+        <button
+          onClick={() => {
+            setShowSearch(true);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }}
+          className="w-9 h-9 sm:w-auto sm:h-9 sm:px-3 rounded-lg flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all border border-transparent sm:border-slate-200 sm:dark:border-slate-700"
+          title="Search (Ctrl+K)"
+        >
+          <Search className="w-4 h-4" strokeWidth={2} />
+          <span className="hidden sm:inline text-sm">Search</span>
+          <kbd className="hidden md:inline ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-600">⌘K</kbd>
+        </button>
+
+        {/* Search Modal/Overlay */}
+        {showSearch && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+            />
+            
+            {/* Search Panel */}
+            <div className="relative w-full max-w-xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              {/* Search Input */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <Search className="w-5 h-5 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks, events, courses..."
+                  className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none text-sm"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <kbd className="px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-600">ESC</kbd>
+              </div>
+              
+              {/* Search Results */}
+              <div className="max-h-96 overflow-y-auto p-2">
+                {searchLoading && (
+                  <div className="py-8 text-center">
+                    <div className="w-6 h-6 mx-auto border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                
+                {!searchLoading && !searchQuery && (
+                  <div className="py-8 text-center text-slate-400 dark:text-slate-500">
+                    <Search className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Start typing to search...</p>
+                  </div>
+                )}
+                
+                {!searchLoading && searchQuery && searchResults.tasks.length === 0 && searchResults.events.length === 0 && (
+                  <div className="py-8 text-center text-slate-400 dark:text-slate-500">
+                    <p className="text-sm">No results found for "{searchQuery}"</p>
+                  </div>
+                )}
+                
+                {/* Tasks Results */}
+                {searchResults.tasks.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide px-2 py-1">Tasks</p>
+                    {searchResults.tasks.map((task) => (
+                      <button
+                        key={task.id}
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchQuery('');
+                          router.push('/tasks');
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${task.completed ? 'bg-green-100 dark:bg-green-900/30' : 'bg-purple-100 dark:bg-purple-900/30'}`}>
+                          {task.completed ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 ${task.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                            {task.title}
+                          </p>
+                          {task.dueDate && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="w-3 h-3" />
+                              {new Date(task.dueDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Events Results */}
+                {searchResults.events.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide px-2 py-1">Events</p>
+                    {searchResults.events.map((event) => (
+                      <button
+                        key={event.id}
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchQuery('');
+                          router.push('/schedule');
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-100 dark:bg-blue-900/30">
+                          <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                            {event.title}
+                          </p>
+                          {event.startDate && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="w-3 h-3" />
+                              {new Date(event.startDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Notifications */}

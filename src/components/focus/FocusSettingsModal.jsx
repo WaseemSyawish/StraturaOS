@@ -46,24 +46,26 @@ export const FocusSettingsModal = ({ isOpen, onClose, settings, onSave }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const { playSound, showNotification } = useFocusNotifications();
-  const prevIsOpen = useRef(isOpen);
 
   // Handle modal visibility with smooth animation
   useEffect(() => {
-    if (isOpen && !prevIsOpen.current) {
+    if (isOpen) {
+      // Always reset and show when isOpen becomes true
       setLocalSettings(settings);
       setIsVisible(true);
+      setIsAnimating(false);
+      // Use double RAF for smooth animation start
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsAnimating(true);
         });
       });
-    } else if (!isOpen && prevIsOpen.current) {
+    } else {
+      // Closing animation
       setIsAnimating(false);
       const timer = setTimeout(() => setIsVisible(false), 200);
       return () => clearTimeout(timer);
     }
-    prevIsOpen.current = isOpen;
   }, [isOpen, settings]);
 
   const handleClose = () => {

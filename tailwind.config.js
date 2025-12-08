@@ -11,6 +11,12 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // Custom breakpoints for 4K and ultra-wide displays
+      screens: {
+        '3xl': '1920px',
+        '4xl': '2560px',
+        '5xl': '3000px',
+      },
       fontFamily: {
         sans: [
           'Inter',

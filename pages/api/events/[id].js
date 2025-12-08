@@ -299,14 +299,8 @@ export default async function handler(req, res) {
               // can happen for migrated or partial records), log and skip the min-offset check.
               console.warn(`[events/:id] PATCH skipping time min-offset check: baseDate missing or invalid for id=${id}`);
             } else {
-              const [hh, mm] = String(updateData.time).split(':').map(Number);
-              const incomingDateTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hh || 0, mm || 0);
-              if (isNaN(incomingDateTime.getTime())) {
-                console.warn(`[events/:id] PATCH invalid incomingDateTime for id=${id}, skipping min-offset check`);
-              } else if (incomingDateTime < minAllowed) {
-                // Keep the existing enforcement if the computed datetime is valid
-                return res.status(400).json({ code: 'SCHED_MIN_OFFSET', message: `Please schedule events at least ${MIN_SCHEDULE_OFFSET_LABEL} from now.` });
-              }
+              // Removed min-offset enforcement - allow users to schedule events freely
+              console.log(`[events/:id] PATCH min-offset check disabled for id=${id}`);
             }
           } catch (err) {
             // If anything goes wrong during this non-critical validation, log and continue

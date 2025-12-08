@@ -6,12 +6,11 @@ import { parseDatePreserveLocal } from "@/lib/dateHelpers";
 import { ChevronLeft, ChevronRight, Plus, Clock, CalendarDays, Sparkles } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
-import InlineEventCreator from "../../inline-event-creator";
 import UnifiedEventModal from "../../../_modals/unified-event-modal";
 import { Event, CustomEventModal } from "@/types";
 
 // Constants
-const HOUR_HEIGHT = 48; // pixels per hour - optimized for week view
+const HOUR_HEIGHT = 56; // pixels per hour - increased for better event visibility
 const START_HOUR = 0;
 const END_HOUR = 24;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => i + START_HOUR);
@@ -133,11 +132,9 @@ export default function ModernWeekView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hoveredSlot, setHoveredSlot] = useState<{ day: number; hour: number } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [inlineCreator, setInlineCreator] = useState<{
+  const [createEventModal, setCreateEventModal] = useState<{
     date: Date;
     time: string;
-    dayIndex: number;
-    position: { top: number; left: number; width: number };
   } | null>(null);
 
   // Current time indicator
@@ -194,7 +191,6 @@ export default function ModernWeekView({
       newDate.setDate(d.getDate() - 7);
       return newDate;
     });
-    setInlineCreator(null);
   }, []);
 
   const goToNextWeek = useCallback(() => {
@@ -203,74 +199,38 @@ export default function ModernWeekView({
       newDate.setDate(d.getDate() + 7);
       return newDate;
     });
-    setInlineCreator(null);
   }, []);
 
   const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-    setInlineCreator(null);
   }, []);
 
-  // Handle click on time slot
+  // Handle click on time slot - open create modal directly
   const handleSlotClick = useCallback(
     (dayIndex: number, hour: number, e: React.MouseEvent) => {
       const dayDate = weekDays[dayIndex];
       if (!dayDate || !gridRef.current) return;
 
-      const dayColumns = gridRef.current.querySelectorAll(".week-day-column");
-      const dayColumn = dayColumns[dayIndex] as HTMLElement;
-      if (!dayColumn) return;
-
-      const rect = dayColumn.getBoundingClientRect();
       const gridRect = gridRef.current.getBoundingClientRect();
       const offsetY = e.clientY - gridRect.top + gridRef.current.scrollTop;
       const minuteOffset = Math.floor((offsetY % HOUR_HEIGHT) / (HOUR_HEIGHT / 4)) * 15;
       const clickedHour = Math.floor(offsetY / HOUR_HEIGHT);
       const time = `${String(clickedHour).padStart(2, "0")}:${String(minuteOffset).padStart(2, "0")}`;
 
-      const slotTop = clickedHour * HOUR_HEIGHT + (minuteOffset / 60) * HOUR_HEIGHT;
-
-      setInlineCreator({
+      // Open create modal directly instead of inline creator
+      setCreateEventModal({
         date: new Date(dayDate),
         time,
-        dayIndex,
-        position: {
-          top: slotTop,
-          left: rect.left - gridRect.left,
-          width: rect.width - 4,
-        },
       });
     },
     [weekDays]
   );
 
-  // Save event from inline creator
-  const handleInlineSave = useCallback(
-    async (data: { title: string; startTime: string; endTime: string; color: string }) => {
-      if (!inlineCreator) return;
-
-      const [startH, startM] = data.startTime.split(":").map(Number);
-      const [endH, endM] = data.endTime.split(":").map(Number);
-
-      const startDate = new Date(inlineCreator.date);
-      startDate.setHours(startH, startM, 0, 0);
-
-      const endDate = new Date(inlineCreator.date);
-      endDate.setHours(endH, endM, 0, 0);
-
-      const eventData = {
-        id: `temp-${Date.now()}`, // Temporary ID, server will assign real one
-        title: data.title,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        color: data.color,
-        variant: data.color,
-        date: inlineCreator.date.toISOString().split("T")[0],
-        type: "event",
-      };
-
+  // Save event from create modal
+  const handleCreateSave = useCallback(
+    async (eventData: any) => {
       if (handlers?.handleAddEvent) {
-        await handlers.handleAddEvent(eventData as any);
+        await handlers.handleAddEvent(eventData);
       } else {
         await fetch("/api/events", {
           method: "POST",
@@ -278,10 +238,9 @@ export default function ModernWeekView({
           body: JSON.stringify(eventData),
         });
       }
-
-      setInlineCreator(null);
+      setCreateEventModal(null);
     },
-    [inlineCreator, handlers]
+    [handlers]
   );
 
   // Calculate event positioning for a day
@@ -358,8 +317,13 @@ export default function ModernWeekView({
             event,
             top: (startMinutes / 60) * HOUR_HEIGHT,
             height: Math.max((duration / 60) * HOUR_HEIGHT, 20),
-            left: `${(colIndex / totalColumns) * 100}%`,
-            width: `${100 / totalColumns}%`,
+            // When there are 3+ overlapping events, use staggered layout for better visibility
+            left: totalColumns >= 3 
+              ? `${(colIndex / totalColumns) * 85 + colIndex * 2}%`
+              : `${(colIndex / totalColumns) * 100}%`,
+            width: totalColumns >= 3 
+              ? `${85 / totalColumns}%`
+              : `${100 / totalColumns}%`,
             zIndex: colIndex + 1,
           });
         });
@@ -543,46 +507,60 @@ export default function ModernWeekView({
                   </div>
                 ))}
 
-                {/* Events - Google Calendar style rounded pills */}
-                <div className="absolute inset-0 px-0.5 pointer-events-none overflow-hidden">
+                {/* Events - Premium floating cards */}
+                <div className="absolute inset-0 px-1 pointer-events-none overflow-hidden">
                   {dayEventsPositioned.map(({ event, top, height, left, width, zIndex }) => {
                     // Color priority: course.color → event.color → event.variant → fallback
                     const courseColor = (event as any).courses?.color;
-                    const colorKey = courseColor || event.color || (event as any).variant || 'blue';
+                    const rawColor = courseColor || event.color || (event as any).variant || 'blue';
                     const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
-                    const isCompact = height < 32;
-                    const isTiny = height < 20;
+                    const endDate = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
+                    const isCompact = height < 48;
+                    const isTiny = height < 32;
                     
-                    // Hex color mapping - Google Calendar palette
+                    // Check if event is in the past
+                    const now = new Date();
+                    const isPast = endDate < now;
+                    
+                    // Hex color mapping
                     const hexColors: Record<string, string> = {
                       purple: '#9333EA', blue: '#4285F4', green: '#0F9D58', emerald: '#0F9D58',
                       red: '#DB4437', rose: '#E91E63', orange: '#F4511E', amber: '#F09300',
                       pink: '#E91E63', cyan: '#00ACC1', teal: '#009688', yellow: '#F6BF26',
                       indigo: '#3F51B5', lime: '#7CB342', slate: '#607D8B', gray: '#616161'
                     };
-                    const hex = hexColors[colorKey.toLowerCase()] || hexColors.blue;
+                    
+                    const hex = rawColor.startsWith('#') 
+                      ? rawColor 
+                      : (hexColors[rawColor.toLowerCase()] || hexColors.blue);
+                    
+                    const courseCode = (event as any).courses?.code || (event as any).course_code || null;
 
                     return (
                       <div
                         key={event.id}
-                        className="absolute rounded-md cursor-pointer pointer-events-auto overflow-hidden group"
+                        className={cn(
+                          "absolute cursor-pointer pointer-events-auto overflow-hidden group transition-all duration-300",
+                          isPast 
+                            ? "opacity-50 hover:opacity-75" 
+                            : "hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-0.5"
+                        )}
                         style={{
-                          top: top + 1,
-                          height: Math.max(height - 2, 18),
-                          left,
-                          width: `calc(${width} - 3px)`,
+                          top: top + 2,
+                          height: Math.max(height - 4, 24),
+                          left: `calc(${left} + 3px)`,
+                          width: `calc(${width} - 8px)`,
                           zIndex,
-                          backgroundColor: hex,
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)',
-                          transition: 'all 0.15s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.filter = 'brightness(0.92)';
-                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.filter = 'brightness(1)';
-                          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06)';
+                          borderRadius: '10px',
+                          background: isPast 
+                            ? 'linear-gradient(135deg, rgba(148, 163, 184, 0.06) 0%, rgba(148, 163, 184, 0.03) 100%)'
+                            : `linear-gradient(145deg, ${hex}12 0%, ${hex}06 100%)`,
+                          border: isPast 
+                            ? '1px solid rgba(148, 163, 184, 0.15)'
+                            : `1px solid ${hex}20`,
+                          boxShadow: !isPast 
+                            ? `0 2px 8px ${hex}15, 0 1px 3px rgba(0,0,0,0.04)` 
+                            : 'none',
                         }}
                         onClick={() => {
                           if (onEventClick) {
@@ -592,16 +570,41 @@ export default function ModernWeekView({
                           }
                         }}
                       >
-                        <div className={cn("px-1.5 h-full flex flex-col justify-center overflow-hidden", isTiny ? "py-0" : "py-0.5")}>
+                        {/* Refined left accent bar */}
+                        <div 
+                          className="absolute left-0 top-0 bottom-0 w-[3px]"
+                          style={{ 
+                            borderRadius: '10px 0 0 10px',
+                            background: isPast 
+                              ? 'rgba(148, 163, 184, 0.4)'
+                              : `linear-gradient(180deg, ${hex} 0%, ${hex}BB 100%)`,
+                          }}
+                        />
+                        
+                        <div className={cn(
+                          "h-full flex flex-col overflow-hidden pl-2.5 pr-2", 
+                          isTiny ? "justify-center py-0.5" : "justify-center py-1.5"
+                        )}>
+                          {/* Title - prominent and readable */}
                           <div 
-                            className="font-medium truncate leading-tight text-white"
-                            style={{ fontSize: isTiny ? '10px' : '11px' }}
+                            className={cn(
+                              "font-semibold truncate leading-snug",
+                              isPast ? "text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-white"
+                            )}
+                            style={{ fontSize: isTiny ? '11px' : isCompact ? '12px' : '13px' }}
                           >
                             {event.title}
                           </div>
-                          {!isCompact && (
-                            <div className="text-[10px] truncate text-white/75 mt-0.5">
-                              {formatEventTime(startDate)}
+                          {/* Time - subtle but visible */}
+                          {!isTiny && (
+                            <div className={cn(
+                              "flex items-center gap-1 mt-0.5",
+                              isPast ? "text-slate-400 dark:text-slate-600" : "text-slate-500 dark:text-slate-400"
+                            )}
+                            style={{ fontSize: '10px' }}
+                            >
+                              <Clock className="w-2.5 h-2.5 flex-shrink-0 opacity-70" />
+                              <span className="font-medium">{formatEventTime(startDate)}</span>
                             </div>
                           )}
                         </div>
@@ -623,17 +626,6 @@ export default function ModernWeekView({
               </div>
             );
           })}
-
-          {/* Inline event creator */}
-          {inlineCreator && (
-            <InlineEventCreator
-              date={inlineCreator.date}
-              time={inlineCreator.time}
-              position={inlineCreator.position}
-              onSave={handleInlineSave}
-              onCancel={() => setInlineCreator(null)}
-            />
-          )}
         </div>
       </div>
 
@@ -663,19 +655,15 @@ export default function ModernWeekView({
         </div>
       </div>
 
-      {/* Event Detail Modal */}
+      {/* Event Edit Modal - Goes directly to edit mode */}
       {selectedEvent && (
         <UnifiedEventModal
           event={selectedEvent}
-          mode="view"
+          mode="edit"
           onClose={() => setSelectedEvent(null)}
-          onEdit={(event) => {
-            setSelectedEvent(null);
-            setTimeout(() => setSelectedEvent(event), 50);
-          }}
           onSave={async (eventData) => {
             if (handlers?.handleUpdateEvent) {
-              await handlers.handleUpdateEvent(eventData, eventData.id);
+              await handlers.handleUpdateEvent(eventData, eventData.id, 'single');
             } else {
               await fetch(`/api/events/${encodeURIComponent(eventData.id)}`, {
                 method: 'PATCH',
@@ -683,12 +671,29 @@ export default function ModernWeekView({
                 body: JSON.stringify(eventData),
               });
             }
+            try {
+              window.dispatchEvent(new CustomEvent("scheduler:eventsChanged"));
+            } catch (e) {}
           }}
           onDelete={async (event) => {
             if (handlers?.handleDeleteEvent) {
               await handlers.handleDeleteEvent(event.id);
             }
+            try {
+              window.dispatchEvent(new CustomEvent("scheduler:eventsChanged"));
+            } catch (e) {}
           }}
+        />
+      )}
+
+      {/* Create Event Modal */}
+      {createEventModal && (
+        <UnifiedEventModal
+          mode="create"
+          initialDate={createEventModal.date}
+          initialTime={createEventModal.time}
+          onClose={() => setCreateEventModal(null)}
+          onSave={handleCreateSave}
         />
       )}
     </div>

@@ -330,10 +330,21 @@ const parseTimeToken = (value) => {
 
 const hasDueTime = (task) => {
   if (!task) return false;
+  // Check top-level hasTime property first (from API normalization)
+  if (task.hasTime === true) return true;
+  if (task.hasTime === false) return false;
+  // Explicit dueTime field takes precedence
   if (task.dueTime) return true;
+  // Check if meta has explicit time flag
+  if (task.meta?.hasTime === false) return false;
+  if (task.meta?.hasTime === true) return true;
+  // Check if there's an explicit time field
+  if (task.time) return true;
   const due = toDateSafe(task.dueDate);
   if (!due) return false;
-  return Boolean(due.getHours() || due.getMinutes() || due.getSeconds());
+  // Consider 00:00:00 as "no time set" unless explicitly marked
+  const hasNonZeroTime = Boolean(due.getHours() || due.getMinutes() || due.getSeconds());
+  return hasNonZeroTime;
 };
 
 const getNextDayOfWeek = (date, targetDay) => {
@@ -2609,12 +2620,20 @@ const TaskCard = ({ task, onToggleComplete, onQuickAction, onOpenDetail }) => {
               </span>
             )}
             
-            {/* My Day badge */}
+            {/* My Day badge with remove button */}
             {task.addedToMyDay && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-[10px] font-semibold text-purple-600 dark:text-purple-300">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onQuickAction && onQuickAction(task.id, 'my-day');
+                }}
+                className="group/myday inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-[10px] font-semibold text-purple-600 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60 transition-colors"
+                title="Remove from My Day"
+              >
                 <Sun size={10} />
                 My Day
-              </span>
+                <X size={10} className="opacity-0 group-hover/myday:opacity-100 transition-opacity" />
+              </button>
             )}
           </div>
           
@@ -2703,18 +2722,19 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
           <ChevronRight className={`ml-auto text-slate-400 dark:text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-90 text-slate-600 dark:text-slate-300' : ''}`} />
         </div>
       </button>
-      <div className={`transition-[max-height] duration-300 ease-out ${isOpen ? 'mt-4 max-h-[1200px]' : 'max-h-0 overflow-hidden'}`}>
-        <div className="mt-2 space-y-3">
-          {tasks.length === 0 ? (
-            <p className="rounded-[16px] border border-dashed border-slate-200 dark:border-slate-600 px-4 py-3 text-sm text-slate-400 dark:text-slate-500">Nothing here — capture ideas anytime.</p>
-          ) : shouldGroupByDay ? (
-            groupedByDay.map((group) => (
-              <div key={group.key} className="space-y-2">
-                <div className="space-y-3">
-                  {group.tasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
+      <div className={`transition-all duration-300 ease-out ${isOpen ? 'mt-4 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+        <div className="max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+          <div className="space-y-3.5">
+            {tasks.length === 0 ? (
+              <p className="rounded-[16px] border border-dashed border-slate-200 dark:border-slate-600 px-4 py-3 text-sm text-slate-400 dark:text-slate-500">Nothing here — capture ideas anytime.</p>
+            ) : shouldGroupByDay ? (
+              groupedByDay.map((group) => (
+                <div key={group.key} className="space-y-3">
+                  <div className="space-y-3.5">
+                    {group.tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
                       onToggleComplete={onToggleComplete}
                       onQuickAction={onQuickAction}
                       onOpenDetail={onOpenDetail}
@@ -2734,6 +2754,7 @@ const TaskGroup = ({ sectionId, tasks, isOpen, onToggle, onToggleComplete, onQui
               />
             ))
           )}
+          </div>
         </div>
       </div>
       <button
@@ -3258,74 +3279,135 @@ const LecturesTab = ({ groups = [], syncing = false }) => {
     );
   }
 
+  const formatTime = (dateStr) => {
+    return new Date(dateStr).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  // Total sessions count
+  const totalSessions = groups.reduce((acc, g) => acc + g.sessions.length, 0);
+
   return (
     <section className="space-y-4">
+      {/* Summary Header */}
       <div className="rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{groups.length} module{groups.length === 1 ? '' : 's'}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Auto-synced from timetable</p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{groups.length} module{groups.length === 1 ? '' : 's'}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{totalSessions} upcoming session{totalSessions === 1 ? '' : 's'}</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Module Cards - Each shows next 3-4 sessions */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {groups.map((group) => {
-          const nextSession = group.nextSession;
-          const upcomingSessions = group.sessions.slice(0, 3);
+          // Get next 4 sessions for this module
+          const upcomingSessions = group.sessions.slice(0, 4);
+          
           return (
-            <div key={group.courseId || group.courseName} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm hover:shadow-md transition-all">
-              {/* Module Header with Color Badge */}
-              <div className="mb-4 flex items-center gap-2">
+            <div 
+              key={group.courseId || group.courseName} 
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all"
+            >
+              {/* Module Header */}
+              <div 
+                className="px-5 py-4 flex items-center gap-3"
+                style={{ backgroundColor: `${group.color || '#8b5cf6'}10` }}
+              >
                 <div 
-                  className="rounded-lg px-2.5 py-1 text-xs font-bold"
-                  style={{ 
-                    backgroundColor: `${group.color || '#a855f7'}15`,
-                    color: group.color || '#a855f7'
-                  }}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
+                  style={{ backgroundColor: group.color || '#8b5cf6' }}
                 >
-                  {group.courseCode || 'N/A'}
+                  <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{group.courseName}</p>
+                  <p 
+                    className="text-xs font-bold uppercase tracking-wide"
+                    style={{ color: group.color || '#8b5cf6' }}
+                  >
+                    {group.courseCode || 'Module'}
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{group.courseName}</p>
                 </div>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
+                  {group.sessions.length} session{group.sessions.length === 1 ? '' : 's'}
+                </span>
               </div>
-
-              {/* Next Session */}
-              {nextSession ? (
-                <div className="mb-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 px-3 py-3">
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5">Next Session</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">{nextSession.title}</p>
-                  <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <Clock3 size={12} className="text-slate-400 dark:text-slate-500" />
-                    <span>{formatShortDate(nextSession.start)} · {formatTimeRange(nextSession.start, nextSession.end)}</span>
+              
+              {/* Sessions List */}
+              <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {upcomingSessions.map((session, idx) => (
+                  <div 
+                    key={session.id || idx} 
+                    className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    {/* Color dot */}
+                    <div 
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: group.color || '#8b5cf6' }}
+                    />
+                    
+                    {/* Session info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                        {session.title || 'Session'}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {formatDate(session.start)} • {formatTime(session.start)} – {formatTime(session.end)}
+                      </p>
+                    </div>
+                    
+                    {/* Time badge for today/tomorrow */}
+                    {(() => {
+                      const d = new Date(session.start);
+                      const now = new Date();
+                      const tomorrow = new Date(now);
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      
+                      if (d.toDateString() === now.toDateString()) {
+                        return (
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            Today
+                          </span>
+                        );
+                      }
+                      if (d.toDateString() === tomorrow.toDateString()) {
+                        return (
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            Tomorrow
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
-                </div>
-              ) : (
-                <div className="mb-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-600 px-3 py-4 text-center">
-                  <p className="text-xs text-slate-400 dark:text-slate-500">No upcoming sessions</p>
-                </div>
-              )}
-
-              {/* Schedule List - All in boxes */}
-              {upcomingSessions.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-2">Schedule</p>
-                  <div className="space-y-2">
-                    {upcomingSessions.map((session, idx) => (
-                      <div key={session.id || idx} className="rounded-lg border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 hover:border-slate-200 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-800 dark:text-slate-200 text-xs truncate">{session.title}</p>
-                            <p className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">{formatShortDate(session.start)}</p>
-                          </div>
-                          <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 ml-2 whitespace-nowrap">{formatTimeRange(session.start, session.end)}</span>
-                        </div>
-                      </div>
-                    ))}
+                ))}
+                
+                {/* Show more indicator if there are more sessions */}
+                {group.sessions.length > 4 && (
+                  <div className="px-5 py-2.5 text-center">
+                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                      +{group.sessions.length - 4} more session{group.sessions.length - 4 === 1 ? '' : 's'}
+                    </span>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           );
         })}
@@ -4530,7 +4612,7 @@ export default function TasksPage() {
               </div>
             ) : null}
             {viewMode === 'list' && (tasks.length > 0 || usingSampleTasks) ? (
-              <div className="grid gap-3 grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 items-start md:grid-cols-2 xl:grid-cols-3">
                 {listSections.map((section) => (
                   <TaskGroup
                     key={section.id}

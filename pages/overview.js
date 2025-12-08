@@ -9,6 +9,7 @@ import { useModal } from '@/providers/modal-context';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
 import HygraphSidebar from '@/components/HygraphSidebar';
 import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
+import { parseDatePreserveLocal } from '@/lib/dateHelpers';
 
 // Course color palette (matches design doc)
 const DEFAULT_COURSE_COLORS = [
@@ -614,8 +615,25 @@ export default function UniversityOverview() {
   const formatDue = useCallback((ev) => {
     try {
       if (!ev) return '';
-      if (ev.startDate) return new Date(ev.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      if (ev.date) return typeof ev.date === 'string' ? ev.date : new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      // Use parseDatePreserveLocal to avoid timezone shifts
+      if (ev.end_date || ev.endDate) {
+        const d = parseDatePreserveLocal(ev.end_date || ev.endDate);
+        if (d && !isNaN(d.getTime())) {
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+      }
+      if (ev.startDate) {
+        const d = parseDatePreserveLocal(ev.startDate);
+        if (d && !isNaN(d.getTime())) {
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+      }
+      if (ev.date) {
+        const d = parseDatePreserveLocal(ev.date);
+        if (d && !isNaN(d.getTime())) {
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+      }
       return '';
     } catch (e) { return ''; }
   }, []);
@@ -810,7 +828,9 @@ export default function UniversityOverview() {
         // Upcoming deadlines: assessment/submission types only
         const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
         if (!deadlineTypes.includes(t)) continue;
-        const d = ev.startDate ? new Date(ev.startDate) : (ev.date ? new Date(ev.date) : null);
+        // For deadline types, use end_date (when the deadline expires), fallback to startDate or date
+        // Use parseDatePreserveLocal to avoid timezone shifts
+        const d = parseDatePreserveLocal(ev.end_date || ev.endDate || ev.startDate || ev.date);
         const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
         list.push({
           id: ev.id,
@@ -818,9 +838,9 @@ export default function UniversityOverview() {
           dueDate: formatDue(ev),
           daysLeft: typeof daysLeft === 'number' ? daysLeft : null,
           type: ev.type || 'assignment',
-          // Add fields needed for new rendering
-          due: ev.startDate || ev.date,
-          date: ev.startDate || ev.date,
+          // Add fields needed for new rendering - use end_date for due date
+          due: ev.end_date || ev.endDate || ev.startDate || ev.date,
+          date: ev.end_date || ev.endDate || ev.startDate || ev.date,
           course: ev.course || ev.courseName || '',
           course_id: ev.course_id || ev.courseId,
           courseName: ev.courses?.name || ev.course || ev.courseName || '',
@@ -1939,7 +1959,15 @@ export default function UniversityOverview() {
                       const lookupCourse = courses.find(c => c.id === deadline.course_id || c.code === deadline.course);
                       const displayCourseName = deadline.courseCode || deadline.courseName || lookupCourse?.code || lookupCourse?.name || '';
                       const courseColor = deadline.courseColor || lookupCourse?.color || getCourseColor(lookupCourse, index);
-                      const dueDate = new Date(deadline.due || deadline.date);
+                      
+                      // Validate the date - skip items without valid dates
+                      const rawDue = deadline.due || deadline.date;
+                      if (!rawDue) return null; // Skip if no date
+                      
+                      // Use parseDatePreserveLocal to avoid timezone shifts
+                      const dueDate = parseDatePreserveLocal(rawDue);
+                      if (!dueDate || isNaN(dueDate.getTime())) return null; // Skip invalid dates
+                      
                       const now = new Date();
                       const isOverdue = dueDate < now;
                       const diffMs = dueDate - now;
@@ -2045,9 +2073,18 @@ export default function UniversityOverview() {
                                     </span>
                                   )}
                                   
-                                  {/* Due date */}
+                                  {/* Due date with time (only show time if explicitly set) */}
                                   <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                     {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    {(() => {
+                                      // Check if time was explicitly set
+                                      const hasTime = deadline.meta?.hasTime === true || 
+                                        deadline.time || 
+                                        (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0);
+                                      
+                                      if (!hasTime || deadline.meta?.hasTime === false) return null;
+                                      return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+                                    })()}
                                   </span>
                                 </div>
                               </div>

@@ -1535,7 +1535,7 @@ export default function UniversityOverview() {
       const diffMs = nextClass.startTs - Date.now();
       const diffMins = Math.floor(diffMs / (1000 * 60));
       if (diffMins < 60) return `Next class in ${diffMins}min • ${nextClass.code || nextClass.name}`;
-      return `Next: ${nextClass.code || nextClass.name} at ${nextClass.startTime}`;
+      return `Next: ${nextClass.name || nextClass.name} at ${nextClass.startTime}`;
     }
     if (pendingCount === 0) return "You're all caught up! Time to relax.";
     if (pendingCount === 1) return "1 task pending today";
@@ -1796,7 +1796,7 @@ export default function UniversityOverview() {
                   <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No classes today</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {tomorrowFirstClass 
-                      ? `Tomorrow: ${tomorrowFirstClass.code || tomorrowFirstClass.name} at ${tomorrowFirstClass.time}` 
+                      ? `Tomorrow: ${tomorrowFirstClass.name} at ${tomorrowFirstClass.time}` 
                       : 'Enjoy your free day!'}
                   </p>
                 </div>

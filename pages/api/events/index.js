@@ -339,12 +339,15 @@ async function handler(req, res) {
             // to avoid cross-environment differences in Date parsing semantics
             // (some engines treat date-only strings as UTC which can shift the day).
             let dt = null;
+            let isFullIsoInstant = false;
             try {
               // Check if dateVal is already a Date object
               if (Object.prototype.toString.call(dateVal) === '[object Date]') {
                 dt = dateVal;
               } else {
                 const sVal = String(dateVal);
+                // Check if it's a full ISO instant with timezone (Z or offset)
+                isFullIsoInstant = /Z$|[+-]\d{2}:\d{2}$/.test(sVal);
                 if (/^\d{4}-\d{2}-\d{2}$/.test(sVal)) {
                   const parts = sVal.split('-').map(Number);
                   // parts: [year, month, day]
@@ -357,53 +360,62 @@ async function handler(req, res) {
               dt = new Date(String(dateVal));
             }
               if (dt && !isNaN(dt.getTime())) {
-                const y = dt.getFullYear();
-                const m = dt.getMonth();
-                const day = dt.getDate();
-              // time may be stored separately on the row as `time` or `startTime`
-              // time might be a range like "08:30-10:00" or just "08:30"
-              // Default to local noon when no explicit time is provided to avoid
-              // off-by-one-day shifts when converting to ISO instants across timezones.
-              let hh = 12, mm = 0;
-              let hasExplicitTime = false;
-              try {
-                // Check meta.hasTime first (set during task creation)
-                if (out.meta && out.meta.hasTime !== undefined) {
-                  hasExplicitTime = Boolean(out.meta.hasTime);
-                }
-                let t = out.time || out.startTime || null;
-                if (t && typeof t === 'string') {
-                  hasExplicitTime = true;
-                  // If time is a range like "08:30-10:00", extract start time
-                  if (t.indexOf('-') !== -1) {
-                    t = t.split('-')[0].trim();
+                // For full ISO instants (with Z suffix), preserve the original ISO string
+                // so clients can parse it in their local timezone. Don't try to extract
+                // date components on the server as server timezone may differ from client.
+                if (isFullIsoInstant) {
+                  out.startDate = String(dateVal); // Pass through the original ISO string
+                  // Also update out.date to not be a computed server-local date
+                  // The client will handle local conversion
+                } else {
+                  const y = dt.getFullYear();
+                  const m = dt.getMonth();
+                  const day = dt.getDate();
+                  // time may be stored separately on the row as `time` or `startTime`
+                  // time might be a range like "08:30-10:00" or just "08:30"
+                  // Default to local noon when no explicit time is provided to avoid
+                  // off-by-one-day shifts when converting to ISO instants across timezones.
+                  let hh = 12, mm = 0;
+                  let hasExplicitTime = false;
+                  try {
+                    // Check meta.hasTime first (set during task creation)
+                    if (out.meta && out.meta.hasTime !== undefined) {
+                      hasExplicitTime = Boolean(out.meta.hasTime);
+                    }
+                    let t = out.time || out.startTime || null;
+                    if (t && typeof t === 'string') {
+                      hasExplicitTime = true;
+                      // If time is a range like "08:30-10:00", extract start time
+                      if (t.indexOf('-') !== -1) {
+                        t = t.split('-')[0].trim();
+                      }
+                      if (t.indexOf(':') !== -1) {
+                        const parts = String(t).split(':').map(Number);
+                        hh = Number.isFinite(parts[0]) ? parts[0] : 0;
+                        mm = Number.isFinite(parts[1]) ? parts[1] : 0;
+                      }
+                    }
+                  } catch (e) {}
+                  // Expose hasTime flag for clients to know if time was explicitly set
+                  out.hasTime = hasExplicitTime;
+                  // Build an ISO-like string without timezone suffix (not UTC).
+                  // This represents the local date/time as entered by the user.
+                  // Clients will parse this as local time since it has no Z suffix.
+                  try {
+                    // Format: YYYY-MM-DDTHH:MM:SS (no Z = parsed as local)
+                    const mm2 = String(m + 1).padStart(2, '0');
+                    const dd = String(day).padStart(2, '0');
+                    const hh2 = String(hh).padStart(2, '0');
+                    const mm3 = String(mm).padStart(2, '0');
+                    out.startDate = `${y}-${mm2}-${dd}T${hh2}:${mm3}:00`;
+                  } catch (e) {
+                    out.startDate = (new Date(String(dateVal))).toISOString();
                   }
-                  if (t.indexOf(':') !== -1) {
-                    const parts = String(t).split(':').map(Number);
-                    hh = Number.isFinite(parts[0]) ? parts[0] : 0;
-                    mm = Number.isFinite(parts[1]) ? parts[1] : 0;
-                  }
+                  // Derive a stable YYYY-MM-DD `date` from the local components
+                  try {
+                    out.date = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  } catch (e) { /* best-effort only */ }
                 }
-              } catch (e) {}
-              // Expose hasTime flag for clients to know if time was explicitly set
-              out.hasTime = hasExplicitTime;
-              // Build an ISO-like string without timezone suffix (not UTC).
-              // This represents the local date/time as entered by the user.
-              // Clients will parse this as local time since it has no Z suffix.
-              try {
-                // Format: YYYY-MM-DDTHH:MM:SS (no Z = parsed as local)
-                const mm2 = String(m + 1).padStart(2, '0');
-                const dd = String(day).padStart(2, '0');
-                const hh2 = String(hh).padStart(2, '0');
-                const mm3 = String(mm).padStart(2, '0');
-                out.startDate = `${y}-${mm2}-${dd}T${hh2}:${mm3}:00`;
-              } catch (e) {
-                out.startDate = (new Date(String(dateVal))).toISOString();
-              }
-              // Derive a stable YYYY-MM-DD `date` from the UTC components
-              try {
-                out.date = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              } catch (e) { /* best-effort only */ }
             }
             }
           }

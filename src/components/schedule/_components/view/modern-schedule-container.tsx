@@ -125,29 +125,6 @@ export default function ModernScheduleContainer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleViewChange]);
 
-  // Quick add event (kept for grid clicks)
-  const handleQuickAdd = useCallback(async () => {
-    try {
-      const mod = await import("../../_modals/quick-add-event");
-      const QuickAddEvent = mod.default;
-      setOpen(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full animate-in fade-in-0 zoom-in-95 duration-200">
-            <QuickAddEvent
-              onSuccess={() => {
-                try {
-                  window.dispatchEvent(new CustomEvent("scheduler:eventsChanged"));
-                } catch (e) {}
-              }}
-            />
-          </div>
-        </div>
-      );
-    } catch (err) {
-      console.error("Failed to open quick add:", err);
-    }
-  }, [setOpen]);
-
   // Handle event click - open edit modal
   const handleEventClick = useCallback(
     (event: Event) => {

@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { AnimatePresence, motion, HTMLMotionProps } from "framer-motion";
 import { useModal } from "@/providers/modal-context";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
-import QuickAddEvent from "@/components/schedule/_modals/quick-add-event";
 import ShowMoreEventsModal from "@/components/schedule/_modals/show-more-events-modal";
 import EventStyled from "../event-component/event-styled";
 import { Button } from "@/components/ui/button";
@@ -215,13 +214,13 @@ export default function WeeklyView({
       minutes
     );
 
-    // Use streamlined quick-add modal with pre-filled date/time
+    // Use full add event modal with pre-filled date/time
     setOpen(
-      <QuickAddEvent 
-        initialDate={date}
-        initialTime={`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`}
-        isSchedulePage={isSchedulePage}
-      />
+      <CustomModal title="Add Event">
+        <AddEventModal
+          isSchedulePage={isSchedulePage}
+        />
+      </CustomModal>
     );
   }
 

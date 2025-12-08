@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { parseDatePreserveLocal } from "@/lib/dateHelpers";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Sparkles, Clock, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Sparkles, Clock, X } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
 import UnifiedEventModal from "../../../_modals/unified-event-modal";
@@ -211,34 +211,7 @@ export default function ModernMonthView({
     [onDayClick, expandedDay]
   );
 
-  // Quick add event for a day
-  const handleQuickAdd = useCallback(
-    async (date: Date) => {
-      // Import and open quick add modal dynamically
-      try {
-        const mod = await import("../../../_modals/quick-add-event");
-        const QuickAddEvent = mod.default;
-        setOpen(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full mx-4">
-              <QuickAddEvent
-                initialDate={date}
-                initialTime="09:00"
-                onSuccess={() => {
-                  try {
-                    window.dispatchEvent(new CustomEvent("scheduler:eventsChanged"));
-                  } catch (e) {}
-                }}
-              />
-            </div>
-          </div>
-        );
-      } catch (err) {
-        console.error("Failed to open quick add:", err);
-      }
-    },
-    [setOpen]
-  );
+
 
   // Weekday headers adjusted for week start
   const weekdayHeaders = useMemo(() => {
@@ -381,21 +354,7 @@ export default function ModernMonthView({
                   {cell.day}
                 </button>
 
-                {/* Quick add button - visible on hover */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleQuickAdd(cell.date);
-                  }}
-                  className={cn(
-                    "w-7 h-7 flex items-center justify-center rounded-lg",
-                    "opacity-0 group-hover:opacity-100 transition-all duration-200",
-                    "text-slate-400 hover:text-white hover:bg-gradient-to-br hover:from-emerald-500 hover:to-teal-500",
-                    "hover:shadow-lg hover:shadow-emerald-500/25 hover:scale-105"
-                  )}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+
               </div>
 
               {/* Events list - Google Calendar style pills */}

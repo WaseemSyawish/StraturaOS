@@ -21,7 +21,6 @@ const BsCalendarWeek = dynamic(() => import("react-icons/bs").then((m) => m.BsCa
 const DailyView = dynamic(() => import('./day/daily-view'), { ssr: false });
 const MonthView = dynamic(() => import('./month/month-view'), { ssr: false });
 const WeeklyView = dynamic(() => import('./week/week-view'), { ssr: false });
-const QuickAddEvent = dynamic(() => import('../../_modals/quick-add-event'), { ssr: false });
 
 // Animation settings for Framer Motion (used when Motion is loaded)
 const animationConfig = {
@@ -78,26 +77,8 @@ export default function SchedulerViewFilteration({
   }, [clientSide]);
 
   function handleAddEvent(selectedDay?: number) {
-    // Use quick add modal for fast event creation
-    const initialDate = new Date(
-      new Date().getFullYear(),
-      new Date().getMonth(),
-      selectedDay ?? new Date().getDate()
-    );
-
-    setOpen(
-      <CustomModal title="Quick Add Event">
-        <QuickAddEvent 
-          initialDate={initialDate}
-          onSuccess={() => {
-            // Trigger a reload of events
-            try {
-              window.dispatchEvent(new CustomEvent('scheduler:eventsChanged'));
-            } catch (e) {}
-          }}
-        />
-      </CustomModal>
-    );
+    // Use full add event modal
+    handleAddEventFull(selectedDay);
   }
 
   function handleAddEventFull(selectedDay?: number) {

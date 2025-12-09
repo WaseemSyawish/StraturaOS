@@ -11,19 +11,32 @@ export function parseDatePreserveLocal(input) {
     const s = String(input);
     // If it looks like YYYY-MM-DDTHH:mm (no timezone), treat as local
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return new Date(s + ':00');
+    
     // If it looks like an ISO instant ending with Z (e.g. 2025-10-04T09:00:00.000Z)
-    // and the server intentionally emitted a UTC instant for a local y/m/d hh:mm,
-    // treat it as local by extracting the local components instead of letting
-    // the Date parser convert from UTC to local (which causes off-by-one-day shifts).
-  // Match ISO-like instants that end in Z or a +00:00/-00:00 offset.
-  // Some servers serialize dates as e.g. 2025-10-04T00:00:00+00:00 which should
-  // be treated as a local date+time when the intent was a local midnight.
-    // (removed special-case for Z-ended ISO strings) prefer native Date parsing below
-    // If it looks like an ISO instant ending with Z or an offset, prefer the
-    // native Date parser - this preserves the instant and lets the runtime
-    // convert it into the client's local clock when displayed. Treat only
-    // timezone-less ISO strings (YYYY-MM-DDTHH:MM) as local by appending
-    // seconds so they are parsed as local times.
+    // extract the date/time components and create a local date to avoid
+    // timezone shifts (e.g., UTC midnight becoming previous day in some timezones).
+    // Match ISO-like instants that end in Z or a +00:00/-00:00 offset.
+    const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):?(\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/);
+    if (isoMatch) {
+      const [, year, month, day, hour, minute, second] = isoMatch;
+      // Create date using local timezone with extracted components
+      return new Date(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hour, 10),
+        parseInt(minute, 10),
+        parseInt(second || '0', 10)
+      );
+    }
+    
+    // For plain date strings (YYYY-MM-DD), parse as local date
+    const dateOnlyMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
+      return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+    }
+    
     const dt = new Date(input);
     if (!isNaN(dt.getTime())) return dt;
     return null;

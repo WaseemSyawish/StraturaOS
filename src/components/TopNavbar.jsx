@@ -243,17 +243,17 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
             setShowSearch(true);
             setTimeout(() => searchInputRef.current?.focus(), 100);
           }}
-          className="w-9 h-9 sm:w-auto sm:h-9 sm:px-3 rounded-lg flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all border border-transparent sm:border-slate-200 sm:dark:border-slate-700"
+          className="group w-9 h-9 sm:w-auto sm:h-9 sm:px-3.5 rounded-xl flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200 border border-transparent sm:border-slate-200 sm:dark:border-slate-700 hover:border-purple-200 dark:hover:border-purple-800"
           title="Search (Ctrl+K)"
         >
-          <Search className="w-4 h-4" strokeWidth={2} />
-          <span className="hidden sm:inline text-sm">Search</span>
-          <kbd className="hidden md:inline ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-600">⌘K</kbd>
+          <Search className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" strokeWidth={2} />
+          <span className="hidden sm:inline text-sm font-medium">Search</span>
+          <kbd className="hidden md:inline ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-600 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:border-purple-200 dark:group-hover:border-purple-800 transition-all duration-200">⌘K</kbd>
         </button>
 
         {/* Search Modal/Overlay */}
         {showSearch && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 animate-fade-in">
             {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -261,24 +261,24 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
             />
             
             {/* Search Panel */}
-            <div className="relative w-full max-w-xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="relative w-full max-w-xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-search-in">
               {/* Search Input */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                <Search className="w-5 h-5 text-slate-400" />
+              <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                <Search className="w-5 h-5 text-purple-500" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search tasks, events, courses..."
-                  className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none text-sm"
+                  className="flex-1 bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 placeholder:font-normal focus:outline-none text-sm font-medium"
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <button onClick={() => setSearchQuery('')} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-all duration-150">
                     <X className="w-4 h-4" />
                   </button>
                 )}
-                <kbd className="px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded border border-slate-200 dark:border-slate-600">ESC</kbd>
+                <kbd className="px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg border border-slate-200 dark:border-slate-600">ESC</kbd>
               </div>
               
               {/* Search Results */}

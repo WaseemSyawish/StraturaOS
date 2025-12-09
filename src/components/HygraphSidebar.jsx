@@ -20,9 +20,9 @@ const StraturaLogo = ({ size = 24, color = "gradient" }) => (
     {color === "gradient" && (
       <defs>
         <linearGradient id="logoGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#3730A3"/>
-          <stop offset="50%" stopColor="#4F46E5"/>
-          <stop offset="100%" stopColor="#6366F1"/>
+          <stop offset="0%" stopColor="#7C3AED"/>
+          <stop offset="50%" stopColor="#9333EA"/>
+          <stop offset="100%" stopColor="#A855F7"/>
         </linearGradient>
       </defs>
     )}

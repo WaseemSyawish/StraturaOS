@@ -1,14 +1,6 @@
 <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="64.000000pt" height="64.000000pt" viewBox="0 0 64.000000 64.000000" preserveAspectRatio="xMidYMid meet">
 
-  <defs>
-    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7C3AED"></stop>
-      <stop offset="50%" stop-color="#9333EA"></stop>
-      <stop offset="100%" stop-color="#A855F7"></stop>
-    </linearGradient>
-  </defs>
-
-  <g transform="translate(0.000000,64.000000) scale(0.100000,-0.100000)" fill="url(#shieldGradient)" stroke="none">
+  <g transform="translate(0.000000,64.000000) scale(0.100000,-0.100000)" fill="#FFFFFF" stroke="none">
     <path d="M169 567 c-75 -40 -144 -78 -153 -86 -13 -11 -16 -36 -16 -160 0 -80
 4 -151 8 -157 4 -6 76 -46 160 -89 l154 -79 145 74 c80 41 152 80 159 88 20
 20 20 305 0 324 -19 19 -291 158 -307 157 -8 0 -75 -33 -150 -72z m271 -74

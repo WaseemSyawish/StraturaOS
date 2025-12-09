@@ -96,15 +96,22 @@ function getTimeUntilText(date) {
   const diffMs = deadline - now;
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  // Calculate days difference using date comparison (not hours/24)
+  // This ensures "Tomorrow" is only shown for the actual next day
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const deadlineStart = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+  const diffDays = Math.round((deadlineStart - todayStart) / (1000 * 60 * 60 * 24));
   
   if (diffMs < 0) return 'OVERDUE';
-  if (diffMins < 60) return `in ${diffMins}min`;
-  if (diffHours < 24) return `in ${diffHours}h`;
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays < 7) return `in ${diffDays} days`;
-  return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (diffDays === 0) {
+    // Same day - show hours/minutes
+    if (diffMins < 60) return `IN ${diffMins}M`;
+    return `IN ${diffHours}H`;
+  }
+  if (diffDays === 1) return 'TOMORROW';
+  if (diffDays < 7) return `IN ${diffDays} DAYS`;
+  return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
 // Quick Task Form component for the floating button
@@ -2077,12 +2084,19 @@ export default function UniversityOverview() {
                                   <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                     {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     {(() => {
-                                      // Check if time was explicitly set
-                                      const hasTime = deadline.meta?.hasTime === true || 
+                                      // Check if time was explicitly set - must have explicit time field or meta.hasTime
+                                      // Don't show time if it's midnight (00:00) as that typically means no time was set
+                                      const hasExplicitTime = deadline.meta?.hasTime === true || 
                                         deadline.time || 
-                                        (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0);
+                                        deadline.due_time;
                                       
-                                      if (!hasTime || deadline.meta?.hasTime === false) return null;
+                                      // Also check if hours/minutes are non-zero AND not exactly at noon (common default)
+                                      const hasNonDefaultTime = (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0) &&
+                                        !(dueDate.getHours() === 12 && dueDate.getMinutes() === 0 && !hasExplicitTime);
+                                      
+                                      if (deadline.meta?.hasTime === false) return null;
+                                      if (!hasExplicitTime && !hasNonDefaultTime) return null;
+                                      
                                       return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
                                     })()}
                                   </span>

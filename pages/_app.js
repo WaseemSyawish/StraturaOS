@@ -252,7 +252,13 @@ export default function App({ Component, pageProps }) {
   // src/index.css and rely on next-themes to toggle the html.dark class.
   return (
     <SessionProvider session={pageProps.session}>
-      <NextThemesProvider attribute="class" defaultTheme="system">
+      <NextThemesProvider 
+        attribute="class" 
+        defaultTheme="dark"
+        storageKey="up:theme"
+        enableSystem={true}
+        disableTransitionOnChange
+      >
         <NextUISystemProvider navigate={undefined}>
           <ToastProvider>
             <ConfirmProvider>

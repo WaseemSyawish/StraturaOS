@@ -289,7 +289,9 @@ export default function Settings() {
       // Persist to localStorage immediately for theme changes
       if (key === 'theme') {
         try { 
-          localStorage.setItem('up:settings', JSON.stringify(newSettings)); 
+          localStorage.setItem('up:settings', JSON.stringify(newSettings));
+          // Also update the next-themes storage key directly
+          localStorage.setItem('up:theme', value);
         } catch (e) {
           console.warn('Failed to persist settings:', e);
         }

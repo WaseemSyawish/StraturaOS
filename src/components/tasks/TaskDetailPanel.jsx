@@ -145,7 +145,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time</label>
             <div className="relative">
               <input
                 type="time"

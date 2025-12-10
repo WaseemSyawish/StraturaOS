@@ -504,7 +504,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time</label>
             <div className="flex gap-2">
               <input
                 type="time"
@@ -4375,13 +4375,13 @@ export default function TasksPage() {
       
       // Create a wrapper component to manage modal state
       const TaskDetailModal = () => {
-        const [isStarred, setIsStarred] = React.useState(Boolean(task.important));
+        const [isStarred, setIsStarred] = React.useState(Boolean(task.addedToMyDay || task.myDay));
         const [hasReminder, setHasReminder] = React.useState(Boolean(task.dueDate || task.reminder));
         
         const handleStarClick = () => {
           const newValue = !isStarred;
           setIsStarred(newValue);
-          handleFieldUpdate(task.id, { important: newValue });
+          handleFieldUpdate(task.id, { addedToMyDay: newValue, myDay: newValue });
         };
         
         const handleClockClick = () => {
@@ -4432,9 +4432,9 @@ export default function TasksPage() {
               onStatusChange={handleStatusChange}
               onUpdateFields={(taskId, updates) => {
                 handleFieldUpdate(taskId, updates);
-                // Update local state if important changes
-                if ('important' in updates) {
-                  setIsStarred(updates.important);
+                // Update local state if myDay changes
+                if ('myDay' in updates || 'addedToMyDay' in updates) {
+                  setIsStarred(updates.myDay || updates.addedToMyDay);
                 }
                 // Update reminder state if dueDate changes
                 if ('dueDate' in updates) {

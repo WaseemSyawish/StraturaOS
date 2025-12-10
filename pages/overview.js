@@ -2087,26 +2087,14 @@ export default function UniversityOverview() {
                                     </span>
                                   )}
                                   
-                                  {/* Due date with time (only show time if explicitly set) */}
+                                  {/* Due date - only show if real due date exists */}
                                   {deadline.hasRealDueDate ? (
                                     <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                       {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                      {(() => {
-                                        // Only show time if meta.hasTime is explicitly true
-                                        if (deadline.meta?.hasTime !== true) return null;
-                                        
-                                        // If time field exists, use it directly
-                                        if (deadline.time && deadline.time !== '00:00') {
-                                          return ` at ${deadline.time}`;
-                                        }
-                                        
-                                        // Otherwise format from date object if not midnight
-                                        const hours = dueDate.getHours();
-                                        const minutes = dueDate.getMinutes();
-                                        if (hours === 0 && minutes === 0) return null;
-                                        
-                                        return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
-                                      })()}
+                                      {/* Only show time if user explicitly set it */}
+                                      {deadline.meta?.hasTime === true && deadline.time && deadline.time !== '00:00' && (
+                                        ` at ${deadline.time}`
+                                      )}
                                     </span>
                                   ) : (
                                     <span className="text-[11px] text-gray-500 dark:text-gray-400 italic">No due date</span>

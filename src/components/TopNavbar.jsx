@@ -506,12 +506,18 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {new Date(notif.dueDate).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: '2-digit'
-                                })}
+                                {notif.hasTime && notif.time && notif.time !== '00:00'
+                                  ? new Date(notif.dueDate).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit'
+                                    })
+                                  : new Date(notif.dueDate).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric'
+                                    })
+                                }
                               </p>
                             </div>
                         </div>

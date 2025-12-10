@@ -30,11 +30,11 @@ export function parseDatePreserveLocal(input) {
       );
     }
     
-    // For plain date strings (YYYY-MM-DD), parse as local date
+    // For plain date strings (YYYY-MM-DD), parse as local date at noon to avoid timezone issues
     const dateOnlyMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (dateOnlyMatch) {
       const [, year, month, day] = dateOnlyMatch;
-      return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+      return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), 12, 0, 0);
     }
     
     const dt = new Date(input);

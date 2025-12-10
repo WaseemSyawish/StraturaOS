@@ -836,13 +836,11 @@ export default function UniversityOverview() {
         // Upcoming deadlines: assessment/submission types only
         const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
         if (!deadlineTypes.includes(t)) continue;
-        // Skip tasks with no real due date (using 2099 placeholder or noDueDate flag)
-        if (ev.meta?.noDueDate === true) continue;
         // For deadline types, prioritize date field (where tasks store due date), then end_date
         // Use parseDatePreserveLocal to avoid timezone shifts
         const d = parseDatePreserveLocal(ev.date || ev.startDate || ev.endDate || ev.end_date);
-        // Skip tasks with far-future placeholder dates (2099)
-        if (d && d.getFullYear() >= 2099) continue;
+        // Check if this is a placeholder date - we'll handle display logic later
+        const hasRealDueDate = !(ev.meta?.noDueDate === true || (d && d.getFullYear() >= 2099));
         const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
         list.push({
           id: ev.id,
@@ -856,6 +854,7 @@ export default function UniversityOverview() {
           time: ev.time || null,
           due_time: ev.due_time || null,
           meta: ev.meta || {},
+          hasRealDueDate: hasRealDueDate,
           course: ev.course || ev.courseName || '',
           course_id: ev.course_id || ev.courseId,
           courseName: ev.courses?.name || ev.course || ev.courseName || '',
@@ -2089,26 +2088,29 @@ export default function UniversityOverview() {
                                   )}
                                   
                                   {/* Due date with time (only show time if explicitly set) */}
-                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                    {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                    {(() => {
-                                      // Only show time if meta.hasTime is explicitly true
-                                      if (deadline.meta?.hasTime !== true) return null;
-                                      
-                                      // If time field exists, use it directly
-                                      if (deadline.time && deadline.time !== '00:00' && deadline.time !== '12:00') {
-                                        return ` at ${deadline.time}`;
-                                      }
-                                      
-                                      // Otherwise format from date object if not default time
-                                      const hours = dueDate.getHours();
-                                      const minutes = dueDate.getMinutes();
-                                      // Don't show 12:00 AM or 12:00 PM as these are likely defaults
-                                      if ((hours === 0 || hours === 12) && minutes === 0) return null;
-                                      
-                                      return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
-                                    })()}
-                                  </span>
+                                  {deadline.hasRealDueDate ? (
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                      {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      {(() => {
+                                        // Only show time if meta.hasTime is explicitly true
+                                        if (deadline.meta?.hasTime !== true) return null;
+                                        
+                                        // If time field exists, use it directly
+                                        if (deadline.time && deadline.time !== '00:00') {
+                                          return ` at ${deadline.time}`;
+                                        }
+                                        
+                                        // Otherwise format from date object if not midnight
+                                        const hours = dueDate.getHours();
+                                        const minutes = dueDate.getMinutes();
+                                        if (hours === 0 && minutes === 0) return null;
+                                        
+                                        return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+                                      })()}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-500 dark:text-gray-400 italic">No due date</span>
+                                  )}
                                 </div>
                               </div>
                             </div>

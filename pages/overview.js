@@ -623,8 +623,9 @@ export default function UniversityOverview() {
     try {
       if (!ev) return '';
       // Use parseDatePreserveLocal to avoid timezone shifts
-      if (ev.end_date || ev.endDate) {
-        const d = parseDatePreserveLocal(ev.end_date || ev.endDate);
+      // Prioritize date field (where tasks store due date), then startDate, then end_date
+      if (ev.date) {
+        const d = parseDatePreserveLocal(ev.date);
         if (d && !isNaN(d.getTime())) {
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
@@ -635,8 +636,8 @@ export default function UniversityOverview() {
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
       }
-      if (ev.date) {
-        const d = parseDatePreserveLocal(ev.date);
+      if (ev.end_date || ev.endDate) {
+        const d = parseDatePreserveLocal(ev.end_date || ev.endDate);
         if (d && !isNaN(d.getTime())) {
           return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
@@ -835,9 +836,9 @@ export default function UniversityOverview() {
         // Upcoming deadlines: assessment/submission types only
         const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
         if (!deadlineTypes.includes(t)) continue;
-        // For deadline types, use end_date (when the deadline expires), fallback to startDate or date
+        // For deadline types, prioritize date field (where tasks store due date), then end_date
         // Use parseDatePreserveLocal to avoid timezone shifts
-        const d = parseDatePreserveLocal(ev.end_date || ev.endDate || ev.startDate || ev.date);
+        const d = parseDatePreserveLocal(ev.date || ev.startDate || ev.endDate || ev.end_date);
         const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
         list.push({
           id: ev.id,
@@ -845,9 +846,9 @@ export default function UniversityOverview() {
           dueDate: formatDue(ev),
           daysLeft: typeof daysLeft === 'number' ? daysLeft : null,
           type: ev.type || 'assignment',
-          // Add fields needed for new rendering - use end_date for due date
-          due: ev.end_date || ev.endDate || ev.startDate || ev.date,
-          date: ev.end_date || ev.endDate || ev.startDate || ev.date,
+          // Add fields needed for new rendering - prioritize date for tasks
+          due: ev.date || ev.startDate || ev.endDate || ev.end_date,
+          date: ev.date || ev.startDate || ev.endDate || ev.end_date,
           course: ev.course || ev.courseName || '',
           course_id: ev.course_id || ev.courseId,
           courseName: ev.courses?.name || ev.course || ev.courseName || '',

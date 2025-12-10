@@ -45,7 +45,7 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
               if (!deadlineTypes.includes(eventType)) return;
               if (event.completed) return;
               
-              const dueDate = event.end_date || event.endDate || event.startDate || event.date;
+              const dueDate = event.date || event.startDate || event.endDate || event.end_date;
               if (!dueDate) return;
               
               const eventDate = new Date(dueDate);
@@ -62,7 +62,9 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
                   priority: event.meta?.priority || 'not-urgent-not-important',
                   id: event.id,
                   daysOverdue,
-                  eventType: eventType
+                  eventType: eventType,
+                  hasTime: event.meta?.hasTime === true,
+                  time: event.time || null
                 });
               } else if (eventDate <= next7Days) {
                 notificationsList.push({
@@ -72,7 +74,9 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
                   priority: event.meta?.priority || 'not-urgent-not-important',
                   id: event.id,
                   courseName: event.courses?.name || event.course || '',
-                  eventType: eventType
+                  eventType: eventType,
+                  hasTime: event.meta?.hasTime === true,
+                  time: event.time || null
                 });
               }
             });
@@ -502,12 +506,18 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                {new Date(notif.dueDate).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: '2-digit'
-                                })}
+                                {notif.hasTime 
+                                  ? new Date(notif.dueDate).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit'
+                                    })
+                                  : new Date(notif.dueDate).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric'
+                                    })
+                                }
                               </p>
                             </div>
                         </div>

@@ -849,6 +849,9 @@ export default function UniversityOverview() {
           // Add fields needed for new rendering - prioritize date for tasks
           due: ev.date || ev.startDate || ev.endDate || ev.end_date,
           date: ev.date || ev.startDate || ev.endDate || ev.end_date,
+          time: ev.time || null,
+          due_time: ev.due_time || null,
+          meta: ev.meta || {},
           course: ev.course || ev.courseName || '',
           course_id: ev.course_id || ev.courseId,
           courseName: ev.courses?.name || ev.course || ev.courseName || '',
@@ -2085,18 +2088,19 @@ export default function UniversityOverview() {
                                   <span className="text-[11px] text-gray-500 dark:text-gray-400">
                                     {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     {(() => {
-                                      // Check if time was explicitly set - must have explicit time field or meta.hasTime
-                                      // Don't show time if it's midnight (00:00) as that typically means no time was set
-                                      const hasExplicitTime = deadline.meta?.hasTime === true || 
-                                        deadline.time || 
-                                        deadline.due_time;
+                                      // Only show time if meta.hasTime is explicitly true
+                                      // This flag is set when user actually sets a time
+                                      if (deadline.meta?.hasTime !== true) return null;
                                       
-                                      // Also check if hours/minutes are non-zero AND not exactly at noon (common default)
-                                      const hasNonDefaultTime = (dueDate.getHours() !== 0 || dueDate.getMinutes() !== 0) &&
-                                        !(dueDate.getHours() === 12 && dueDate.getMinutes() === 0 && !hasExplicitTime);
+                                      // If time field exists, use it directly
+                                      if (deadline.time) {
+                                        return ` at ${deadline.time}`;
+                                      }
                                       
-                                      if (deadline.meta?.hasTime === false) return null;
-                                      if (!hasExplicitTime && !hasNonDefaultTime) return null;
+                                      // Otherwise format from date object if not midnight
+                                      const hours = dueDate.getHours();
+                                      const minutes = dueDate.getMinutes();
+                                      if (hours === 0 && minutes === 0) return null;
                                       
                                       return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
                                     })()}

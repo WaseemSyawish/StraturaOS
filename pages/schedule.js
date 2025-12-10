@@ -79,21 +79,24 @@ function mapToSchedulerEvents(list) {
     } catch (err) { }
 
     // continue mapping
-    // Prefer using startDate from API (already timezone-adjusted) over reconstructing from date+time strings
+    // For tasks/deadlines, prefer using the original date field to avoid timezone shifts
+    // startDate is computed by API and may have timezone issues
     let start = new Date();
     let dateStr = null;
     let timeStr = null;
     try {
-      if (e.startDate) {
-        // API returns timezone-adjusted ISO strings - use them directly
-        start = new Date(e.startDate);
-      } else if (e.date && typeof e.date === 'string') {
-        // Fallback: reconstruct from date and time strings
+      if (e.date && typeof e.date === 'string') {
+        // Use date field directly - this is what tasks store
         dateStr = e.date;
-        timeStr = e.time || e.startTime || e.start_time || '09:00';
+        timeStr = e.time || e.startTime || e.start_time;
         const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
-        const [hh, mm] = String(timeStr || '09:00').split(':').map(Number);
-        start = new Date(y, (m || 1) - 1, d, hh || 9, mm || 0, 0);
+        // If no explicit time or hasTime is false, use a neutral hour to avoid day shifts
+        const hasTime = e.meta?.hasTime === true || (timeStr && timeStr !== '00:00');
+        const [hh, mm] = hasTime && timeStr ? String(timeStr).split(':').map(Number) : [12, 0];
+        start = new Date(y, (m || 1) - 1, d, hh || 12, mm || 0, 0);
+      } else if (e.startDate) {
+        // Fallback to API's startDate for events without date field
+        start = new Date(e.startDate);
       }
     } catch (err) {
       start = new Date();

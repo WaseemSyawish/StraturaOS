@@ -836,9 +836,13 @@ export default function UniversityOverview() {
         // Upcoming deadlines: assessment/submission types only
         const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
         if (!deadlineTypes.includes(t)) continue;
+        // Skip tasks with no real due date (using 2099 placeholder or noDueDate flag)
+        if (ev.meta?.noDueDate === true) continue;
         // For deadline types, prioritize date field (where tasks store due date), then end_date
         // Use parseDatePreserveLocal to avoid timezone shifts
         const d = parseDatePreserveLocal(ev.date || ev.startDate || ev.endDate || ev.end_date);
+        // Skip tasks with far-future placeholder dates (2099)
+        if (d && d.getFullYear() >= 2099) continue;
         const daysLeft = (!d || isNaN(d.getTime())) ? 9999 : Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) / (1000 * 60 * 60 * 24));
         list.push({
           id: ev.id,
@@ -2089,18 +2093,18 @@ export default function UniversityOverview() {
                                     {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     {(() => {
                                       // Only show time if meta.hasTime is explicitly true
-                                      // This flag is set when user actually sets a time
                                       if (deadline.meta?.hasTime !== true) return null;
                                       
                                       // If time field exists, use it directly
-                                      if (deadline.time) {
+                                      if (deadline.time && deadline.time !== '00:00' && deadline.time !== '12:00') {
                                         return ` at ${deadline.time}`;
                                       }
                                       
-                                      // Otherwise format from date object if not midnight
+                                      // Otherwise format from date object if not default time
                                       const hours = dueDate.getHours();
                                       const minutes = dueDate.getMinutes();
-                                      if (hours === 0 && minutes === 0) return null;
+                                      // Don't show 12:00 AM or 12:00 PM as these are likely defaults
+                                      if ((hours === 0 || hours === 12) && minutes === 0) return null;
                                       
                                       return ` at ${dueDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
                                     })()}

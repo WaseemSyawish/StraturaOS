@@ -83,9 +83,11 @@ async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      // Build query - don't filter by archived since schema defaults it to false
-      // and we want to show all tasks regardless of archived state
-      const where = { user_id: userId };
+      // Build query for non-archived tasks
+      const where = { 
+        user_id: userId,
+        archived: false,
+      };
       
       // Add completed filter if specified
       if (req.query.completed === 'true') {
@@ -94,13 +96,16 @@ async function handler(req, res) {
         where.completed = false;
       }
 
-      if (isDev) console.log('[api/tasks] Fetching with where:', JSON.stringify(where));
+      // Debug logging (enabled in both dev and prod temporarily)
+      console.log('[api/tasks] GET request from userId:', userId);
+      console.log('[api/tasks] Query where clause:', JSON.stringify(where));
       const events = await fetchEvents(where);
-      if (isDev) console.log('[api/tasks] Found events:', events.length);
+      console.log('[api/tasks] Found events count:', events.length);
+      if (events.length > 0) {
+        console.log('[api/tasks] First event sample:', JSON.stringify({ id: events[0].id, title: events[0].title, type: events[0].type, archived: events[0].archived }));
+      }
       
-      // Filter out archived tasks client-side to be safe
-      const nonArchivedEvents = events.filter(e => e.archived !== true);
-      const tasks = sortTasks(nonArchivedEvents.map(eventToTask));
+      const tasks = sortTasks(events.map(eventToTask));
       const view = req.query.view;
       const payload = view === 'my-day' ? filterTasksForMyDay(tasks) : tasks;
 

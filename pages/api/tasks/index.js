@@ -114,11 +114,14 @@ async function handler(req, res) {
 
     if (req.method === 'POST') {
       const data = buildEventWritePayload(req.body || {}, userId);
+      console.log('[api/tasks] POST - Creating task with data:', JSON.stringify({ title: data.title, type: data.type, archived: data.archived, user_id: data.user_id }));
       const created = await createEvent(data);
+      console.log('[api/tasks] POST - Created event id:', created.id);
       const persisted = await prisma.event.findUnique({
         where: { id: created.id },
         include: TASK_EVENT_INCLUDE,
       });
+      console.log('[api/tasks] POST - Persisted event:', JSON.stringify({ id: persisted?.id, archived: persisted?.archived }));
       return res.status(201).json({ success: true, task: eventToTask(persisted) });
     }
 

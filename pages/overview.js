@@ -833,8 +833,8 @@ export default function UniversityOverview() {
         if (!ev) continue;
         const t = (ev.type || '').toString().toLowerCase();
         const evId = String(ev.id);
-        // Upcoming deadlines: assessment/submission types only
-        const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework'];
+        // Upcoming deadlines: assessment/submission types AND general tasks
+        const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework', 'task'];
         if (!deadlineTypes.includes(t)) continue;
         // For deadline types, prioritize date field (where tasks store due date), then end_date
         // Use parseDatePreserveLocal to avoid timezone shifts

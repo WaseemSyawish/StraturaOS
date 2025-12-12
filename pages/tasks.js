@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
-import { fetchWithCache } from '../lib/cache';
+import { fetchWithCache, invalidateCache } from '../lib/cache';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import { initializeNotifications, scheduleNotification, requestNotificationPermission } from '../lib/notifications';
 import HygraphSidebar from '@/components/HygraphSidebar';
@@ -4222,6 +4222,9 @@ export default function TasksPage() {
         return { success: false, error: errorMessage };
       }
 
+      // Invalidate cache so fresh data is fetched
+      invalidateCache('/api/events?includeArchived=true' + JSON.stringify({ credentials: 'same-origin' }));
+
       if (payload?.task) {
         updateTaskFromApi(payload.task);
       } else {
@@ -4262,6 +4265,9 @@ export default function TasksPage() {
         loadUnifiedData();
         return { success: false, error: errorMessage };
       }
+
+      // Invalidate cache so fresh data is fetched
+      invalidateCache('/api/events?includeArchived=true' + JSON.stringify({ credentials: 'same-origin' }));
 
       return { success: true };
     },

@@ -398,23 +398,53 @@ const formatRelativeDue = (value) => {
   return `Overdue since ${due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 };
 
-const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeChange }) => {
-  const [date, setDate] = useState(value ? new Date(value).toISOString().split('T')[0] : '');
-  const [time, setTime] = useState(value ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
-  const [viewMonth, setViewMonth] = useState(new Date());
+const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeChange, initialHasTime = null }) => {
+  // Parse date in local timezone to avoid UTC conversion shifting the day
+  const parseLocalDate = (val) => {
+    if (!val) return null;
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return null;
+    return d;
+  };
+  
+  const initialDate = parseLocalDate(value);
+  // Extract date as local YYYY-MM-DD without timezone conversion
+  const getLocalDateStr = (d) => {
+    if (!d) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Only show time if it was explicitly set (not midnight default)
+  const getInitialTime = () => {
+    if (!initialDate) return '';
+    // If initialHasTime is explicitly false, don't show time
+    if (initialHasTime === false) return '';
+    const hours = initialDate.getHours();
+    const minutes = initialDate.getMinutes();
+    // If time is 00:00 or 12:00 (noon placeholder), treat as no time set
+    if ((hours === 0 && minutes === 0) || (hours === 12 && minutes === 0)) return '';
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  };
+  
+  const [date, setDate] = useState(getLocalDateStr(initialDate));
+  const [time, setTime] = useState(getInitialTime());
+  const [viewMonth, setViewMonth] = useState(initialDate || new Date());
 
   // Helper to apply with explicit values (bypasses async state issues)
   const applyWithValues = (dateVal, timeVal) => {
     onChange?.(dateVal);
     onTimeChange?.(timeVal);
-    onApply?.(dateVal, timeVal);
+    onApply?.({ date: dateVal, time: timeVal });
   };
 
   const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay(); // 0=Sunday
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const selectedDate = date ? new Date(date + 'T00:00:00') : null;
+  const selectedDate = date ? new Date(date + 'T12:00:00') : null; // Use noon to avoid timezone shifts
 
   const applyShortcut = (daysOffset, defaultTime = '') => {
     if (daysOffset === null) {
@@ -441,7 +471,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
     // Update date/time - user must click Set to apply
     setDate(dateStr);
     setTime(timeStr);
-    const dateTime = new Date(dateStr + 'T00:00:00');
+    const dateTime = new Date(dateStr + 'T12:00:00'); // Use noon to avoid timezone shifts
     if (timeStr) {
       const [hours, minutes] = timeStr.split(':');
       dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -456,7 +486,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
       applyWithValues(null, null);
       return;
     }
-    const dateTime = new Date(date + 'T00:00:00');
+    const dateTime = new Date(date + 'T12:00:00'); // Use noon to avoid timezone shifts
     if (time) {
       const [hours, minutes] = time.split(':');
       dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -473,7 +503,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
     setDate(newDate);
     
     // Update parent immediately so display reflects selection
-    const dateTime = new Date(newDate + 'T00:00:00');
+    const dateTime = new Date(newDate + 'T12:00:00'); // Use noon to avoid timezone shifts
     if (time) {
       const [hours, minutes] = time.split(':');
       dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
@@ -515,7 +545,7 @@ const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeCha
                   // Update parent immediately when time changes
                   if (date && newTime) {
                     const [hours, minutes] = newTime.split(':');
-                    const dateTime = new Date(date + 'T00:00:00');
+                    const dateTime = new Date(date + 'T12:00:00'); // Use noon to avoid timezone shifts
                     dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
                     onChange?.(dateTime.toISOString());
                     onTimeChange?.(newTime);
@@ -933,6 +963,7 @@ const TaskDetailPanel = ({
           </button>
           <ReminderPicker
             value={tempDueDate}
+            initialHasTime={isCreateMode ? null : (task?.hasTime ?? task?.meta?.hasTime ?? null)}
             onChange={(dueDate) => {
               setTempDueDate(dueDate);
             }}
@@ -1328,7 +1359,22 @@ const TaskDetailPanel = ({
               }}
               className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
-              {(isCreateMode ? dueStartInput : localDueDate) ? new Date(isCreateMode ? dueStartInput : localDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Set due date & reminder'}
+              {(() => {
+                const dateVal = isCreateMode ? dueStartInput : localDueDate;
+                if (!dateVal) return 'Set due date & reminder';
+                const d = new Date(dateVal);
+                if (isNaN(d.getTime())) return 'Set due date & reminder';
+                // Only show time if it was explicitly set (check hasTime from task or non-zero/non-noon time)
+                const hasExplicitTime = !isCreateMode && (task?.hasTime === true || task?.meta?.hasTime === true);
+                const hours = d.getHours();
+                const minutes = d.getMinutes();
+                const hasNonDefaultTime = (hours !== 0 && hours !== 12) || minutes !== 0;
+                const showTime = hasExplicitTime || hasNonDefaultTime;
+                if (showTime) {
+                  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                }
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              })()}
             </button>
           </div>
 
@@ -2546,7 +2592,17 @@ const TaskCard = ({ task, onToggleComplete, onQuickAction, onOpenDetail }) => {
   const priorityInfo = getPriorityMeta(task.priority);
   const dueDate = toDateSafe(task.dueDate);
   const dueLabel = dueDate ? dueDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null;
-  const dueTimeLabel = task.dueTime || (dueDate && hasDueTime(task) ? dueDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null);
+  
+  // Only show time if it was explicitly set by user (not default 12:00 AM)
+  let dueTimeLabel = null;
+  if (hasDueTime(task)) {
+    const timeStr = task.dueTime || (dueDate ? dueDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null);
+    // Filter out 12:00 AM which is the default placeholder
+    if (timeStr && timeStr !== '12:00 AM') {
+      dueTimeLabel = timeStr;
+    }
+  }
+  
   const relative = dueDate ? formatRelativeDue(task.dueDate) : null;
   
   // Priority styling

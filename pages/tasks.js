@@ -3639,6 +3639,7 @@ export default function TasksPage() {
         : Array.isArray(taskPayload)
         ? taskPayload
         : [];
+      console.log('[tasks page] rawTasks from API:', rawTasks.length, rawTasks.map(t => ({ id: t?.id, title: t?.title })));
       const normalizedTasks = rawTasks.map(normalizeTask);
 
       const eventList = Array.isArray(eventsPayload?.events)

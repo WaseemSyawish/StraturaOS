@@ -1983,17 +1983,17 @@ export default function UniversityOverview() {
                       if (!dueDate || isNaN(dueDate.getTime())) return null; // Skip invalid dates
                       
                       const now = new Date();
-                      const isOverdue = dueDate < now;
+                      const isOverdue = deadline.hasRealDueDate && dueDate < now;
                       const diffMs = dueDate - now;
                       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
                       const isChecked = completedDeadlines.has(String(deadline.id));
                       
-                      // Urgency styling
-                      const urgency = getUrgencyLevel(deadline.due || deadline.date);
+                      // Urgency styling - use 'later' for items without real due date
+                      const urgency = deadline.hasRealDueDate ? getUrgencyLevel(deadline.due || deadline.date) : 'later';
                       const urgencyStyles = URGENCY_COLORS[urgency] || URGENCY_COLORS.normal;
                       
-                      // Time display
-                      const timeText = getTimeUntilText(deadline.due || deadline.date);
+                      // Time display - show "NO DATE" if no real due date
+                      const timeText = deadline.hasRealDueDate ? getTimeUntilText(deadline.due || deadline.date) : 'NO DATE';
                       
                       const handleCheckTask = async () => {
                         const taskId = String(deadline.id);

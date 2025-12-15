@@ -227,7 +227,8 @@ const viewTabs = [
   { id: 'lectures', label: 'Lectures', icon: BookOpen },
 ];
 
-const LECTURE_TYPES = new Set(['lecture', 'class', 'lab', 'tutorial', 'seminar', 'workshop']);
+// Only filter out recurring class/lecture schedules, not lab assignments or other actionable items
+const LECTURE_TYPES = new Set(['class', 'lecture']);
 
 const PRIORITY_DEFAULT = 'not-urgent-not-important';
 const priorityMeta = {

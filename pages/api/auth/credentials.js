@@ -49,79 +49,75 @@ function loadLocalDevUser() {
 }
 
 async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  const rawEmail = req.body?.email;
-  const password = req.body?.password;
-  
-  // Validate email and password are provided
-  if (!rawEmail || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
-  
-  // Validate and sanitize email
-  if (!isValidEmail(rawEmail)) {
-    return res.status(400).json({ error: 'Invalid email format' });
-  }
-  
-  const email = sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim();
-
-  const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
-
-  // Try to query DB but handle unreachable DB with a clear 503 and a local dev-user fallback
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).end();
+    }
+
+    const rawEmail = req.body?.email;
+    const password = req.body?.password;
+    
+    // Validate email and password are provided
+    if (!rawEmail || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Validate and sanitize email
+    if (!isValidEmail(rawEmail)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    const email = sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim();
+    const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
+
+    // Query database
     let user = null;
-    if (email) {
+    try {
       user = await prisma.user.findUnique({ where: { email } });
-    }
-    if (!user) {
-      // only fallback to first user in database when DEV_FALLBACK is explicitly enabled
-      if (devFallbackEnabled) {
-        user = await prisma.user.findFirst();
-      }
-    }
-    if (!user) {
-      // No user in DB — try local dev-user fallback only when explicitly allowed
+    } catch (dbErr) {
+      if (isDev) console.error('DB query error:', dbErr.message);
+      // If DB is down and fallback is enabled, try local dev user
       if (devFallbackEnabled) {
         const local = loadLocalDevUser();
-        if (local) {
+        if (local && local.email === email) {
           setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
-          return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Using local dev-user fallback' });
+          return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email });
         }
       }
+      return res.status(503).json({ error: 'Database unavailable' });
+    }
+
+    // User not found
+    if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Verify password
+    // Verify password exists
     if (!user.password_hash) {
       if (isDev) console.warn('[signin] User has no password hash:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const passwordValid = await bcryptjs.compare(password, user.password_hash);
+    // Verify password
+    let passwordValid = false;
+    try {
+      passwordValid = await bcryptjs.compare(password, user.password_hash);
+    } catch (bcErr) {
+      if (isDev) console.error('[signin] bcryptjs error:', bcErr.message);
+      return res.status(500).json({ error: 'Authentication failed' });
+    }
+
     if (!passwordValid) {
       if (isDev) console.warn('[signin] Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Set session cookie and return success
     setSessionCookie(res, { userId: user.id, email: user.email, name: user.name });
     return res.status(200).json({ success: true, id: user.id, name: user.name, email: user.email });
   } catch (err) {
-    // Detect common Prisma connection error message and return 503 with helpful details
-    const msg = err && err.message ? String(err.message) : '';
-    if (isDev) console.error('POST /api/auth/credentials error', msg || err);
-    if (msg.includes("Can't reach database server") || msg.includes('P1001') || msg.includes('Connection refused') || msg.includes('connect ECONNREFUSED')) {
-      // DB unreachable — if DEV_FALLBACK is enabled, try local dev-user fallback; otherwise return 503
-      if (devFallbackEnabled) {
-        const local = loadLocalDevUser();
-        if (local) {
-          setSessionCookie(res, { userId: local.id, email: local.email, name: local.name });
-          return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Database unreachable — using local dev-user fallback' });
-        }
-      }
-      return res.status(503).json({ error: 'Database unreachable', details: isDev ? msg : undefined });
-    }
-    return res.status(500).json({ error: 'Failed to sign in', details: isDev ? msg : undefined });
+    console.error('[signin] Unhandled error:', err);
+    return res.status(500).json({ error: 'Failed to sign in', details: isDev ? err.message : undefined });
   }
 }
 

@@ -1,6 +1,6 @@
 import prisma from '../../../lib/prisma';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
@@ -98,7 +98,7 @@ async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    const passwordValid = await bcryptjs.compare(password, user.password_hash);
     if (!passwordValid) {
       if (isDev) console.warn('[signin] Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid credentials' });

@@ -1,5 +1,6 @@
 import prisma from '../../../lib/prisma';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { withRateLimit, RATE_LIMITS } from '../../../lib/security/rate-limit';
@@ -51,13 +52,19 @@ async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const rawEmail = req.body?.email;
+  const password = req.body?.password;
+  
+  // Validate email and password are provided
+  if (!rawEmail || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
   
   // Validate and sanitize email
-  if (rawEmail && !isValidEmail(rawEmail)) {
+  if (!isValidEmail(rawEmail)) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
   
-  const email = rawEmail ? sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim() : null;
+  const email = sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim();
 
   const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
 
@@ -82,7 +89,19 @@ async function handler(req, res) {
           return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email, warning: 'Using local dev-user fallback' });
         }
       }
-      return res.status(400).json({ error: 'No user available' });
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password
+    if (!user.password_hash) {
+      if (isDev) console.warn('[signin] User has no password hash:', email);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const passwordValid = await bcrypt.compare(password, user.password_hash);
+    if (!passwordValid) {
+      if (isDev) console.warn('[signin] Invalid password for user:', email);
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     setSessionCookie(res, { userId: user.id, email: user.email, name: user.name });
@@ -90,7 +109,7 @@ async function handler(req, res) {
   } catch (err) {
     // Detect common Prisma connection error message and return 503 with helpful details
     const msg = err && err.message ? String(err.message) : '';
-    if (isDev) console.error('POST /api/auth/signin error', msg || err);
+    if (isDev) console.error('POST /api/auth/credentials error', msg || err);
     if (msg.includes("Can't reach database server") || msg.includes('P1001') || msg.includes('Connection refused') || msg.includes('connect ECONNREFUSED')) {
       // DB unreachable — if DEV_FALLBACK is enabled, try local dev-user fallback; otherwise return 503
       if (devFallbackEnabled) {

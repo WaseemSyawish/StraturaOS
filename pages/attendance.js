@@ -6,6 +6,7 @@ import Notification from '../src/components/Notification';
 import Head from 'next/head';
 import AddSessionModal from '../src/components/attendance/AddSessionModal';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import { useSemesterContext } from '@/contexts/SemesterContext';
 
 /* ─────────────────────────────────────────────────────────────
    DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
@@ -38,7 +39,22 @@ const AttendanceTracker = () => {
   const [scheduledClassCount, setScheduledClassCount] = useState(null);
   const [lastClassEvent, setLastClassEvent] = useState(null);
   
+  // Get semester context to filter courses by selected semester
+  const { selectedSemester } = useSemesterContext();
+  
   const [editingSession, setEditingSession] = useState(null);
+
+  // Filter courses by selected semester (if any)
+  const getFilteredCourses = () => {
+    if (!selectedSemester) return courses;
+    
+    return courses.filter(course => {
+      // Match by semester name or ID
+      if (course.semester === selectedSemester.name) return true;
+      if (course.semester === selectedSemester.id) return true;
+      return false;
+    });
+  };
 
   // Fetch courses on component mount
   const fetchCourses = useCallback(async () => {
@@ -1101,7 +1117,7 @@ useEffect(() => {
           </label>
           <div className="flex-1 max-w-md">
             <CustomSelect
-              options={courses.map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
+              options={getFilteredCourses().map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
               value={selectedCourseId}
               onChange={(val) => handleCourseChange(val)}
               placeholder="Select a course"
@@ -1111,7 +1127,7 @@ useEffect(() => {
             />
           </div>
           <span className="text-sm text-purple-200 font-medium whitespace-nowrap hidden sm:inline">
-            {courses.length} courses
+            {getFilteredCourses().length} courses
           </span>
         </div>
       </div>

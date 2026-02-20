@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { Plus, Edit, Trash2, Save, X, BookOpen, Users, Calendar, Loader2, AlertCircle, GraduationCap, CheckCircle, Clock, ChevronDown, Settings, Info, Sparkles, Layers } from 'lucide-react';
 import Notification from '../src/components/Notification';
 import SemesterSettings from '../src/components/SemesterSettings';
+import { useSemesterContext } from '@/contexts/SemesterContext';
 import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
 import HygraphSidebar from '@/components/HygraphSidebar';
@@ -32,6 +33,9 @@ const ModulesManager = () => {
   
   // Authenticated user id is resolved server-side via next-auth; fetch current user
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Get semester context for cross-page semester switching
+  const { selectedSemester, switchSemester, clearSemester } = useSemesterContext();
 
   // Form state for new/editing course
   const [courseForm, setCourseForm] = useState({
@@ -444,17 +448,23 @@ const ModulesManager = () => {
 
   // Dynamic semester-based course filtering
   const getCurrentSemesterCourses = () => {
+    // If user has selected a different semester from context, use that
+    let activeSemester = currentSemester;
+    if (selectedSemester) {
+      activeSemester = selectedSemester;
+    }
+    
     // If no semesters configured, show ALL courses
-    if (!currentSemester || semesters.length === 0) return courses;
+    if (!activeSemester || semesters.length === 0) return courses;
     
     // Match courses to current semester by name
     // This handles both new format (semester settings) and old format ("2025 - 1")
     return courses.filter(course => {
       // Direct match: course.semester matches semesterSetting.name
-      if (course.semester === currentSemester.name) return true;
+      if (course.semester === activeSemester.name) return true;
       
       // Also match by ID for newly created courses
-      if (course.semester === currentSemester.id) return true;
+      if (course.semester === activeSemester.id) return true;
       
       return false;
     });
@@ -1103,6 +1113,46 @@ const ModulesManager = () => {
                       Configure Semesters
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Semester Switcher - Allow browsing different semesters */}
+            {semesters.length > 1 && (
+              <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                      <Calendar size={16} />
+                      Switch Semester
+                    </h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      {selectedSemester ? `Viewing: ${selectedSemester.name}` : 'Click below to view a different semester'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {semesters.map(semester => (
+                    <button
+                      key={semester.id}
+                      onClick={() => switchSemester(semester)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        (selectedSemester?.id === semester.id) 
+                          ? 'bg-blue-600 text-white shadow-md' 
+                          : 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 border border-blue-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {semester.name}
+                    </button>
+                  ))}
+                  {selectedSemester && (
+                    <button
+                      onClick={clearSemester}
+                      className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600 transition-all"
+                    >
+                      Clear Selection
+                    </button>
+                  )}
                 </div>
               </div>
             )}

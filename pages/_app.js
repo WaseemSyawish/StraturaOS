@@ -18,6 +18,7 @@ import ModalProvider from '@/providers/modal-context'
 import { ToastProvider } from '@/providers/toast-provider'
 import { ConfirmProvider } from '@/providers/confirm-provider'
 import { SessionProvider } from 'next-auth/react'
+import { SemesterProvider } from '@/contexts/SemesterContext'
 
 // Pages that should always use light mode (unauthenticated/public pages)
 const LIGHT_MODE_ONLY_PAGES = ['/', '/landing', '/signin', '/signup', '/signout', '/forgot-password', '/reset-password', '/docs'];
@@ -263,7 +264,9 @@ export default function App({ Component, pageProps }) {
           <ToastProvider>
             <ConfirmProvider>
               <ModalProvider>
-                {content}
+                <SemesterProvider>
+                  {content}
+                </SemesterProvider>
               </ModalProvider>
             </ConfirmProvider>
           </ToastProvider>

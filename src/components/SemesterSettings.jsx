@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Edit, Trash2, Save, X, CheckCircle } from 'lucide-react';
 import { showCustomAlert, showCustomConfirm } from '@/utils/dialogs';
+import { useSemesterContext } from '@/contexts/SemesterContext';
 
 export default function SemesterSettings() {
+  const { selectedSemester, switchSemester } = useSemesterContext();
   const [settings, setSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -114,6 +116,11 @@ export default function SemesterSettings() {
       const data = await response.json();
       if (data.success) {
         await fetchSettings();
+        // Switch the semester in context so all pages update
+        const semester = settings.find(s => s.id === id);
+        if (semester) {
+          switchSemester(semester);
+        }
       }
     } catch (err) {
       console.error('Activate error:', err);
@@ -166,7 +173,9 @@ export default function SemesterSettings() {
             <div
               key={setting.id}
               className={`bg-white dark:bg-slate-800 rounded-lg p-4 border-2 transition-all ${
-                setting.is_active
+                selectedSemester?.id === setting.id
+                  ? 'border-emerald-500 shadow-md bg-emerald-50 dark:bg-emerald-950/20'
+                  : setting.is_active
                   ? 'border-indigo-500 shadow-md'
                   : 'border-gray-200 dark:border-slate-700'
               }`}
@@ -175,7 +184,13 @@ export default function SemesterSettings() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-bold text-gray-900 dark:text-slate-100">{setting.name}</h3>
-                    {setting.is_active && (
+                    {selectedSemester?.id === setting.id && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">
+                        <CheckCircle size={12} />
+                        Selected
+                      </span>
+                    )}
+                    {setting.is_active && selectedSemester?.id !== setting.id && (
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-full">
                         <CheckCircle size={12} />
                         Active
@@ -189,12 +204,12 @@ export default function SemesterSettings() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!setting.is_active && (
+                  {selectedSemester?.id !== setting.id && (
                     <button
                       onClick={() => handleSetActive(setting.id)}
                       className="px-3 py-1 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded text-sm font-semibold transition-colors"
                     >
-                      Set Active
+                      Switch
                     </button>
                   )}
                   <button

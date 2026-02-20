@@ -70,10 +70,15 @@ async function handler(req, res) {
     const email = sanitizeString(rawEmail, { maxLength: 254 }).toLowerCase().trim();
     const devFallbackEnabled = process.env.DEV_FALLBACK === '1' || process.env.DEV_FALLBACK === 'true';
 
-    // Query database
+    // Query database with timeout
     let user = null;
     try {
-      user = await prisma.user.findUnique({ where: { email } });
+      // Add a timeout promise to catch hanging connections
+      const queryPromise = prisma.user.findUnique({ where: { email } });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout after 10s')), 10000)
+      );
+      user = await Promise.race([queryPromise, timeoutPromise]);
     } catch (dbErr) {
       if (isDev) console.error('DB query error:', dbErr.message);
       // If DB is down and fallback is enabled, try local dev user
@@ -84,7 +89,8 @@ async function handler(req, res) {
           return res.status(200).json({ success: true, id: local.id, name: local.name, email: local.email });
         }
       }
-      return res.status(503).json({ error: 'Database unavailable' });
+      const errMsg = dbErr.message || 'Database error';
+      return res.status(503).json({ error: 'Database unavailable', details: isDev ? errMsg : undefined });
     }
 
     // User not found

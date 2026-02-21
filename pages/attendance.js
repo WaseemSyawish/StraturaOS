@@ -448,11 +448,23 @@ useEffect(() => {
     }
 
     // Estimate total sessions for the FULL semester
-    // Use ONLY recorded attendable sessions - don't estimate future ones
-    const totalSemesterSessions = attendableSessions.length;
+    // PRIORITY: Use scheduledClassCount from Smart Schedule if available (this is the TRUE total)
+    // FALLBACK: Use recorded attendable sessions if no schedule data
+    let totalSemesterSessions = attendableSessions.length;
+    let semesterSessionSource = 'recorded';
+    
+    if (typeof scheduledClassCount === 'number' && scheduledClassCount > 0) {
+      totalSemesterSessions = scheduledClassCount;
+      semesterSessionSource = 'scheduled';
+    } else if (typeof scheduledCount === 'number' && scheduledCount > 0) {
+      totalSemesterSessions = scheduledCount;
+      semesterSessionSource = 'scheduled-all';
+    }
 
-    // Subtract holidays from total (holidays don't count as attendable)
-    const totalAttendableSemester = Math.max(0, totalSemesterSessions - holidays);
+    // Holidays don't count as attendable - but ONLY if they're part of recorded sessions
+    // If using scheduled count, holidays aren't separate (they're not scheduled classes)
+    const holidaysToSubtract = semesterSessionSource === 'recorded' ? holidays : 0;
+    const totalAttendableSemester = Math.max(0, totalSemesterSessions - holidaysToSubtract);
     
     // Use recorded for current attendance % calculation
     const totalAttendableSessions = recordedCount;
@@ -462,6 +474,7 @@ useEffect(() => {
       'lastClassDate=', lastClassDate?.toLocaleDateString(),
       'weeklyFrequency=', weeklyFrequency,
       'totalSemesterSessions=', totalSemesterSessions,
+      'semesterSessionSource=', semesterSessionSource,
       'holidays=', holidays,
       'totalAttendableSemester=', totalAttendableSemester,
       'recordedCount=', recordedCount,
@@ -480,15 +493,15 @@ useEffect(() => {
     const requiredAttendancePercentage = 80; // 80% minimum required
     const maxSkippablePercentage = 20; // Can skip up to 20%
 
-    // No future sessions - only using recorded
-    let futureSessionsCount = 0;
+    // Future sessions = total scheduled minus what we've recorded
+    let futureSessionsCount = Math.max(0, totalAttendableSemester - recordedCount);
 
-    // Max possible points = total recorded attendable sessions × MAX_POINTS
-    const totalPointsPossibleFinal = pointsPossibleSoFar;
+    // Max possible points = total semester sessions (scheduled OR recorded) × MAX_POINTS
+    const totalPointsPossibleFinal = totalAttendableSemester * MAX_POINTS;
 
-    // PROJECTED FINAL = current (no future sessions to estimate)
-    const projectedFinalPoints = pointsEarnedSoFar;
-    const projectedFinalPercentage = attendancePercentage;
+    // PROJECTED FINAL = if all remaining sessions are present
+    const projectedFinalPoints = pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS);
+    const projectedFinalPercentage = totalPointsPossibleFinal > 0 ? (projectedFinalPoints / totalPointsPossibleFinal) * 100 : attendancePercentage;
 
     // Minimum total points required to meet threshold at semester end
     const requiredTotalPoints = Math.ceil((requiredAttendancePercentage / 100) * totalPointsPossibleFinal);
@@ -502,30 +515,37 @@ useEffect(() => {
     // How many future sessions can be missed and still meet target
     const maxSkippableFuture = Math.max(0, futureSessionsCount - requiredPresencesNeeded);
 
-    // ALLOWED ABSENCES: Based on TOTAL ATTENDABLE SEMESTER sessions
-    // This shows the full absence budget for the entire semester
+    // ALLOWED ABSENCES: Based on TOTAL SEMESTER sessions (not just recorded)
+    // This shows the full absence budget for the ENTIRE semester
     const totalSessionsUntilEnd = totalAttendableSemester;
     
-    // Total allowed absences: Calculate how many you can miss and STAY STRICTLY ABOVE 80%
-    // To be above 80%, you need MORE than (sessions * 0.80) presences
-    // So required presences = floor(sessions * 0.80) + 1 when it would be exactly 80%
-    // Using: maxAbsences = floor(sessions * maxSkippablePercentage / 100 - 0.001) ensures we stay above threshold
-    const rawAllowedAbsences = (totalSessionsUntilEnd * maxSkippablePercentage / 100);
-    // If it's a whole number, subtract 1 to stay above threshold; otherwise floor it
-    const totalAllowedAbsences = Math.max(0, Number.isInteger(rawAllowedAbsences) ? rawAllowedAbsences - 1 : Math.floor(rawAllowedAbsences));
-    // Late counts as 0.5 absence, so total "used" absences = absent + (late * 0.5)
+    // Total allowed absences: Calculate max absences while staying STRICTLY ABOVE 80%
+    // Required presences to STAY ABOVE 80%: ceil(sessions × 0.80 + 0.001)
+    // So: allowed absences = sessions - required_presences, but only if it keeps us >80%
+    const requiredPresencesForThreshold = Math.floor(totalSessionsUntilEnd * 0.80) + 1; // +1 to stay ABOVE threshold
+    const totalAllowedAbsences = Math.max(0, totalSessionsUntilEnd - requiredPresencesForThreshold);
     
-    console.log('DEBUG Absences:', 'totalAttendableSemester=', totalAttendableSemester, 'totalAllowedAbsences=', totalAllowedAbsences);
+    // "Used" absences: current_absences + (current_lates × 0.5, since late = half an absence)
     const usedAbsencePoints = absent + (late * 0.5);
-    // How many more absence points can be used
+    
+    // How many more absence "points" can be used
     const remainingAbsencePoints = Math.max(0, totalAllowedAbsences - usedAbsencePoints);
+    
     // This can be taken as full absences OR converted to lates
-    const remainingAllowedTotal = Math.floor(remainingAbsencePoints); // Full absences remaining
+    const remainingFullAbsences = Math.floor(remainingAbsencePoints); // Full absences remaining
     const remainingAsLates = Math.floor(remainingAbsencePoints * 2); // If only using lates (each late = 0.5)
+    const remainingMixed = Math.ceil(remainingAbsencePoints); // Maximum additional "penalty points" available
 
-    console.log('DEBUG Absences:', 'totalSemesterSessions=', totalSemesterSessions, 'totalAllowedAbsences=', totalAllowedAbsences, 'usedAbsencePoints=', usedAbsencePoints, 'remainingAbsencePoints=', remainingAbsencePoints);
+    console.log('DEBUG Absences:', 
+      'totalAttendableSemester=', totalAttendableSemester, 
+      'requiredPresencesForThreshold=', requiredPresencesForThreshold,
+      'totalAllowedAbsences=', totalAllowedAbsences, 
+      'usedAbsencePoints=', usedAbsencePoints, 
+      'remainingAbsencePoints=', remainingAbsencePoints,
+      'semesterSessionSource=', semesterSessionSource
+    );
 
-    const isCapped = (pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS)) < Math.ceil((requiredAttendancePercentage / 100) * (pointsPossibleSoFar + futureSessionsCount * MAX_POINTS));
+    const isCapped = (pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS)) < Math.ceil((requiredAttendancePercentage / 100) * totalPointsPossibleFinal);
     // Determine 'at risk' by proximity to the required attendance percentage (based on so-far percentage)
     const riskMarginPoints = 5; // percentage points above the threshold considered 'at risk'
     const isAtRisk = !isCapped && attendancePercentage < (requiredAttendancePercentage + riskMarginPoints);
@@ -544,19 +564,24 @@ useEffect(() => {
       totalPointsPossibleFinal,
       requiredPointsNeeded,
       eligibleSessions: recordedEligibleSessions, // sessions excluding holidays (recorded)
-      expectedSessions, // expected count (prefers smart-schedule when available)
-      usedSource,
+      expectedSessions: totalAttendableSemester, // total semester sessions (scheduled OR recorded)
+      usedSource: semesterSessionSource,
       // Capping system data
       requiredAttendancePercentage,
       totalAllowedAbsences,
       usedAbsencePoints,
       remainingAbsencePoints,
-      remainingAllowedTotal,
+      remainingFullAbsences,
       remainingAsLates,
+      remainingMixed,
       futureSessionsCount,
       maxSkippableFuture,
       isCapped,
-      isAtRisk
+      isAtRisk,
+      // Schedule info
+      semesterSessionSource,
+      scheduledClassCount,
+      scheduledCount
     };
   };
 
@@ -1305,9 +1330,9 @@ useEffect(() => {
                 <div className="p-6 space-y-6">
                   {/* SKIP CALCULATOR - Hero Section */}
                   <div className={`p-5 rounded-xl border-2 ${
-                    stats.remainingAllowedTotal === 0 
+                    stats.remainingFullAbsences === 0 
                       ? 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/30 dark:to-red-900/10 border-red-300 dark:border-red-700' 
-                      : stats.remainingAllowedTotal <= 2
+                      : stats.remainingFullAbsences <= 2
                       ? 'bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/30 dark:to-amber-900/10 border-amber-300 dark:border-amber-700'
                       : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-900/10 border-emerald-300 dark:border-emerald-700'
                   }`}>
@@ -1316,13 +1341,13 @@ useEffect(() => {
                         Absences Remaining
                       </div>
                       <div className={`text-5xl font-black ${
-                        stats.remainingAllowedTotal === 0 
+                        stats.remainingFullAbsences === 0 
                           ? 'text-red-600 dark:text-red-400' 
-                          : stats.remainingAllowedTotal <= 2
+                          : stats.remainingFullAbsences <= 2
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-emerald-600 dark:text-emerald-400'
                       }`}>
-                        {stats.remainingAllowedTotal}
+                        {stats.remainingFullAbsences}
                       </div>
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         full absences you can still have
@@ -1335,7 +1360,7 @@ useEffect(() => {
                             As Full Absences
                           </div>
                           <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                            {stats.remainingAllowedTotal}
+                            {stats.remainingFullAbsences}
                           </div>
                           <div className="text-[10px] text-red-600/70 dark:text-red-400/70">
                             sessions

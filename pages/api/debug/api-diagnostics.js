@@ -28,8 +28,7 @@ export default async function handler(req, res) {
     // Test 3: Attendance via Prisma
     const attendance = await prisma.attendanceSession.findMany({
       where: { user_id: userId },
-      select: { id: true, user_id: true },
-      take: 5
+      select: { id: true, user_id: true }
     });
 
     // Test 4: Semester Settings via Prisma

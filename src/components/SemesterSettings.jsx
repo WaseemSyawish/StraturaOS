@@ -204,6 +204,14 @@ export default function SemesterSettings() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {selectedSemester?.id !== setting.id && (
+                    <button
+                      onClick={() => handleSetActive(setting.id)}
+                      className="px-3 py-1 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded text-sm font-semibold transition-colors"
+                    >
+                      Switch
+                    </button>
+                  )}
                   <button
                     onClick={() => handleEdit(setting)}
                     className="p-2 text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded transition-colors"

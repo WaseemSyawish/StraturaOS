@@ -1117,45 +1117,6 @@ const ModulesManager = () => {
               </div>
             )}
 
-            {/* Semester Switcher - Allow browsing different semesters */}
-            {semesters.length > 1 && (
-              <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                      <Calendar size={16} />
-                      Switch Semester
-                    </h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                      {selectedSemester ? `Viewing: ${selectedSemester.name}` : 'Click below to view a different semester'}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {semesters.map(semester => (
-                    <button
-                      key={semester.id}
-                      onClick={() => switchSemester(semester)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                        (selectedSemester?.id === semester.id) 
-                          ? 'bg-blue-600 text-white shadow-md' 
-                          : 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 border border-blue-200 dark:border-slate-700'
-                      }`}
-                    >
-                      {semester.name}
-                    </button>
-                  ))}
-                  {selectedSemester && (
-                    <button
-                      onClick={clearSemester}
-                      className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600 transition-all"
-                    >
-                      Clear Selection
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Current Modules - ALWAYS SHOW */}
             <div className="cozy rounded-xl shadow-lg mb-6">

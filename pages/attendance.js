@@ -401,34 +401,12 @@ useEffect(() => {
       weeklyFrequency = Math.round(sessions.length / weeksDiff) || 1;
     }
 
-    // Calculate TOTAL semester sessions from first recorded to last class event
-    let lastClassDate = null;
-    if (lastClassEvent && lastClassEvent.date) {
-      lastClassDate = new Date(lastClassEvent.date);
-    } else if (semesterRange && semesterRange.end) {
-      lastClassDate = new Date(semesterRange.end);
-    }
-
-    // Estimate total sessions for the FULL semester
-    let totalSemesterSessions = recordedCount; // fallback
-    if (firstRecordedDate && lastClassDate && lastClassDate > firstRecordedDate) {
-      const totalDays = Math.ceil((lastClassDate - firstRecordedDate) / (1000 * 60 * 60 * 24));
-      const totalWeeks = Math.max(1, totalDays / 7);
-      // Estimate: weeks × weekly frequency, minus holidays recorded
-      const estimatedTotal = Math.round(totalWeeks * weeklyFrequency);
-      // Use the larger of: estimated, recorded, or scheduled
-      totalSemesterSessions = Math.max(estimatedTotal, recordedCount);
-      if (typeof scheduledClassCount === 'number' && scheduledClassCount > 0) {
-        // Combine: recorded sessions + scheduled future sessions (avoid double counting)
-        const scheduledFuture = Math.max(0, scheduledClassCount - recordedCount);
-        totalSemesterSessions = Math.max(totalSemesterSessions, recordedCount + scheduledFuture);
-      }
-    } else if (typeof scheduledClassCount === 'number' && scheduledClassCount > recordedCount) {
-      totalSemesterSessions = scheduledClassCount;
-    }
-
+    // Calculate TOTAL semester sessions from recorded attendance only
+    // NO EXTRAPOLATION - use what student has actually recorded
+    const totalSemesterSessions = attendableSessions.length;
+    
     // Subtract holidays from total (holidays don't count as attendable)
-    const totalAttendableSemester = Math.max(0, totalSemesterSessions - holidays);
+    const totalAttendableSemester = totalSemesterSessions;
     
     // Use recorded for current attendance % calculation
     const totalAttendableSessions = recordedCount;
@@ -451,63 +429,36 @@ useEffect(() => {
 
     // Current attendance percentage based on recorded sessions only
     const attendancePercentage = pointsPossibleSoFar > 0 ? (pointsEarnedSoFar / pointsPossibleSoFar) * 100 : 0;
+    
+    // Projected percentage = current (no future estimation)
+    const projectedFinalPercentage = attendancePercentage;
 
     // Capping system calculations
     const requiredAttendancePercentage = 80; // 80% minimum required
     const maxSkippablePercentage = 20; // Can skip up to 20%
 
-    // Future sessions = total attendable semester - recorded count
+    // Future sessions count = 0 (only calculate based on recorded)
     let futureSessionsCount = 0;
-    if (totalAttendableSemester > recordedCount) {
-      futureSessionsCount = totalAttendableSemester - recordedCount;
-    }
 
-    // Max possible points: total ATTENDABLE SEMESTER sessions × MAX_POINTS
-    const totalPointsPossibleFinal = totalAttendableSemester * MAX_POINTS;
-
-    // PROJECTED FINAL: Assume student attends all future sessions perfectly
-    const projectedFinalPoints = pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS);
-    const projectedFinalPercentage = totalPointsPossibleFinal > 0 ? (projectedFinalPoints / totalPointsPossibleFinal) * 100 : 0;
-
-    // Minimum total points required to meet threshold at semester end
-    const requiredTotalPoints = Math.ceil((requiredAttendancePercentage / 100) * totalPointsPossibleFinal);
-
-    // Points still needed from future sessions to meet required total
-    const requiredPointsNeeded = Math.max(0, requiredTotalPoints - pointsEarnedSoFar);
-
-    // Presences needed (each presence gives MAX_POINTS) — conservative assumption
-    const requiredPresencesNeeded = Math.ceil(requiredPointsNeeded / MAX_POINTS);
-
-    // How many future sessions can be missed and still meet target
-    const maxSkippableFuture = Math.max(0, futureSessionsCount - requiredPresencesNeeded);
-
-    // ALLOWED ABSENCES: Based on TOTAL ATTENDABLE SEMESTER sessions
-    // This shows the full absence budget for the entire semester
+    // ALLOWED ABSENCES: Based on TOTAL ATTENDABLE recorded sessions
+    // Calculate how many you can miss and STAY STRICTLY ABOVE 80%
     const totalSessionsUntilEnd = totalAttendableSemester;
     
-    // Total allowed absences: Calculate how many you can miss and STAY STRICTLY ABOVE 80%
-    // To be above 80%, you need MORE than (sessions * 0.80) presences
-    // So required presences = floor(sessions * 0.80) + 1 when it would be exactly 80%
-    // Using: maxAbsences = floor(sessions * maxSkippablePercentage / 100 - 0.001) ensures we stay above threshold
     const rawAllowedAbsences = (totalSessionsUntilEnd * maxSkippablePercentage / 100);
-    // If it's a whole number, subtract 1 to stay above threshold; otherwise floor it
     const totalAllowedAbsences = Math.max(0, Number.isInteger(rawAllowedAbsences) ? rawAllowedAbsences - 1 : Math.floor(rawAllowedAbsences));
-    // Late counts as 0.5 absence, so total "used" absences = absent + (late * 0.5)
     
-    console.log('DEBUG Absences:', 'totalAttendableSemester=', totalAttendableSemester, 'totalAllowedAbsences=', totalAllowedAbsences);
+    console.log('DEBUG Absences:', 'totalAttendableSemester=', totalAttendableSemester, 'totalAllowedAbsences=', totalAllowedAbsences, 'rawAllowedAbsences=', rawAllowedAbsences);
+    
     const usedAbsencePoints = absent + (late * 0.5);
-    // How many more absence points can be used
     const remainingAbsencePoints = Math.max(0, totalAllowedAbsences - usedAbsencePoints);
-    // This can be taken as full absences OR converted to lates
-    const remainingAllowedTotal = Math.floor(remainingAbsencePoints); // Full absences remaining
-    const remainingAsLates = Math.floor(remainingAbsencePoints * 2); // If only using lates (each late = 0.5)
+    const remainingAllowedTotal = Math.floor(remainingAbsencePoints);
+    const remainingAsLates = Math.floor(remainingAbsencePoints * 2);
 
     console.log('DEBUG Absences:', 'totalSemesterSessions=', totalSemesterSessions, 'totalAllowedAbsences=', totalAllowedAbsences, 'usedAbsencePoints=', usedAbsencePoints, 'remainingAbsencePoints=', remainingAbsencePoints);
 
-    const isCapped = (pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS)) < Math.ceil((requiredAttendancePercentage / 100) * (pointsPossibleSoFar + futureSessionsCount * MAX_POINTS));
-    // Determine 'at risk' by proximity to the required attendance percentage (based on so-far percentage)
-    const riskMarginPoints = 5; // percentage points above the threshold considered 'at risk'
-    const isAtRisk = !isCapped && attendancePercentage < (requiredAttendancePercentage + riskMarginPoints);
+    const isCapped = false; // No capping without future estimation
+    const maxSkippableFuture = 0; // No future sessions to skip
+    const isAtRisk = attendancePercentage < (requiredAttendancePercentage + 5);
     
     return {
       totalSessions,
@@ -520,8 +471,6 @@ useEffect(() => {
       projectedFinalPercentage,
       pointsEarnedSoFar,
       pointsPossibleSoFar,
-      totalPointsPossibleFinal,
-      requiredPointsNeeded,
       eligibleSessions: recordedEligibleSessions, // sessions excluding holidays (recorded)
       expectedSessions, // expected count (prefers smart-schedule when available)
       usedSource,

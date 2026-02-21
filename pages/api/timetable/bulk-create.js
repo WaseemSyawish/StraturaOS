@@ -1,27 +1,10 @@
 import prisma from '../../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
 import fs from 'fs';
 import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
 const DATA_DIR = path.join(process.cwd(), 'data');
-
-async function resolveUserId(req) {
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (tokenUserId) return tokenUserId;
-
-    if (isDev && req && req.cookies) {
-      if (req.cookies.userId) return req.cookies.userId;
-      if (req.cookies.debug_userId) return req.cookies.debug_userId;
-    }
-    return null;
-  } catch (err) {
-    if (isDev) console.error('resolveUserId error', err);
-    return null;
-  }
-}
 
 // Helper: Calculate all dates for a specific day of week between start and end dates
 function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
@@ -74,7 +57,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const userId = await resolveUserId(req);
+    const userId = await resolveUser(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }

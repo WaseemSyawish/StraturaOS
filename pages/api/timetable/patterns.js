@@ -1,22 +1,5 @@
 import prisma from '../../../lib/prisma';
-
-async function resolveUserId(req) {
-  try {
-    const { getToken } = await import('next-auth/jwt');
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || 'dev-nextauth-secret' });
-    const tokenUserId = token && (token.userId || token.sub) ? (token.userId || token.sub) : null;
-    if (tokenUserId) return tokenUserId;
-
-    if (process.env.NODE_ENV === 'development' && req && req.cookies) {
-      if (req.cookies.userId) return req.cookies.userId;
-      if (req.cookies.debug_userId) return req.cookies.debug_userId;
-    }
-    return null;
-  } catch (err) {
-    console.error('resolveUserId error', err);
-    return null;
-  }
-}
+import { resolveUser } from '../../../lib/resolveUser';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -25,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const userId = await resolveUserId(req);
+    const userId = await resolveUser(req);
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }

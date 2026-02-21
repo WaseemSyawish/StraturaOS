@@ -1,5 +1,5 @@
-import { resolveUser } from '../../lib/resolveUser';
-import prisma from '../../lib/prisma';
+import { resolveUser } from '../../../lib/resolveUser';
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();

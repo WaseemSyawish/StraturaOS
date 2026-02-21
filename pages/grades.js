@@ -590,11 +590,11 @@ const GradesPage = () => {
           setSemesters(built);
           
           // Default to semester 2 - look for "2" or "Semester 2" in the name
-          const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
-          if (sem2 && !mounted) {
-            return;
-          } else if (sem2) {
-            setSelectedSemester(sem2.value);
+          if (mounted) {
+            const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
+            if (sem2) {
+              setSelectedSemester(sem2.value);
+            }
           }
         } else {
           // Fallback: derive from course semester fields (backward compatibility)
@@ -617,11 +617,11 @@ const GradesPage = () => {
           setSemesters(built);
           
           // Default to semester 2 - look for "2" or "Semester 2" in the name
-          const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
-          if (sem2 && !mounted) {
-            return;
-          } else if (sem2) {
-            setSelectedSemester(sem2.value);
+          if (mounted) {
+            const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
+            if (sem2) {
+              setSelectedSemester(sem2.value);
+            }
           }
         }
 

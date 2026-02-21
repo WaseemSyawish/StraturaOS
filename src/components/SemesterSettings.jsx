@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Edit, Trash2, Save, X, CheckCircle } from 'lucide-react';
 import { showCustomAlert, showCustomConfirm } from '@/utils/dialogs';
 import { useSemesterContext } from '@/contexts/SemesterContext';
+import { isSemesterActive } from '@/utils/semesterUtils';
 
 export default function SemesterSettings() {
   const { selectedSemester, switchSemester } = useSemesterContext();
@@ -175,7 +176,7 @@ export default function SemesterSettings() {
               className={`bg-white dark:bg-slate-800 rounded-lg p-4 border-2 transition-all ${
                 selectedSemester?.id === setting.id
                   ? 'border-emerald-500 shadow-md bg-emerald-50 dark:bg-emerald-950/20'
-                  : setting.is_active
+                  : isSemesterActive(setting)
                   ? 'border-indigo-500 shadow-md'
                   : 'border-gray-200 dark:border-slate-700'
               }`}
@@ -190,7 +191,7 @@ export default function SemesterSettings() {
                         Selected
                       </span>
                     )}
-                    {setting.is_active && selectedSemester?.id !== setting.id && (
+                    {isSemesterActive(setting) && selectedSemester?.id !== setting.id && (
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-full">
                         <CheckCircle size={12} />
                         Active

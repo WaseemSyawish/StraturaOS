@@ -7,6 +7,7 @@ import Head from 'next/head';
 import AddSessionModal from '../src/components/attendance/AddSessionModal';
 import HygraphSidebar from '@/components/HygraphSidebar';
 import { useSemesterContext } from '@/contexts/SemesterContext';
+import { isSemesterActive, findActiveSemester } from '@/utils/semesterUtils';
 
 /* ─────────────────────────────────────────────────────────────
    DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
@@ -42,11 +43,20 @@ const AttendanceTracker = () => {
   // Get semester context to filter courses by selected semester
   const { selectedSemester } = useSemesterContext();
   
+  // Add semester management state
+  const [allSemesters, setAllSemesters] = useState([]);
+  const [filterSemester, setFilterSemester] = useState(null);
+  
   const [editingSession, setEditingSession] = useState(null);
 
-  // Return all courses (don't filter by semester - all courses should be selectable)
+  // Return courses filtered by selected semester
   const getFilteredCourses = () => {
-    return courses;
+    if (!filterSemester) return courses;
+    return courses.filter(c => {
+      if (c.semester === filterSemester.id) return true;
+      if (c.semester === filterSemester.name) return true;
+      return false;
+    });
   };
 
   // Fetch courses on component mount
@@ -110,6 +120,34 @@ const AttendanceTracker = () => {
   }, []);
 
   useEffect(() => { fetchCourses(); }, [fetchCourses]);
+
+  // Fetch semesters on component mount
+  useEffect(() => {
+    const fetchSemesters = async () => {
+      try {
+        const response = await fetch('/api/semester-settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.semesters)) {
+            setAllSemesters(data.semesters);
+            
+            // Set default filter to the currently active semester
+            const activeSem = findActiveSemester(data.semesters);
+            if (activeSem) {
+              setFilterSemester(activeSem);
+            } else if (data.semesters.length > 0) {
+              // Fallback to first semester if no active one
+              setFilterSemester(data.semesters[0]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch semesters:', err);
+      }
+    };
+    
+    fetchSemesters();
+  }, []);
 
   // Helper to parse error responses robustly (try JSON, then text)
   const parseErrorResponse = async (response) => {
@@ -1085,26 +1123,60 @@ useEffect(() => {
           </div>
         </div>
         
-        {/* Course selector inside hero */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-          <label className="text-sm font-medium text-white flex items-center gap-2">
-            <BookOpen className="w-4 h-4" />
-            Course:
-          </label>
-          <div className="flex-1 max-w-md">
-            <CustomSelect
-              options={getFilteredCourses().map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
-              value={selectedCourseId}
-              onChange={(val) => handleCourseChange(val)}
-              placeholder="Select a course"
-              className="w-full"
-              id="course-select"
-              variant="hero"
-            />
+        {/* Semester and Course selectors inside hero */}
+        <div className="flex flex-col gap-3">
+          {/* Semester Selector */}
+          {allSemesters.length > 0 && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+              <label className="text-sm font-medium text-white flex items-center gap-2 whitespace-nowrap">
+                <Calendar className="w-4 h-4" />
+                Semester:
+              </label>
+              <div className="flex-1 max-w-xs">
+                <CustomSelect
+                  options={allSemesters.map(s => ({
+                    label: s.name,
+                    value: s.id,
+                    isSemester: true
+                  }))}
+                  value={filterSemester?.id}
+                  onChange={(val) => {
+                    const sem = allSemesters.find(s => s.id === val);
+                    if (sem) setFilterSemester(sem);
+                  }}
+                  placeholder="Select semester"
+                  className="w-full"
+                  id="semester-select"
+                  variant="hero"
+                />
+              </div>
+              <span className="text-sm text-purple-200 font-medium hidden sm:inline">
+                {filterSemester && (isSemesterActive(filterSemester) ? '(Active)' : '')}
+              </span>
+            </div>
+          )}
+          
+          {/* Course Selector */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+            <label className="text-sm font-medium text-white flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Course:
+            </label>
+            <div className="flex-1 max-w-md">
+              <CustomSelect
+                options={getFilteredCourses().map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
+                value={selectedCourseId}
+                onChange={(val) => handleCourseChange(val)}
+                placeholder="Select a course"
+                className="w-full"
+                id="course-select"
+                variant="hero"
+              />
+            </div>
+            <span className="text-sm text-purple-200 font-medium whitespace-nowrap hidden sm:inline">
+              {getFilteredCourses().length} courses
+            </span>
           </div>
-          <span className="text-sm text-purple-200 font-medium whitespace-nowrap hidden sm:inline">
-            {getFilteredCourses().length} courses
-          </span>
         </div>
       </div>
     </div>

@@ -588,6 +588,13 @@ const GradesPage = () => {
             }))
           ];
           setSemesters(built);
+          
+          // Default to semester 2 if available, otherwise keep 'all'
+          if (built.length > 2) {
+            // There are at least 2 semesters (plus 'all'), select the second one
+            if (!mounted) return;
+            setSelectedSemester(built[2].value);
+          }
         } else {
           // Fallback: derive from course semester fields (backward compatibility)
           const semesterTokens = Array.from(new Set(allCourses.map(c => c.semester).filter(Boolean)));
@@ -607,6 +614,12 @@ const GradesPage = () => {
             ...semesterTokens.map(s => ({ value: s, label: humanize(s) }))
           ];
           setSemesters(built);
+          
+          // Default to semester 2 if available
+          if (built.length > 2) {
+            if (!mounted) return;
+            setSelectedSemester(built[2].value);
+          }
         }
 
         // compute credits and courses count

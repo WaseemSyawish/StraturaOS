@@ -446,63 +446,25 @@ const ModulesManager = () => {
     setError(null);
   };
 
-  // Dynamic semester-based course filtering
-  const getCurrentSemesterCourses = () => {
-    // If user has selected a different semester from context, use that
-    let activeSemester = currentSemester;
-    if (selectedSemester) {
-      activeSemester = selectedSemester;
-    }
+  // Get courses for the selected semester (or current semester if none selected)
+  const getSelectedSemesterCourses = () => {
+    // Use selectedSemester from context, otherwise fallback to currentSemester
+    const activeSemester = selectedSemester || currentSemester;
     
-    // If no semesters configured, show ALL courses
+    // If no semester selected or configured, show ALL courses
     if (!activeSemester || semesters.length === 0) return courses;
     
-    // Match courses to current semester by name
-    // This handles both new format (semester settings) and old format ("2025 - 1")
+    // Match courses to selected semester by name or ID
     return courses.filter(course => {
-      // Direct match: course.semester matches semesterSetting.name
       if (course.semester === activeSemester.name) return true;
-      
-      // Also match by ID for newly created courses
       if (course.semester === activeSemester.id) return true;
-      
       return false;
     });
   };
 
-  const getUpcomingSemesterCourses = () => {
-    const today = new Date();
-    const upcomingSemesters = semesters
-      .filter(s => new Date(s.start_date) > today)
-      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-    
-    if (upcomingSemesters.length === 0) return [];
-    
-    const nextSemester = upcomingSemesters[0];
-    return courses.filter(course => 
-      course.semester === nextSemester.name || course.semester === nextSemester.id
-    );
-  };
-
-  const getPreviousSemesterCourses = () => {
-    const today = new Date();
-    const previousSemesters = semesters
-      .filter(s => new Date(s.end_date) < today);
-    
-    return courses.filter(course => 
-      previousSemesters.some(sem => 
-        course.semester === sem.name || course.semester === sem.id
-      )
-    );
-  };
-
-  const getUpcomingSemester = () => {
-    const today = new Date();
-    const upcomingSemesters = semesters
-      .filter(s => new Date(s.start_date) > today)
-      .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-    
-    return upcomingSemesters[0] || null;
+  // Get the active semester (selected or current)
+  const getActiveSemester = () => {
+    return selectedSemester || currentSemester;
   };
 
   const getTotalCredits = (coursesList) => {
@@ -1094,76 +1056,53 @@ const ModulesManager = () => {
           </div>
         ) : (
           <>
-            {/* No Active Semester Message */}
-            {!currentSemester && semesters.length === 0 && (
-              <div className="mb-6 p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">No Semester Configured</h3>
-                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                      Set up your academic semesters to organize modules by time period.
-                    </p>
-                    <button
-                      onClick={() => setShowSemesterConfig(true)}
-                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      Configure Semesters
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-
-            {/* Current Modules - ALWAYS SHOW */}
-            <div className="cozy rounded-xl shadow-lg mb-6">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Calendar className="text-green-600" size={20} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-gray-800">
-                        {currentSemester ? `Current Semester — ${currentSemester.name}` : 'All Modules'}
-                      </h2>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <BookOpen size={14} />
-                          {getCurrentSemesterCourses().length} modules
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <GraduationCap size={14} />
-                          {getTotalCredits(getCurrentSemesterCourses())} credits
-                        </span>
-                        {currentSemester && (
+            {/* Selected Semester - Single Dynamic View */}
+            {getActiveSemester() ? (
+              <div className="cozy rounded-xl shadow-lg mb-6">
+                <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                        <Calendar className="text-indigo-600 dark:text-indigo-400" size={20} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                          {getActiveSemester()?.name}
+                        </h2>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                           <span className="flex items-center gap-1">
-                            <Calendar size={14} />
-                            {new Date(currentSemester.start_date).toLocaleDateString()} - {new Date(currentSemester.end_date).toLocaleDateString()}
+                            <BookOpen size={14} />
+                            {getSelectedSemesterCourses().length} modules
                           </span>
-                        )}
+                          <span className="flex items-center gap-1">
+                            <GraduationCap size={14} />
+                            {getTotalCredits(getSelectedSemesterCourses())} credits
+                          </span>
+                          {getActiveSemester() && (
+                            <span className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              {new Date(getActiveSemester().start_date).toLocaleDateString()} - {new Date(getActiveSemester().end_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-medium rounded-full">
+                      Selected
+                    </span>
                   </div>
-                  {currentSemester && (
-                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Active</span>
-                  )}
                 </div>
-              </div>
-              <div className="p-6">
-                {getCurrentSemesterCourses().length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
-                    <h3 className="text-lg font-medium mb-2">No modules yet</h3>
-                    <p className="mb-6">Start building your academic schedule by adding your first module.</p>
-                    <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Add Your First Module</button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getCurrentSemesterCourses().map(course => (
+                <div className="p-6">
+                  {getSelectedSemesterCourses().length === 0 ? (
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                      <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
+                      <h3 className="text-lg font-medium mb-2">No modules in this semester</h3>
+                      <p className="mb-6">Add your first module for {getActiveSemester()?.name}</p>
+                      <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Add Module</button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getSelectedSemesterCourses().map(course => (
                         <CourseCard 
                           key={course.id} 
                           course={course} 
@@ -1176,105 +1115,23 @@ const ModulesManager = () => {
                   )}
                 </div>
               </div>
-
-            {/* Upcoming Semester */}
-            {getUpcomingSemester() && (
-              <div className="cozy rounded-xl shadow-lg mb-6">
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Calendar className="text-blue-600" size={20} />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-800">Upcoming Semester — {getUpcomingSemester().name}</h2>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <BookOpen size={14} />
-                            {getUpcomingSemesterCourses().length} modules
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <GraduationCap size={14} />
-                            {getTotalCredits(getUpcomingSemesterCourses())} credits
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar size={14} />
-                            Starts {new Date(getUpcomingSemester().start_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">Upcoming</span>
+            ) : (
+              <div className="mb-6 p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                   </div>
-                </div>
-                <div className="p-6">
-                  {getUpcomingSemesterCourses().length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Clock size={48} className="mx-auto mb-4 opacity-30" />
-                      <h3 className="text-lg font-medium mb-2">No modules planned</h3>
-                      <p>Plan ahead for next semester by adding modules.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {getUpcomingSemesterCourses().map(course => (
-                        <CourseCard 
-                          key={course.id} 
-                          course={course} 
-                          onEdit={handleEditCourse} 
-                          onDelete={handleDeleteCourse} 
-                          isUpcoming={true}
-                          onShowDetails={setSelectedCourseDetails}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Previous Semesters */}
-            {getPreviousSemesterCourses().length > 0 && (
-              <div className="cozy rounded-xl shadow-lg">
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-100 rounded-lg">
-                        <BookOpen className="text-gray-600" size={20} />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-800">
-                          Previous Semesters
-                        </h2>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <BookOpen size={14} />
-                            {getPreviousSemesterCourses().length} modules
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <GraduationCap size={14} />
-                            {getTotalCredits(getPreviousSemesterCourses())} credits
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
-                      Completed
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getPreviousSemesterCourses().map(course => (
-                      <CourseCard
-                        key={course.id}
-                        course={course}
-                        onEdit={handleEditCourse}
-                        onDelete={handleDeleteCourse}
-                        isPrevious={true}
-                        onShowDetails={setSelectedCourseDetails}
-                      />
-                    ))}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">No Semester Selected</h3>
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                      Configure and select a semester in settings to organize your modules.
+                    </p>
+                    <button
+                      onClick={() => setShowSemesterConfig(true)}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Configure Semesters
+                    </button>
                   </div>
                 </div>
               </div>

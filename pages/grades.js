@@ -589,11 +589,12 @@ const GradesPage = () => {
           ];
           setSemesters(built);
           
-          // Default to semester 2 if available, otherwise keep 'all'
-          if (built.length > 2) {
-            // There are at least 2 semesters (plus 'all'), select the second one
-            if (!mounted) return;
-            setSelectedSemester(built[2].value);
+          // Default to semester 2 - look for "2" or "Semester 2" in the name
+          const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
+          if (sem2 && !mounted) {
+            return;
+          } else if (sem2) {
+            setSelectedSemester(sem2.value);
           }
         } else {
           // Fallback: derive from course semester fields (backward compatibility)
@@ -615,10 +616,12 @@ const GradesPage = () => {
           ];
           setSemesters(built);
           
-          // Default to semester 2 if available
-          if (built.length > 2) {
-            if (!mounted) return;
-            setSelectedSemester(built[2].value);
+          // Default to semester 2 - look for "2" or "Semester 2" in the name
+          const sem2 = built.find(s => s.label && (s.label.includes('Semester 2') || /\bSemester 2\b/i.test(s.label)));
+          if (sem2 && !mounted) {
+            return;
+          } else if (sem2) {
+            setSelectedSemester(sem2.value);
           }
         }
 

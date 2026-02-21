@@ -1123,16 +1123,16 @@ useEffect(() => {
           </div>
         </div>
         
-        {/* Semester and Course selectors inside hero */}
-        <div className="flex flex-col gap-3">
+        {/* Semester and Course selectors inside hero - INLINE */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           {/* Semester Selector */}
           {allSemesters.length > 0 && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex-1">
               <label className="text-sm font-medium text-white flex items-center gap-2 whitespace-nowrap">
                 <Calendar className="w-4 h-4" />
                 Semester:
               </label>
-              <div className="flex-1 max-w-xs">
+              <div className="flex-1">
                 <CustomSelect
                   options={allSemesters.map(s => ({
                     label: s.name,
@@ -1150,19 +1150,19 @@ useEffect(() => {
                   variant="hero"
                 />
               </div>
-              <span className="text-sm text-purple-200 font-medium hidden sm:inline">
+              <span className="text-sm text-purple-200 font-medium hidden lg:inline whitespace-nowrap">
                 {filterSemester && (isSemesterActive(filterSemester) ? '(Active)' : '')}
               </span>
             </div>
           )}
           
           {/* Course Selector */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-            <label className="text-sm font-medium text-white flex items-center gap-2">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex-1">
+            <label className="text-sm font-medium text-white flex items-center gap-2 whitespace-nowrap">
               <BookOpen className="w-4 h-4" />
               Course:
             </label>
-            <div className="flex-1 max-w-md">
+            <div className="flex-1">
               <CustomSelect
                 options={getFilteredCourses().map(c => ({ label: c.name || c.code || c.title || c.id, value: c.id }))}
                 value={selectedCourseId}
@@ -1173,7 +1173,7 @@ useEffect(() => {
                 variant="hero"
               />
             </div>
-            <span className="text-sm text-purple-200 font-medium whitespace-nowrap hidden sm:inline">
+            <span className="text-sm text-purple-200 font-medium whitespace-nowrap hidden lg:inline">
               {getFilteredCourses().length} courses
             </span>
           </div>

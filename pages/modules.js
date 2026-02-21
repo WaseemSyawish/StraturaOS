@@ -7,6 +7,7 @@ import { useSemesterContext } from '@/contexts/SemesterContext';
 import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import { isSemesterActive } from '@/utils/semesterUtils';
 
 /* ─────────────────────────────────────────────────────────────
    DESIGN SYSTEM CONSTANTS — Matches landing/auth pages
@@ -1109,6 +1110,7 @@ const ModulesManager = () => {
                           onEdit={handleEditCourse} 
                           onDelete={handleDeleteCourse}
                           onShowDetails={setSelectedCourseDetails}
+                          isCurrentlyActive={isSemesterActive(getActiveSemester())}
                         />
                       ))}
                     </div>
@@ -1154,22 +1156,17 @@ const ModulesManager = () => {
 };
 
 // Course Card Component
-const CourseCard = ({ course, onEdit, onDelete, onShowDetails, isPrevious = false, isUpcoming = false }) => {
+const CourseCard = ({ course, onEdit, onDelete, onShowDetails, isCurrentlyActive = false }) => {
   const getStatusBadge = () => {
-    if (isPrevious) {
-      return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">Completed</span>;
+    if (isCurrentlyActive) {
+      return <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">Active</span>;
     }
-    if (isUpcoming) {
-      return <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">Upcoming</span>;
-    }
-    return <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">Active</span>;
+    return null;  // Don't show badge if semester is not currently active
   };
 
   return (
   <div 
-    className={`course-card-container border rounded-xl hover:shadow-lg transition-all duration-200 cozy ${
-      isPrevious ? 'opacity-75' : 'hover:-translate-y-1'
-    }`}
+    className={`course-card-container border rounded-xl hover:shadow-lg transition-all duration-200 cozy hover:-translate-y-1`}
     style={{ padding: '1.25rem' }}
   >
       <div className="course-card-header flex items-start justify-between mb-4 gap-3">

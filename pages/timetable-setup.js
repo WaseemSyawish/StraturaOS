@@ -215,6 +215,7 @@ export default function TimetableSetup() {
       const response = await fetch('/api/timetable/bulk-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           semester,
           startDate: dates.start,

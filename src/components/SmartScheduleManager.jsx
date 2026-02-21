@@ -18,7 +18,9 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
 
   const fetchPatterns = async () => {
     try {
-      const res = await fetch('/api/timetable/patterns');
+      const res = await fetch('/api/timetable/patterns', {
+        credentials: 'include'
+      });
       const data = await res.json();
       
       if (data.success && data.patterns) {
@@ -55,7 +57,7 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
     try {
       const res = await fetch(
         `/api/timetable/patterns?courseId=${pattern.courseId}&dayOfWeek=${pattern.dayOfWeek}&startTime=${pattern.startTime}`,
-        { method: 'DELETE' }
+        { method: 'DELETE', credentials: 'include' }
       );
 
       const data = await res.json();
@@ -91,6 +93,7 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
       const res = await fetch('/api/timetable/patterns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           oldPattern: {
             courseId: originalPattern.courseId,

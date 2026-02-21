@@ -410,22 +410,8 @@ useEffect(() => {
     }
 
     // Estimate total sessions for the FULL semester
-    let totalSemesterSessions = recordedCount; // fallback
-    if (firstRecordedDate && lastClassDate && lastClassDate > firstRecordedDate) {
-      const totalDays = Math.ceil((lastClassDate - firstRecordedDate) / (1000 * 60 * 60 * 24));
-      const totalWeeks = Math.max(1, totalDays / 7);
-      // Estimate: weeks × weekly frequency, minus holidays recorded
-      const estimatedTotal = Math.round(totalWeeks * weeklyFrequency);
-      // Use the larger of: estimated, recorded, or scheduled
-      totalSemesterSessions = Math.max(estimatedTotal, recordedCount);
-      if (typeof scheduledClassCount === 'number' && scheduledClassCount > 0) {
-        // Combine: recorded sessions + scheduled future sessions (avoid double counting)
-        const scheduledFuture = Math.max(0, scheduledClassCount - recordedCount);
-        totalSemesterSessions = Math.max(totalSemesterSessions, recordedCount + scheduledFuture);
-      }
-    } else if (typeof scheduledClassCount === 'number' && scheduledClassCount > recordedCount) {
-      totalSemesterSessions = scheduledClassCount;
-    }
+    // Use ONLY recorded attendable sessions - don't estimate future ones
+    const totalSemesterSessions = attendableSessions.length;
 
     // Subtract holidays from total (holidays don't count as attendable)
     const totalAttendableSemester = Math.max(0, totalSemesterSessions - holidays);
@@ -456,18 +442,15 @@ useEffect(() => {
     const requiredAttendancePercentage = 80; // 80% minimum required
     const maxSkippablePercentage = 20; // Can skip up to 20%
 
-    // Future sessions = total attendable semester - recorded count
+    // No future sessions - only using recorded
     let futureSessionsCount = 0;
-    if (totalAttendableSemester > recordedCount) {
-      futureSessionsCount = totalAttendableSemester - recordedCount;
-    }
 
-    // Max possible points: total ATTENDABLE SEMESTER sessions × MAX_POINTS
-    const totalPointsPossibleFinal = totalAttendableSemester * MAX_POINTS;
+    // Max possible points = total recorded attendable sessions × MAX_POINTS
+    const totalPointsPossibleFinal = pointsPossibleSoFar;
 
-    // PROJECTED FINAL: Assume student attends all future sessions perfectly
-    const projectedFinalPoints = pointsEarnedSoFar + (futureSessionsCount * MAX_POINTS);
-    const projectedFinalPercentage = totalPointsPossibleFinal > 0 ? (projectedFinalPoints / totalPointsPossibleFinal) * 100 : 0;
+    // PROJECTED FINAL = current (no future sessions to estimate)
+    const projectedFinalPoints = pointsEarnedSoFar;
+    const projectedFinalPercentage = attendancePercentage;
 
     // Minimum total points required to meet threshold at semester end
     const requiredTotalPoints = Math.ceil((requiredAttendancePercentage / 100) * totalPointsPossibleFinal);

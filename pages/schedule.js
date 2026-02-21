@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react'
 import { parseDatePreserveLocal, buildLocalDateFromParts, toYMDLocal } from '../src/lib/dateHelpers';
 import dynamic from 'next/dynamic'
 import EditScopeModal from '@/components/Timetable/EditScopeModal';
+import SmartScheduleManagerModal from '@/components/SmartScheduleManagerModal';
 import { useRouter } from 'next/router';
-import { Sparkles, CalendarClock, Plus } from 'lucide-react';
+import { Sparkles, CalendarClock, Plus, RotateCcw } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
 import { useReminders } from '../lib/useReminders';
 import HygraphSidebar from '@/components/HygraphSidebar';
@@ -244,6 +245,7 @@ export default function SchedulePage() {
   const [showDeleteScope, setShowDeleteScope] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null)
+  const [showSmartScheduleManager, setShowSmartScheduleManager] = useState(false)
 
   // Enable reminders for events
   useReminders({
@@ -828,14 +830,26 @@ export default function SchedulePage() {
             </div>
           </div>
           
-          {/* Smart Schedule Creator link */}
-          <button
-            onClick={() => router.push('/timetable-setup')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
-          >
-            <Sparkles className="w-4 h-4" />
-            Smart Schedule Creator
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Manage Smart Schedules */}
+            <button
+              onClick={() => setShowSmartScheduleManager(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-700 dark:text-blue-300 font-medium text-sm hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 transition-all"
+              title="Edit or delete existing smart schedules"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Manage</span> Schedules
+            </button>
+
+            {/* Smart Schedule Creator link */}
+            <button
+              onClick={() => router.push('/timetable-setup')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Create</span> Schedule
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -1008,6 +1022,13 @@ export default function SchedulePage() {
           </div>
         )}
       </main>
+
+      {/* Smart Schedule Manager Modal */}
+      <SmartScheduleManagerModal
+        open={showSmartScheduleManager}
+        onClose={() => setShowSmartScheduleManager(false)}
+        onUpdate={reloadEvents}
+      />
     </div>
     </HygraphSidebar>
   )

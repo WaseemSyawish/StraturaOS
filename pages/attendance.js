@@ -44,16 +44,9 @@ const AttendanceTracker = () => {
   
   const [editingSession, setEditingSession] = useState(null);
 
-  // Filter courses by selected semester (if any)
+  // Return all courses (don't filter by semester - all courses should be selectable)
   const getFilteredCourses = () => {
-    if (!selectedSemester) return courses;
-    
-    return courses.filter(course => {
-      // Match by semester name or ID
-      if (course.semester === selectedSemester.name) return true;
-      if (course.semester === selectedSemester.id) return true;
-      return false;
-    });
+    return courses;
   };
 
   // Fetch courses on component mount

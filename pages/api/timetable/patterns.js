@@ -344,9 +344,8 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        message: `Updated pattern: deleted ${deletedCount} old instances, created ${createdCount} new instances`,
-        deletedCount,
-        createdCount
+        message: `Modified ${createdCount} instances`,
+        modifiedCount: createdCount
       });
     }
 

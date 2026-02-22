@@ -153,9 +153,13 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading patterns...</p>
+        <div className="flex flex-col items-center gap-3 animate-fadeIn">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Loading schedules</p>
         </div>
       </div>
     );

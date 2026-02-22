@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Plus, Clock, CalendarDays, Sparkles } from "
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
 import UnifiedEventModal from "../../../_modals/unified-event-modal";
-import SimpleQuickAddModal from "../../Timetable/SimpleQuickAddModal";
+import SimpleQuickAddModal from "@/components/Timetable/SimpleQuickAddModal";
 import { Event, CustomEventModal } from "@/types";
 
 // Constants
@@ -695,7 +695,7 @@ export default function ModernDayView({
             date: createEventModal.date,
             time: createEventModal.time
           }}
-          courseOptions={getters?.courses || []}
+          courseOptions={[]}
           onClose={() => setCreateEventModal(null)}
           onSave={handleCreateSave}
         />

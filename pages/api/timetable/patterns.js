@@ -20,10 +20,7 @@ export default async function handler(req, res) {
       const events = await prisma.event.findMany({
         where: {
           user_id: userId,
-          meta: {
-            path: ['schedulePattern'],
-            not: prisma.PrismaRaw('null')
-          }
+          type: 'class' // Only get class events (smart schedules)
         },
         include: {
           courses: true
@@ -34,11 +31,14 @@ export default async function handler(req, res) {
         ]
       });
 
+      // Filter to only those with schedulePattern metadata
+      const patternEvents = events.filter(e => e.meta?.schedulePattern);
+
       // Group events by course and pattern to find unique patterns
       const patternMap = new Map(); // key = "${courseId}_${dayOfWeek}_${startTime}"
       
-      events.forEach(event => {
-        const pattern = event.meta?.schedulePattern;
+      patternEvents.forEach(event => {
+        const pattern = event.meta.schedulePattern;
         if (!pattern) return;
         
         const key = `${pattern.courseId}_${pattern.dayOfWeek}_${pattern.startTime}`;

@@ -103,6 +103,31 @@ export default function TimetableSetup() {
     );
   };
 
+  // Filter courses to show only those in the selected semester
+  const getCoursesForSemester = () => {
+    if (!semester || semester === 'custom') {
+      return courses; // Show all if custom date range selected
+    }
+
+    // Find the selected semester
+    const selectedSemesterData = semesterSettings.find(s => s.id === semester);
+    if (!selectedSemesterData) return courses;
+
+    // Filter courses that match this semester
+    // Courses might have a semester name stored, so we filter by exact match or date overlap
+    return courses.filter(course => {
+      // If course has a semester field matching our semester name, include it
+      if (course.semester) {
+        return course.semester.toLowerCase().includes(selectedSemesterData.name.toLowerCase()) ||
+               selectedSemesterData.name.toLowerCase().includes(course.semester.toLowerCase());
+      }
+      // If no specific semester, include it (backward compatibility)
+      return true;
+    });
+  };
+
+  const filteredCourses = getCoursesForSemester();
+
   const handleNextFromStep1 = async () => {
     if (selectedCourses.length === 0) {
       await showCustomAlert('No Modules Selected', 'Please select at least one module', 'warning');
@@ -372,9 +397,9 @@ export default function TimetableSetup() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Your Modules</h2>
                 <p className="text-gray-600 mb-6">Choose the courses you want to add to your timetable</p>
 
-                {courses.length === 0 ? (
+                {filteredCourses.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600 mb-4">No modules found. Add some modules first!</p>
+                    <p className="text-gray-600 mb-4">No modules found for this semester. Add some modules first!</p>
                     <button
                       onClick={() => router.push('/modules')}
                       className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -384,7 +409,7 @@ export default function TimetableSetup() {
                   </div>
                 ) : (
                   <div className="space-y-3 mb-8">
-                    {courses.map(course => (
+                    {filteredCourses.map(course => (
                       <label
                         key={course.id}
                         className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${

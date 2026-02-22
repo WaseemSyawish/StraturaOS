@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, BookOpen, Lightbulb } from 'lucide-react';
+import { X, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CreateStepModal from './CreateStepModal';
 import { showCustomAlert } from '@/utils/dialogs';
 
 /**
- * Premium Quick Add Modal - minimal input, professional design
- * - Title, start time, category only
- * - Takes 10 seconds to fill
- * - Uses professional design matching UnifiedEventModal
- * - Smooth animations and proper visual hierarchy
+ * Ultra-minimal Quick Add Modal - title only
+ * - Super fast entry: just type title and submit
+ * - Time defaults to current time, 1 hour duration (editable later)
+ * - All other fields customizable via event detail editor
+ * - Follows Todoist/Any.do pattern: quick capture, full details on edit
  */
 export default function SimpleQuickAddModal({ 
   visible = true, 
@@ -23,22 +23,7 @@ export default function SimpleQuickAddModal({
   const inputRef = useRef(null);
 
   const [title, setTitle] = useState('');
-  const [startTime, setStartTime] = useState(slotTime || '09:00');
-  const [selectedCategory, setSelectedCategory] = useState(courseOptions[0]?.id || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Calculate end time (default 1 hour)
-  const endTime = (() => {
-    try {
-      const [h, m] = startTime.split(':').map(Number);
-      const total = h * 60 + m + 60;
-      const hh = String(Math.floor(total / 60)).padStart(2, '0');
-      const mm = String(total % 60).padStart(2, '0');
-      return `${hh}:${mm}`;
-    } catch (e) {
-      return '10:00';
-    }
-  })();
 
   // Auto-focus title input
   useEffect(() => {
@@ -54,8 +39,6 @@ export default function SimpleQuickAddModal({
     day: 'numeric' 
   }) : 'Today';
 
-  const selectedCategoryData = courseOptions.find(c => String(c.id) === String(selectedCategory));
-
   const handleSave = async () => {
     if (!title.trim()) {
       showCustomAlert('Error', 'Please enter a title', 'danger');
@@ -64,29 +47,35 @@ export default function SimpleQuickAddModal({
 
     setIsSubmitting(true);
     try {
+      // Use slot time (default 1 hour duration)
+      const startTime = slotTime || '09:00';
+      const [h, m] = startTime.split(':').map(Number);
+      const endHour = h + 1;
+      const endTime = `${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
       const payload = {
         id: 'tmp-' + Date.now(),
         title: title.trim(),
-        categoryId: selectedCategory,
-        categoryName: selectedCategoryData?.name || 'Uncategorized',
-        categoryColor: selectedCategoryData?.color || '#9CA3AF',
+        categoryId: '',
+        categoryName: 'Uncategorized',
+        categoryColor: '#9CA3AF',
         date,
         startTime,
         endTime,
         startDate: (() => {
           try {
-            const [y, m, d] = String(date).slice(0, 10).split('-').map(Number);
+            const [y, mm, d] = String(date).slice(0, 10).split('-').map(Number);
             const [sh, sm] = startTime.split(':').map(Number);
-            return new Date(y, (m || 1) - 1, d, sh || 9, sm || 0, 0).toISOString();
+            return new Date(y, (mm || 1) - 1, d, sh || 9, sm || 0, 0).toISOString();
           } catch (e) {
             return null;
           }
         })(),
         endDate: (() => {
           try {
-            const [y, m, d] = String(date).slice(0, 10).split('-').map(Number);
+            const [y, mm, d] = String(date).slice(0, 10).split('-').map(Number);
             const [eh, em] = endTime.split(':').map(Number);
-            return new Date(y, (m || 1) - 1, d, eh || 10, em || 0, 0).toISOString();
+            return new Date(y, (mm || 1) - 1, d, eh || 10, em || 0, 0).toISOString();
           } catch (e) {
             return null;
           }
@@ -117,7 +106,7 @@ export default function SimpleQuickAddModal({
 
   return (
     <CreateStepModal visible={visible} onClose={onClose} onEntered={onEntered} ariaLabel="Quick add event">
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden">
+      <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
           <div>
@@ -133,8 +122,8 @@ export default function SimpleQuickAddModal({
           </button>
         </div>
 
-        {/* Form Content */}
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6 space-y-5">
+        {/* Form Content - Just title input */}
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6 space-y-4">
           {/* Title Input - Large and prominent with visible background */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -152,71 +141,16 @@ export default function SimpleQuickAddModal({
             />
           </motion.div>
 
-          {/* Input Fields Grid */}
-          <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            {/* Time Row - Start time */}
-            <div className="flex items-center gap-3 text-[13px]">
-              <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="min-w-[70px] text-slate-600 dark:text-slate-400 font-medium">Time</span>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-              />
-              <span className="text-slate-500 dark:text-slate-400 font-medium">→</span>
-              <span className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-medium min-w-fit">
-                {endTime}
-              </span>
-            </div>
-
-            {/* Category Row */}
-            <div className="flex items-center gap-3 text-[13px]">
-              <BookOpen className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="min-w-[70px] text-slate-600 dark:text-slate-400 font-medium">Category</span>
-              <div className="relative flex-1">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none cursor-pointer"
-                  style={selectedCategoryData?.color ? {
-                    borderColor: `${selectedCategoryData.color}60`
-                  } : undefined}
-                >
-                  <option value="">— None —</option>
-                  {courseOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name || option.title}
-                    </option>
-                  ))}
-                </select>
-                {selectedCategoryData?.color && (
-                  <span 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full pointer-events-none"
-                    style={{ backgroundColor: selectedCategoryData.color }}
-                  />
-                )}
-              </div>
-            </div>
-          </motion.div>
-
           {/* Quick Tip */}
           <motion.div
             className="flex items-start gap-3 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
           >
             <Lightbulb className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              Add basic info now. Click the event later to edit more details.
+              Edit the event to customize time, date, and category.
             </p>
           </motion.div>
 
@@ -225,7 +159,7 @@ export default function SimpleQuickAddModal({
             className="flex items-center justify-end gap-2 pt-2"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
           >
             <button
               type="button"

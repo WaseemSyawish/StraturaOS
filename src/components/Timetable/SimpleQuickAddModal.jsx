@@ -117,7 +117,7 @@ export default function SimpleQuickAddModal({
 
   return (
     <CreateStepModal visible={visible} onClose={onClose} onEntered={onEntered} ariaLabel="Quick add event">
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between flex-shrink-0">
           <div>
@@ -135,7 +135,7 @@ export default function SimpleQuickAddModal({
 
         {/* Form Content */}
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6 space-y-5">
-          {/* Title Input - Large and prominent */}
+          {/* Title Input - Large and prominent with visible background */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -148,7 +148,7 @@ export default function SimpleQuickAddModal({
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="What's happening?"
-              className="w-full border-none bg-transparent text-lg font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
+              className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-lg font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </motion.div>
 
@@ -162,16 +162,16 @@ export default function SimpleQuickAddModal({
             {/* Time Row - Start time */}
             <div className="flex items-center gap-3 text-[13px]">
               <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="min-w-[70px] text-slate-500">Time</span>
+              <span className="min-w-[70px] text-slate-600 dark:text-slate-400 font-medium">Time</span>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="flex-1 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
-              <span className="text-slate-400 font-medium">→</span>
-              <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium min-w-fit">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">→</span>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm font-medium min-w-fit">
                 {endTime}
               </span>
             </div>
@@ -179,16 +179,15 @@ export default function SimpleQuickAddModal({
             {/* Category Row */}
             <div className="flex items-center gap-3 text-[13px]">
               <BookOpen className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <span className="min-w-[70px] text-slate-500">Category</span>
+              <span className="min-w-[70px] text-slate-600 dark:text-slate-400 font-medium">Category</span>
               <div className="relative flex-1">
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none cursor-pointer"
                   style={selectedCategoryData?.color ? {
-                    backgroundColor: `${selectedCategoryData.color}08`,
-                    borderColor: `${selectedCategoryData.color}40`
+                    borderColor: `${selectedCategoryData.color}60`
                   } : undefined}
                 >
                   <option value="">— None —</option>
@@ -210,13 +209,13 @@ export default function SimpleQuickAddModal({
 
           {/* Quick Tip */}
           <motion.div
-            className="flex items-start gap-3 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700"
+            className="flex items-start gap-3 p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.15 }}
           >
-            <Lightbulb className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <Lightbulb className="w-4 h-4 text-slate-500 dark:text-slate-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Add basic info now. Click the event later to edit more details.
             </p>
           </motion.div>
@@ -232,7 +231,7 @@ export default function SimpleQuickAddModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

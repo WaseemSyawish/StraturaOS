@@ -169,7 +169,6 @@ export default async function handler(req, res) {
         date: date,
         time: `${startTime}-${endTime}`,
         description: location || null,
-        color: course.color,
         user_id: userId,
         completed: false,
         archived: false,

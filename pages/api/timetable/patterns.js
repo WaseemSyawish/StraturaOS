@@ -1,5 +1,97 @@
 import prisma from '../../../lib/prisma';
 import { resolveUser } from '../../../lib/resolveUser';
+import fs from 'fs';
+import path from 'path';
+
+const isDev = process.env.NODE_ENV === 'development';
+const DATA_DIR = path.join(process.cwd(), 'data');
+
+// Helper: Calculate all dates for a specific day of week between start and end dates
+function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
+  const occurrences = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Find first occurrence of the target day
+  let current = new Date(start);
+  while (current.getDay() !== dayOfWeek && current <= end) {
+    current.setDate(current.getDate() + 1);
+  }
+  
+  // Collect all occurrences
+  while (current <= end) {
+    const dateStr = current.toISOString().split('T')[0];
+    
+    // Skip if it's a holiday
+    const isHoliday = holidays.some(h => {
+      const holidayDate = new Date(h.date).toISOString().split('T')[0];
+      return holidayDate === dateStr;
+    });
+    
+    if (!isHoliday) {
+      occurrences.push(new Date(current));
+    }
+    
+    current.setDate(current.getDate() + 7); // Next week
+  }
+  
+  return occurrences;
+}
+
+// Helper: Calculate duration in minutes
+function calculateDuration(startTime, endTime) {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  return (endH * 60 + endM) - (startH * 60 + startM);
+}
+
+// Helper: Load holidays from local data files
+function loadHolidays(startYear, endYear) {
+  let holidays = [];
+  
+  // Load holidays for all years in the range
+  for (let year = startYear; year <= endYear; year++) {
+    try {
+      const cacheFile = path.join(DATA_DIR, `holidays-IQ-${year}.json`);
+      if (fs.existsSync(cacheFile)) {
+        const data = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        if (Array.isArray(data)) holidays.push(...data);
+      }
+    } catch (err) {
+      if (isDev) console.warn(`Failed to load holidays for ${year}`);
+    }
+  }
+  
+  // Load Kurdistan-specific holidays
+  try {
+    const kurdistanFile = path.join(DATA_DIR, 'holidays-iq-kurdistan.json');
+    if (fs.existsSync(kurdistanFile)) {
+      const kurdistanData = JSON.parse(fs.readFileSync(kurdistanFile, 'utf8'));
+      if (Array.isArray(kurdistanData)) {
+        const filtered = kurdistanData.filter(h => {
+          const hYear = new Date(h.date).getFullYear();
+          return hYear >= startYear && hYear <= endYear;
+        });
+        holidays.push(...filtered);
+      }
+    }
+  } catch (err) {
+    if (isDev) console.warn('Failed to load Kurdistan holidays');
+  }
+  
+  // Load academic holidays
+  try {
+    const academicFile = path.join(DATA_DIR, `holidays-academic-${startYear}-${endYear}.json`);
+    if (fs.existsSync(academicFile)) {
+      const academicData = JSON.parse(fs.readFileSync(academicFile, 'utf8'));
+      if (Array.isArray(academicData)) holidays.push(...academicData);
+    }
+  } catch (err) {
+    if (isDev) console.warn('Failed to load academic holidays');
+  }
+  
+  return holidays;
+}
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -137,7 +229,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       // Update a pattern: delete old instances and create new ones
-      // Body: { oldPattern: {...}, newPattern: {...}, semesterInfo: {...} }
+      // Body: { oldPattern: {...}, newPattern: {...}, semesterInfo: { start_date, end_date } }
       
       const { oldPattern, newPattern, semesterInfo } = req.body;
       
@@ -145,6 +237,14 @@ export default async function handler(req, res) {
         return res.status(400).json({
           success: false,
           error: 'Missing required fields: oldPattern, newPattern, semesterInfo'
+        });
+      }
+
+      const { start_date, end_date } = semesterInfo;
+      if (!start_date || !end_date) {
+        return res.status(400).json({
+          success: false,
+          error: 'semesterInfo must contain start_date and end_date'
         });
       }
 
@@ -164,32 +264,89 @@ export default async function handler(req, res) {
       });
 
       // Delete old instances
+      let deletedCount = 0;
       if (toDelete.length > 0) {
-        await prisma.event.deleteMany({
+        const result = await prisma.event.deleteMany({
           where: {
             id: { in: toDelete.map(e => e.id) }
           }
         });
+        deletedCount = result.count;
       }
 
-      // Get course details for title
+      // Get course details and verify authorization
       const course = await prisma.course.findUnique({
         where: { id: newPattern.courseId }
       });
 
-      if (!course) {
-        return res.status(404).json({ success: false, error: 'Course not found' });
+      if (!course || course.user_id !== userId) {
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Course not found or unauthorized' 
+        });
       }
 
-      // Generate new events - use same logic as bulk-create
-      // This requires calling the bulk-create helper function
-      // For now, we'll return success but delegate to a proper implementation
-      
+      // Load holidays for the semester date range
+      const startYear = new Date(start_date).getFullYear();
+      const endYear = new Date(end_date).getFullYear();
+      const holidays = loadHolidays(startYear, endYear);
+
+      // Calculate all new occurrence dates with the NEW dayOfWeek
+      const occurrences = calculateOccurrences(
+        new Date(start_date),
+        new Date(end_date),
+        newPattern.dayOfWeek,
+        holidays
+      );
+
+      // Build event title with session type suffix
+      const sessionSuffix = newPattern.sessionType && newPattern.sessionType.toLowerCase() !== 'lecture' 
+        ? ` - ${newPattern.sessionType}` 
+        : '';
+      const eventTitle = `${course.name}${sessionSuffix}`;
+
+      // Prepare new events data
+      const eventsData = occurrences.map(date => ({
+        title: eventTitle,
+        type: 'class',
+        course_id: newPattern.courseId,
+        date: date,
+        time: `${newPattern.startTime}-${newPattern.endTime}`,
+        description: newPattern.location || null,
+        user_id: userId,
+        completed: false,
+        archived: false,
+        meta: {
+          schedulePattern: {
+            courseId: newPattern.courseId,
+            sessionType: newPattern.sessionType || 'Lecture',
+            dayOfWeek: newPattern.dayOfWeek,
+            startTime: newPattern.startTime,
+            endTime: newPattern.endTime,
+            location: newPattern.location || null
+          },
+          durationMinutes: calculateDuration(newPattern.startTime, newPattern.endTime)
+        }
+      }));
+
+      // Bulk insert new events
+      let createdCount = 0;
+      if (eventsData.length > 0) {
+        await prisma.event.createMany({
+          data: eventsData
+        });
+        createdCount = eventsData.length;
+      }
+
+      if (isDev) {
+        console.log(`Pattern update: deleted ${deletedCount}, created ${createdCount} for ${course.name}`);
+      }
+
       return res.status(200).json({
         success: true,
-        message: `Updated pattern: deleted ${toDelete.length} old instances`,
-        deletedCount: toDelete.length,
-        note: 'New instances will be created. Please refresh the schedule.'
+        message: `Updated pattern: deleted ${deletedCount} old instances, created ${createdCount} new instances`,
+        deletedCount,
+        createdCount
       });
     }
 

@@ -11,10 +11,30 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
   const [groupedByType, setGroupedByType] = useState({});
+  const [semesterSettings, setSemesterSettings] = useState([]);
 
   useEffect(() => {
     fetchPatterns();
+    fetchSemesterSettings();
   }, []);
+
+  const fetchSemesterSettings = async () => {
+    try {
+      const res = await fetch('/api/semester-settings');
+      const data = await res.json();
+      if (data.success && data.settings) {
+        setSemesterSettings(data.settings);
+      }
+    } catch (err) {
+      console.error('Failed to fetch semester settings:', err);
+    }
+  };
+
+  const getActiveSemester = () => {
+    if (!semesterSettings.length) return null;
+    // Find active semester, or fall back to first one
+    return semesterSettings.find(s => s.is_active) || semesterSettings[0];
+  };
 
   const fetchPatterns = async () => {
     try {
@@ -88,6 +108,12 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
 
   const handleEditSave = async () => {
     const originalPattern = patterns.find(p => p.id === editingId);
+    const activeSemester = getActiveSemester();
+    
+    if (!activeSemester) {
+      showCustomAlert('Error', 'No active semester found. Please set up a semester first.', 'danger');
+      return;
+    }
     
     try {
       const res = await fetch('/api/timetable/patterns', {
@@ -101,7 +127,10 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
             startTime: originalPattern.startTime
           },
           newPattern: editValues,
-          semesterInfo: {} // TODO: Get semester info
+          semesterInfo: {
+            start_date: activeSemester.start_date,
+            end_date: activeSemester.end_date
+          }
         })
       });
 
@@ -112,6 +141,8 @@ export default function SmartScheduleManager({ onClose, onUpdate }) {
         setEditValues({});
         await fetchPatterns();
         onUpdate?.();
+      } else {
+        showCustomAlert('Error', data.error || 'Failed to update pattern', 'danger');
       }
     } catch (err) {
       console.error('Update failed:', err);

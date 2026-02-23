@@ -186,32 +186,39 @@ export default async function handler(req, res) {
         });
       }
 
-      // Find and delete all events matching this pattern
-      const deleted = await prisma.event.deleteMany({
-        where: {
-          user_id: userId,
-          course_id: courseId,
-          meta: {
-            path: ['schedulePattern'],
-            not: prisma.PrismaRaw('null')
-          }
-        }
-      });
+      // Convert courseId to number for comparison
+      const courseIdNum = parseInt(courseId);
+      const dayOfWeekNum = parseInt(dayOfWeek);
 
-      // More precise deletion: filter by pattern in application layer
+      // Find all events for this user (no course filter, will check pattern metadata instead)
       const allPatternEvents = await prisma.event.findMany({
         where: {
           user_id: userId,
-          course_id: courseId
+          type: 'class' // Only class events have schedulePattern
         }
       });
 
+      // Filter by exact pattern match (courseId, dayOfWeek, startTime)
       const toDelete = allPatternEvents.filter(e => {
         const p = e.meta?.schedulePattern;
-        return p && 
-               p.dayOfWeek === parseInt(dayOfWeek) && 
-               p.startTime === startTime;
+        if (!p) return false;
+        
+        // Match all three pattern attributes
+        // courseId might be stored as number or string, so compare both ways
+        const courseIdMatch = p.courseId === courseIdNum || p.courseId === courseId || String(p.courseId) === courseId;
+        const dayMatch = p.dayOfWeek === dayOfWeekNum;
+        const timeMatch = p.startTime === startTime;
+        
+        return courseIdMatch && dayMatch && timeMatch;
       });
+
+      if (toDelete.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No matching patterns found to delete',
+          deletedCount: 0
+        });
+      }
 
       // Delete matched events
       const result = await prisma.event.deleteMany({

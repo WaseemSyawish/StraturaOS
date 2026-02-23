@@ -44,8 +44,13 @@ export default function TimetableSetup() {
       // Fetch courses
       const coursesRes = await fetch('/api/courses');
       const coursesData = await coursesRes.json();
-      if (coursesData.success) {
+      if (coursesData.success && coursesData.courses) {
         setCourses(coursesData.courses);
+        if (coursesData.courses.length === 0) {
+          console.warn('No courses found for user - user should create courses in Modules page first');
+        }
+      } else {
+        console.error('Failed to fetch courses:', coursesData.error);
       }
 
       // Fetch semester settings
@@ -87,6 +92,8 @@ export default function TimetableSetup() {
             }
           }
         }
+      } else {
+        console.warn('No semester settings found - using custom date range');
       }
     } catch (err) {
       console.error('Failed to fetch initial data:', err);
@@ -105,13 +112,22 @@ export default function TimetableSetup() {
 
   // Filter courses to show only those in the selected semester
   const getCoursesForSemester = () => {
+    // Always show courses if semester is not yet selected or custom is selected
     if (!semester || semester === 'custom') {
-      return courses; // Show all if custom date range selected
+      return courses; // Show all if custom date range selected or no semester selected yet
+    }
+
+    // If we have no courses, return empty array
+    if (!courses || courses.length === 0) {
+      return [];
     }
 
     // Find the selected semester
     const selectedSemesterData = semesterSettings.find(s => s.id === semester);
-    if (!selectedSemesterData) return courses;
+    if (!selectedSemesterData) {
+      // If semester not found, show all courses as fallback
+      return courses;
+    }
 
     // Filter courses that match this semester
     // Courses might have a semester name stored, so we filter by exact match or date overlap

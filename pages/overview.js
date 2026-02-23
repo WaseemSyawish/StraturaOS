@@ -836,6 +836,8 @@ export default function UniversityOverview() {
         // Upcoming deadlines: all actionable event types (exclude only recurring class schedules)
         const excludeTypes = ['class']; // Only exclude recurring class schedule items
         if (excludeTypes.includes(t)) continue;
+        // Skip completed events - they shouldn't show as overdue
+        if (ev.completed === true || ev.completedAt || ev.completed_at) continue;
         // For deadline types, prioritize date field (where tasks store due date), then end_date
         // Use parseDatePreserveLocal to avoid timezone shifts
         const d = parseDatePreserveLocal(ev.date || ev.startDate || ev.endDate || ev.end_date);

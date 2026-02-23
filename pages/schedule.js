@@ -838,7 +838,7 @@ export default function SchedulePage() {
               title="Edit or delete existing smart schedules"
             >
               <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Manage</span> Schedules
+              <span className="hidden sm:inline">Manage</span>Schedules
             </button>
 
             {/* Smart Schedule Creator link */}
@@ -847,7 +847,7 @@ export default function SchedulePage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
             >
               <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Create</span> Schedule
+              <span className="hidden sm:inline">Create</span>Schedule
             </button>
           </div>
         </div>

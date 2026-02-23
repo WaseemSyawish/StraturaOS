@@ -90,7 +90,7 @@ export default function CreateStepModal({ visible = true, onClose, children, ari
     <div className={`fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6 ${visible ? '' : 'pointer-events-none'}`} role="dialog" aria-modal="true" aria-label={ariaLabel} ref={rootRef}>
       <div style={overlayStyle} className={`absolute inset-0 bg-black/30 ${visible ? 'opacity-100' : 'opacity-0'}`} onMouseDown={onClose} aria-hidden="true" />
 
-      <div ref={wrapperRef} style={wrapperStyle} className={`relative w-full max-w-4xl mx-auto transform ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`} role="dialog">
+      <div ref={wrapperRef} style={wrapperStyle} className={`relative w-full max-w-2xl mx-auto transform ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`} role="dialog">
         {/* Card: children are responsible for internal padding so content can control spacing */}
         {/* Use overflow-auto so footers inside children remain reachable on small screens */}
         <div className="cozy rounded-xl shadow-md overflow-auto max-h-[90vh]">

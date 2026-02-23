@@ -112,34 +112,9 @@ export default function TimetableSetup() {
 
   // Filter courses to show only those in the selected semester
   const getCoursesForSemester = () => {
-    // Always show courses if semester is not yet selected or custom is selected
-    if (!semester || semester === 'custom') {
-      return courses; // Show all if custom date range selected or no semester selected yet
-    }
-
-    // If we have no courses, return empty array
-    if (!courses || courses.length === 0) {
-      return [];
-    }
-
-    // Find the selected semester
-    const selectedSemesterData = semesterSettings.find(s => s.id === semester);
-    if (!selectedSemesterData) {
-      // If semester not found, show all courses as fallback
-      return courses;
-    }
-
-    // Filter courses that match this semester
-    // Courses might have a semester name stored, so we filter by exact match or date overlap
-    return courses.filter(course => {
-      // If course has a semester field matching our semester name, include it
-      if (course.semester) {
-        return course.semester.toLowerCase().includes(selectedSemesterData.name.toLowerCase()) ||
-               selectedSemesterData.name.toLowerCase().includes(course.semester.toLowerCase());
-      }
-      // If no specific semester, include it (backward compatibility)
-      return true;
-    });
+    // Always show all courses - the semester selection only affects the date range
+    // Users should be able to add any module to their timetable regardless of semester
+    return courses;
   };
 
   const filteredCourses = getCoursesForSemester();

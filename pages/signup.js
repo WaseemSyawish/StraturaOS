@@ -84,9 +84,17 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
   
   // Password strength
   const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
+
+  // Mount animation trigger
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   // Auto-rotate carousel
   useEffect(() => {
@@ -163,16 +171,16 @@ export default function SignUp() {
       {/* Dark background with centered card */}
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 sm:p-6 lg:p-8">
         {/* Main card container */}
-        <div className="w-full max-w-[1100px] bg-[#12121a] rounded-3xl overflow-hidden flex min-h-[720px] shadow-2xl">
+        <div className={`w-full max-w-[1100px] bg-[#12121a] rounded-3xl overflow-hidden flex min-h-[720px] shadow-2xl transition-all duration-700 ease-out ${mounted ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.97] translate-y-4'}`}>
           
           {/* Left side - Image */}
-          <div className="hidden lg:block w-[45%] relative">
+          <div className="hidden lg:block w-[45%] relative overflow-hidden">
             <div className="absolute inset-0">
               {carouselSlides.map((slide, index) => (
                 <div
                   key={index}
-                  className={`absolute inset-0 transition-opacity duration-700 ${
-                    index === currentSlide ? 'opacity-100' : 'opacity-0'
+                  className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+                    index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
                   }`}
                 >
                                   <Image
@@ -190,7 +198,7 @@ export default function SignUp() {
             </div>
 
             {/* Logo top left - white for contrast */}
-            <div className="absolute top-6 left-6 z-10">
+            <div className={`absolute top-6 left-6 z-10 transition-all duration-700 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
               <div className="flex items-center gap-2">
                 <StraturaLogo size={24} color="white" />
                 <span className="text-white font-semibold">StraturaOS</span>
@@ -200,7 +208,7 @@ export default function SignUp() {
             {/* Back to website button */}
             <Link 
               href="/landing" 
-              className="absolute top-6 right-6 z-10 flex items-center gap-1.5 text-white/70 hover:text-white text-sm bg-white/10 hover:bg-white/15 px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-all"
+              className={`absolute top-6 right-6 z-10 flex items-center gap-1.5 text-white/70 hover:text-white text-sm bg-white/10 hover:bg-white/15 px-3.5 py-1.5 rounded-full backdrop-blur-sm transition-all duration-700 delay-400 hover:scale-105 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}
             >
               Back to website
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -213,8 +221,8 @@ export default function SignUp() {
               {carouselSlides.map((slide, index) => (
                 <div
                   key={index}
-                  className={`transition-all duration-500 ${
-                    index === currentSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 absolute'
+                  className={`transition-all duration-700 ease-out ${
+                    index === currentSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 absolute'
                   }`}
                 >
                   <h2 className="text-white text-3xl font-light leading-tight tracking-tight">
@@ -232,7 +240,7 @@ export default function SignUp() {
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`h-1 rounded-full transition-all duration-300 ${
+                  className={`h-1 rounded-full transition-all duration-500 ${
                     index === currentSlide 
                       ? 'w-6 bg-white' 
                       : 'w-3 bg-white/30 hover:bg-white/50'
@@ -246,19 +254,19 @@ export default function SignUp() {
           <div className="flex-1 flex items-center justify-center px-8 sm:px-12 lg:px-14 py-10 overflow-y-auto">
             <div className="w-full max-w-sm">
               {/* Mobile logo */}
-              <div className="lg:hidden flex items-center gap-2 mb-6">
+              <div className={`lg:hidden flex items-center gap-2 mb-6 transition-all duration-500 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
                 <StraturaLogo size={24} />
                 <span className="text-white font-semibold">StraturaOS</span>
               </div>
 
               {/* Header */}
-              <div className="mb-6">
+              <div className={`mb-6 transition-all duration-600 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <h1 className="text-white text-2xl font-semibold tracking-tight mb-1.5">
                   Create an account
                 </h1>
                 <p className="text-gray-400 text-sm">
                   Already have an account?{' '}
-                  <Link href="/signin" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">
+                  <Link href="/signin" className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors">
                     Log in
                   </Link>
                 </p>
@@ -266,8 +274,8 @@ export default function SignUp() {
 
               {/* Error */}
               {error && (
-                <div className="mb-4 text-red-400 text-sm flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                <div className="mb-4 text-red-400 text-sm flex items-center gap-2 animate-[slideDown_200ms_ease-out]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                   {error}
                 </div>
               )}
@@ -275,56 +283,70 @@ export default function SignUp() {
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Name row */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className={`grid grid-cols-2 gap-3 transition-all duration-600 delay-[400ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                   <div>
                     <label className="block text-gray-400 text-sm mb-1.5">First name</label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      required
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      placeholder="John"
-                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
-                    />
+                    <div className={`rounded-lg transition-all duration-200 ${focusedField === 'firstName' ? 'ring-2 ring-purple-500/30' : ''}`}>
+                      <input
+                        type="text"
+                        name="firstName"
+                        required
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        onFocus={() => setFocusedField('firstName')}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="John"
+                        className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-all text-sm"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-gray-400 text-sm mb-1.5">Last name</label>
+                    <div className={`rounded-lg transition-all duration-200 ${focusedField === 'lastName' ? 'ring-2 ring-purple-500/30' : ''}`}>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        onFocus={() => setFocusedField('lastName')}
+                        onBlur={() => setFocusedField(null)}
+                        placeholder="Doe"
+                        className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`transition-all duration-600 delay-[500ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  <label className="block text-gray-400 text-sm mb-1.5">Email</label>
+                  <div className={`rounded-lg transition-all duration-200 ${focusedField === 'email' ? 'ring-2 ring-purple-500/30' : ''}`}>
                     <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
+                      type="email"
+                      name="email"
+                      required
+                      value={formData.email}
                       onChange={handleChange}
-                      placeholder="Doe"
-                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Enter your email"
+                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-all text-sm"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-gray-400 text-sm mb-1.5">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                    className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
-                  />
-                </div>
-
-                <div>
+                <div className={`transition-all duration-600 delay-[600ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                   <label className="block text-gray-400 text-sm mb-1.5">Password</label>
-                  <div className="relative">
+                  <div className={`relative rounded-lg transition-all duration-200 ${focusedField === 'password' ? 'ring-2 ring-purple-500/30' : ''}`}>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       name="password"
                       required
                       value={formData.password}
                       onChange={handleChange}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                       placeholder="Create a password"
-                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 pr-10 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
+                      className="w-full bg-[#1a1a24] border border-gray-800 rounded-lg px-3.5 py-2.5 pr-10 text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 transition-all text-sm"
                     />
                     <button
                       type="button"
@@ -337,15 +359,15 @@ export default function SignUp() {
                   
                   {/* Password Strength Indicator */}
                   {formData.password && (
-                    <div className="mt-2.5 space-y-2">
+                    <div className="mt-2.5 space-y-2 animate-[slideDown_200ms_ease-out]">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                            className={`h-full transition-all duration-500 ease-out ${passwordStrength.color}`}
                             style={{ width: `${(passwordStrength.passed / 5) * 100}%` }}
                           />
                         </div>
-                        <span className={`text-xs font-medium capitalize ${
+                        <span className={`text-xs font-medium capitalize transition-colors duration-300 ${
                           passwordStrength.strength === 'strong' ? 'text-green-400' :
                           passwordStrength.strength === 'medium' ? 'text-yellow-400' : 'text-red-400'
                         }`}>
@@ -353,65 +375,65 @@ export default function SignUp() {
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
-                        <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passwordStrength.checks.length ? '✓' : '○'} 8+ characters
-                        </div>
-                        <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passwordStrength.checks.uppercase ? '✓' : '○'} Uppercase
-                        </div>
-                        <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passwordStrength.checks.lowercase ? '✓' : '○'} Lowercase
-                        </div>
-                        <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passwordStrength.checks.number ? '✓' : '○'} Number
-                        </div>
-                        <div className={`flex items-center gap-1 ${passwordStrength.checks.special ? 'text-green-400' : 'text-gray-500'}`}>
-                          {passwordStrength.checks.special ? '✓' : '○'} Special char
-                        </div>
+                        {[
+                          { key: 'length', label: '8+ characters' },
+                          { key: 'uppercase', label: 'Uppercase' },
+                          { key: 'lowercase', label: 'Lowercase' },
+                          { key: 'number', label: 'Number' },
+                          { key: 'special', label: 'Special char' },
+                        ].map(({ key, label }) => (
+                          <div key={key} className={`flex items-center gap-1 transition-colors duration-300 ${passwordStrength.checks[key] ? 'text-green-400' : 'text-gray-500'}`}>
+                            {passwordStrength.checks[key] ? '✓' : '○'} {label}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Submit button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-medium py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm mt-2"
-                >
-                  {isLoading ? 'Creating account...' : 'Create account'}
-                </button>
-
-                {/* Divider */}
-                <div className="relative flex items-center gap-3 py-1">
-                  <div className="flex-1 h-px bg-gray-800" />
-                  <span className="text-gray-500 text-xs">Or register with</span>
-                  <div className="flex-1 h-px bg-gray-800" />
+                <div className={`transition-all duration-600 delay-[700ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white font-medium py-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-sm mt-2 relative overflow-hidden"
+                  >
+                    <span className={`inline-flex items-center gap-2 transition-all duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+                      Create account
+                    </span>
+                    {isLoading && (
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
                 </div>
 
-                {/* Social buttons */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Divider */}
+                <div className={`transition-all duration-600 delay-[800ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                  <div className="relative flex items-center gap-3 py-1">
+                    <div className="flex-1 h-px bg-gray-800" />
+                    <span className="text-gray-500 text-xs">Or register with</span>
+                    <div className="flex-1 h-px bg-gray-800" />
+                  </div>
+                </div>
+
+                <div className={`transition-all duration-600 delay-[900ms] ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                   <button
                     type="button"
                     onClick={handleGoogleSignUp}
-                    className="flex items-center justify-center gap-2 bg-[#1a1a24] border border-gray-800 hover:border-gray-700 text-white py-2.5 rounded-lg transition-all text-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-[#1a1a24] border border-gray-800 hover:border-gray-600 hover:bg-[#1e1e2a] active:scale-[0.97] text-white py-2.5 rounded-lg transition-all duration-200 text-sm group"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    Google
-                  </button>
-                  <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 bg-[#1a1a24] border border-gray-800 hover:border-gray-700 text-white py-2.5 rounded-lg transition-all text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                    Apple
+                    Continue with Google
                   </button>
                 </div>
               </form>
@@ -419,6 +441,13 @@ export default function SignUp() {
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 }

@@ -68,7 +68,6 @@ export default async function handler(req, res) {
           location: true,
           archived: true,
           course_id: true,
-          color: true,
           template_id: true,
           date: true,
           time: true,

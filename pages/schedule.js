@@ -93,7 +93,12 @@ function mapToSchedulerEvents(list) {
         const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
         // If no explicit time or hasTime is false, use a neutral hour to avoid day shifts
         const hasTime = e.meta?.hasTime === true || (timeStr && timeStr !== '00:00');
-        const [hh, mm] = hasTime && timeStr ? String(timeStr).split(':').map(Number) : [12, 0];
+        // Extract start time from range format "HH:MM-HH:MM" before parsing
+        let parseTimeStr = timeStr;
+        if (parseTimeStr && String(parseTimeStr).includes('-')) {
+          parseTimeStr = String(parseTimeStr).split('-')[0].trim();
+        }
+        const [hh, mm] = hasTime && parseTimeStr ? String(parseTimeStr).split(':').map(Number) : [12, 0];
         start = new Date(y, (m || 1) - 1, d, hh || 12, mm || 0, 0);
       } else if (e.startDate) {
         // Fallback to API's startDate for events without date field
@@ -160,6 +165,22 @@ function mapToSchedulerEvents(list) {
       } catch (err) {
         endDate = new Date(start.getTime() + 60 * 60000);
       }
+    } else if (timeStr && String(timeStr).includes('-')) {
+      // Parse end time from range format "HH:MM-HH:MM"
+      try {
+        const endPart = String(timeStr).split('-')[1].trim();
+        const [eh, em] = endPart.split(':').map(Number);
+        if (!isNaN(eh) && !isNaN(em)) {
+          endDate = new Date(start);
+          endDate.setHours(eh, em, 0, 0);
+          // If end is before start (e.g. overnight), add a day
+          if (endDate <= start) endDate.setDate(endDate.getDate() + 1);
+        } else {
+          endDate = durationMinutes ? new Date(start.getTime() + Number(durationMinutes) * 60000) : new Date(start.getTime() + 60 * 60000);
+        }
+      } catch (err) {
+        endDate = new Date(start.getTime() + 60 * 60000);
+      }
     } else if (durationMinutes !== null && !Number.isNaN(Number(durationMinutes))) {
       endDate = new Date(start.getTime() + Number(durationMinutes) * 60000);
     } else {
@@ -209,6 +230,18 @@ function mapToSchedulerEvents(list) {
       raw: e,
       color: color || (e.color ?? null),
       variant: variant || (e.variant ?? null),
+      // Pass through all event metadata for modals and views
+      type: e.type || null,
+      location: e.location || e.meta?.schedulePattern?.location || null,
+      course_id: e.course_id || null,
+      courses: e.courses || null,
+      meta: e.meta || null,
+      template_id: e.template_id || null,
+      time: e.time || timeStr || null,
+      date: e.date || dateStr || null,
+      priority: e.priority || e.eisenhower || null,
+      completed: e.completed || false,
+      durationMinutes: durationMinutes,
     }
   }).filter(Boolean)
 }
@@ -246,6 +279,13 @@ export default function SchedulePage() {
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null)
   const [showSmartScheduleManager, setShowSmartScheduleManager] = useState(false)
+
+  const invalidateEventsCache = React.useCallback(() => {
+    try {
+      invalidateCache('/api/events')
+      invalidateCache('/api/events' + JSON.stringify({ credentials: 'same-origin' }))
+    } catch (e) {}
+  }, [])
 
   // Enable reminders for events
   useReminders({
@@ -319,7 +359,7 @@ export default function SchedulePage() {
 
   async function reloadEvents() {
     try {
-      const res = await fetch('/api/events')
+      const res = await fetch('/api/events', { credentials: 'same-origin', cache: 'no-store' })
       if (!res.ok) throw new Error('failed to load events')
       const payload = await res.json()
       const list = Array.isArray(payload?.events) ? payload.events : (Array.isArray(payload) ? payload : [])
@@ -374,23 +414,29 @@ export default function SchedulePage() {
         raw: event.raw ?? null,
         ...(event && event.type ? { type: event.type } : {}),
         ...(event && event.color ? { color: event.color } : {}),
+        ...(event && event.location ? { location: event.location } : {}),
+        ...(event && event.course_id ? { courseId: event.course_id } : {}),
+        ...(event && event.courseId ? { courseId: event.courseId } : {}),
       };
       try { console.info('[timetable] creating event - body preview:', JSON.stringify({ startDate: body.startDate, endDate: body.endDate, durationMinutes: body.durationMinutes, date: body.date, time: body.time, title: body.title }).slice(0, 2000)); } catch (e) { }
       if (Object.keys(meta).length > 0) body.meta = meta;
+      // Forward recurrence fields from modal eventData
+      if (event && event.repeatOption) body.repeatOption = event.repeatOption;
+      if (event && event.byDays) body.byDays = event.byDays;
+      if (event && event.interval) body.interval = event.interval;
       if (event && event.recurrence && event.recurrence.id) body.repeatOption = event.recurrence.id;
-      if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
-        body.userId = 'smoke_user';
-      }
 
-      const res = await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) })
       const text = await res.text()
       if (!res.ok) {
         let msg = text
         try {
           const parsed = JSON.parse(text)
-          msg = parsed?.error || parsed?.message || JSON.stringify(parsed)
+          msg = parsed?.details || parsed?.error || parsed?.message || JSON.stringify(parsed)
         } catch (e) { }
-        const err = new Error(msg || `POST /api/events failed with ${res.status}`)
+        const finalMsg = msg || `POST /api/events failed with ${res.status}`
+        console.error('[schedule] create event failed', { status: res.status, body: text, finalMsg })
+        const err = new Error(`${finalMsg} (HTTP ${res.status})`)
           ; (err).status = res.status
         throw err
       }
@@ -398,9 +444,10 @@ export default function SchedulePage() {
       let parsed = null
       try { parsed = JSON.parse(text) } catch (e) { parsed = null }
       const created = parsed?.event ?? parsed ?? null
-      if (created) return created
+      // Always invalidate cache and reload events so the UI stays in sync
+      invalidateEventsCache()
       await reloadEvents()
-      return null
+      return created || null
     } catch (err) {
       console.warn('Failed to create event', err)
       throw err
@@ -424,24 +471,22 @@ export default function SchedulePage() {
 
       const body = {
         title: event.title,
-        description: (() => {
-          const base = event.description || null;
-          const meta = {};
-          if (event && event.color) meta.color = event.color;
-          if (event.variant) meta.variant = event.variant;
-          if (typeof durationMinutes !== 'undefined' && durationMinutes !== null) meta.durationMinutes = Number(durationMinutes);
-          if (Object.keys(meta).length === 0) return base;
-          try {
-            return (base ? base + '\n\n' : '') + '[META]' + JSON.stringify(meta) + '[META]';
-          } catch (e) {
-            return base;
-          }
-        })(),
+        type: event.type || 'class',
+        description: event.description || null,
+        location: event.location || null,
+        course_id: event.course_id || (event.raw && event.raw.course_id) || null,
+        color: event.color || event.variant || null,
         date: localDate,
         time,
         durationMinutes,
         startDate: start instanceof Date ? start.toISOString() : start,
         endDate: end instanceof Date ? end.toISOString() : end,
+        meta: {
+          ...(event.meta && typeof event.meta === 'object' ? event.meta : {}),
+          ...(event.color ? { color: event.color } : {}),
+          ...(event.variant ? { variant: event.variant } : {}),
+          durationMinutes: Number(durationMinutes),
+        },
         raw: event.raw ?? null,
       };
       // If this update should apply to the whole series/template, prefer updating the template
@@ -645,9 +690,6 @@ export default function SchedulePage() {
         }
       }
       if (event && event.recurrence && event.recurrence.id) body.repeatOption = event.recurrence.id;
-      if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
-        body.userId = 'smoke_user';
-      }
 
       const res = await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const text = await res.text();
@@ -656,6 +698,9 @@ export default function SchedulePage() {
         err.status = res.status;
         throw err;
       }
+      // Invalidate cache and reload for fresh data
+      invalidateEventsCache()
+      await reloadEvents();
       try {
         return JSON.parse(text)?.event ?? null;
       } catch (e) {
@@ -694,6 +739,7 @@ export default function SchedulePage() {
       }
 
       await fetch(`/api/events/${encodeURIComponent(id)}`, { method: 'DELETE' })
+      invalidateEventsCache()
       await reloadEvents()
     } catch (err) {
       console.warn('Failed to delete event', err)
@@ -834,11 +880,11 @@ export default function SchedulePage() {
             {/* Manage Smart Schedules */}
             <button
               onClick={() => setShowSmartScheduleManager(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-700 dark:text-blue-300 font-medium text-sm hover:from-blue-100 hover:to-cyan-100 dark:hover:from-blue-900/30 dark:hover:to-cyan-900/30 transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
               title="Edit or delete existing smart schedules"
             >
               <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Manage</span>Schedules
+              <span className="hidden sm:inline">Manage Schedules</span>
             </button>
 
             {/* Smart Schedule Creator link */}
@@ -847,7 +893,7 @@ export default function SchedulePage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-xl text-purple-700 dark:text-purple-300 font-medium text-sm hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 transition-all"
             >
               <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Create</span>Schedule
+              <span className="hidden sm:inline">Create Schedule</span>
             </button>
           </div>
         </div>

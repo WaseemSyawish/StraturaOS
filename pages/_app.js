@@ -8,6 +8,7 @@ import '../src/index.css'
 import '../src/styles/typography.css'
 import '../src/styles/calendar-theme.css'
 import '../src/styles/dark-input-fix.css'
+import '../src/styles/accent-themes.css'
 import Layout from '../src/components/Layout'
 // eslint-disable-next-line no-unused-vars
 import * as NextUI from '@nextui-org/react'
@@ -179,6 +180,24 @@ export default function App({ Component, pageProps }) {
       }
     };
 
+    const applyAccent = (accent) => {
+      const root = document.documentElement;
+      if (accent && accent !== 'purple') {
+        root.setAttribute('data-accent', accent);
+      } else {
+        root.removeAttribute('data-accent');
+      }
+    };
+
+    const applyGradients = (enabled) => {
+      const root = document.documentElement;
+      if (enabled === false) {
+        root.setAttribute('data-gradients', 'off');
+      } else {
+        root.removeAttribute('data-gradients');
+      }
+    };
+
     const loadAndApply = () => {
       // Force light mode on unauthenticated pages
       if (isLightModeOnlyPage) {
@@ -189,6 +208,8 @@ export default function App({ Component, pageProps }) {
         if (!raw) return applyTheme('system');
         const parsed = JSON.parse(raw);
         applyTheme(parsed?.theme || 'system');
+        applyAccent(parsed?.accentColor || 'purple');
+        applyGradients(parsed?.enableGradients !== false);
       } catch (e) {
         applyTheme('system');
       }
@@ -201,6 +222,8 @@ export default function App({ Component, pageProps }) {
       if (isLightModeOnlyPage) return;
       const detail = e?.detail || {};
       if (detail.theme) applyTheme(detail.theme);
+      if (detail.accentColor) applyAccent(detail.accentColor);
+      if ('enableGradients' in detail) applyGradients(detail.enableGradients);
     };
 
     window.addEventListener('app:settings:changed', onSettings);

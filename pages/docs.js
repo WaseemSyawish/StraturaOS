@@ -852,7 +852,7 @@ function TipsSection() {
         />
       </div>
 
-      <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/20 rounded-xl p-6 mt-8">
+      <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border border-purple-500/20 rounded-xl p-6 mt-8">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
             <StraturaLogo size={24} color="white" />

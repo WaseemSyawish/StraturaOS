@@ -35,7 +35,9 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
         // Fetch events (which include tasks/deadlines)
         try {
           const eventsRes = await fetch('/api/events');
-          const events = await eventsRes.json();
+          if (!eventsRes.ok) throw new Error(`HTTP ${eventsRes.status}`);
+          const eventsPayload = await eventsRes.json().catch(() => null);
+          const events = eventsPayload?.events || (Array.isArray(eventsPayload) ? eventsPayload : []);
           
           if (Array.isArray(events)) {
             const deadlineTypes = ['deadline', 'assignment', 'project', 'quiz', 'exam', 'test', 'assessment', 'homework', 'task'];
@@ -172,7 +174,8 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
       try {
         // Search tasks - fetch all and filter client-side
         const tasksRes = await fetch(`/api/tasks`);
-        const tasksData = await tasksRes.json();
+        if (!tasksRes.ok) throw new Error(`HTTP ${tasksRes.status}`);
+        const tasksData = await tasksRes.json().catch(() => ({}));
         const allTasks = tasksData.tasks || tasksData || [];
         const filteredTasks = Array.isArray(allTasks) 
           ? allTasks.filter(t => t.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
@@ -180,7 +183,9 @@ export default function TopNavbar({ onToggleSidebar, userName, avatarColor = '#7
         
         // Search events 
         const eventsRes = await fetch(`/api/events`);
-        const events = await eventsRes.json();
+        if (!eventsRes.ok) throw new Error(`HTTP ${eventsRes.status}`);
+        const eventsRaw = await eventsRes.json().catch(() => null);
+        const events = eventsRaw?.events || (Array.isArray(eventsRaw) ? eventsRaw : []);
         const filteredEvents = Array.isArray(events)
           ? events.filter(e => e.title?.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
           : [];

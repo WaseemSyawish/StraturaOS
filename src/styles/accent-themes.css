@@ -14,7 +14,7 @@
 
 :root,
 html[data-accent="purple"] {
-  --ac-50:  250 245 255;
+  --ac-50: 250 245 255;
   --ac-100: 243 232 255;
   --ac-200: 233 213 255;
   --ac-300: 216 180 254;
@@ -27,7 +27,7 @@ html[data-accent="purple"] {
 }
 
 html[data-accent="blue"] {
-  --ac-50:  239 246 255;
+  --ac-50: 239 246 255;
   --ac-100: 219 234 254;
   --ac-200: 191 219 254;
   --ac-300: 147 197 253;
@@ -40,7 +40,7 @@ html[data-accent="blue"] {
 }
 
 html[data-accent="green"] {
-  --ac-50:  240 253 244;
+  --ac-50: 240 253 244;
   --ac-100: 220 252 231;
   --ac-200: 187 247 208;
   --ac-300: 134 239 172;
@@ -53,7 +53,7 @@ html[data-accent="green"] {
 }
 
 html[data-accent="rose"] {
-  --ac-50:  255 241 242;
+  --ac-50: 255 241 242;
   --ac-100: 255 228 230;
   --ac-200: 254 205 211;
   --ac-300: 253 164 175;
@@ -66,7 +66,7 @@ html[data-accent="rose"] {
 }
 
 html[data-accent="amber"] {
-  --ac-50:  255 251 235;
+  --ac-50: 255 251 235;
   --ac-100: 254 243 199;
   --ac-200: 253 230 138;
   --ac-300: 252 211 77;
@@ -79,7 +79,7 @@ html[data-accent="amber"] {
 }
 
 html[data-accent="teal"] {
-  --ac-50:  240 253 250;
+  --ac-50: 240 253 250;
   --ac-100: 204 251 241;
   --ac-200: 153 246 228;
   --ac-300: 94 234 212;
@@ -92,7 +92,7 @@ html[data-accent="teal"] {
 }
 
 html[data-accent="indigo"] {
-  --ac-50:  238 242 255;
+  --ac-50: 238 242 255;
   --ac-100: 224 231 255;
   --ac-200: 199 210 254;
   --ac-300: 165 180 252;
@@ -105,7 +105,7 @@ html[data-accent="indigo"] {
 }
 
 html[data-accent="orange"] {
-  --ac-50:  255 247 237;
+  --ac-50: 255 247 237;
   --ac-100: 255 237 213;
   --ac-200: 254 215 170;
   --ac-300: 253 186 116;
@@ -117,136 +117,328 @@ html[data-accent="orange"] {
   --ac-900: 124 45 18;
 }
 
-
 /* ════════════════════════════════════════════════════════════
    2. BACKGROUND OVERRIDES  (light mode)
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .bg-purple-50  { background-color: rgb(var(--ac-50)  / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-100 { background-color: rgb(var(--ac-100) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-200 { background-color: rgb(var(--ac-200) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-300 { background-color: rgb(var(--ac-300) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-400 { background-color: rgb(var(--ac-400) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500 { background-color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-600 { background-color: rgb(var(--ac-600) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-700 { background-color: rgb(var(--ac-700) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-800 { background-color: rgb(var(--ac-800) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-900 { background-color: rgb(var(--ac-900) / 1) !important; }
+html[data-accent]:not([data-accent="purple"]) .bg-purple-50 {
+  background-color: rgb(var(--ac-50) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-100 {
+  background-color: rgb(var(--ac-100) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-200 {
+  background-color: rgb(var(--ac-200) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-300 {
+  background-color: rgb(var(--ac-300) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-400 {
+  background-color: rgb(var(--ac-400) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500 {
+  background-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-600 {
+  background-color: rgb(var(--ac-600) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-700 {
+  background-color: rgb(var(--ac-700) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-800 {
+  background-color: rgb(var(--ac-800) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-900 {
+  background-color: rgb(var(--ac-900) / 1) !important;
+}
 
 /* Opacity variants */
-html[data-accent]:not([data-accent="purple"]) .bg-purple-50\/80  { background-color: rgb(var(--ac-50)  / 0.8) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-100\/80 { background-color: rgb(var(--ac-100) / 0.8) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/5  { background-color: rgb(var(--ac-500) / 0.05) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/10 { background-color: rgb(var(--ac-500) / 0.1) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/15 { background-color: rgb(var(--ac-500) / 0.15) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/20 { background-color: rgb(var(--ac-500) / 0.2) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/25 { background-color: rgb(var(--ac-500) / 0.25) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/30 { background-color: rgb(var(--ac-500) / 0.3) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-600\/20 { background-color: rgb(var(--ac-600) / 0.2) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-600\/40 { background-color: rgb(var(--ac-600) / 0.4) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/20 { background-color: rgb(var(--ac-900) / 0.2) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/30 { background-color: rgb(var(--ac-900) / 0.3) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/40 { background-color: rgb(var(--ac-900) / 0.4) !important; }
-html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/50 { background-color: rgb(var(--ac-900) / 0.5) !important; }
+html[data-accent]:not([data-accent="purple"]) .bg-purple-50\/80 {
+  background-color: rgb(var(--ac-50) / 0.8) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-100\/80 {
+  background-color: rgb(var(--ac-100) / 0.8) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/5 {
+  background-color: rgb(var(--ac-500) / 0.05) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/10 {
+  background-color: rgb(var(--ac-500) / 0.1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/15 {
+  background-color: rgb(var(--ac-500) / 0.15) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/20 {
+  background-color: rgb(var(--ac-500) / 0.2) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/25 {
+  background-color: rgb(var(--ac-500) / 0.25) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-500\/30 {
+  background-color: rgb(var(--ac-500) / 0.3) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-600\/20 {
+  background-color: rgb(var(--ac-600) / 0.2) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-600\/40 {
+  background-color: rgb(var(--ac-600) / 0.4) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/20 {
+  background-color: rgb(var(--ac-900) / 0.2) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/30 {
+  background-color: rgb(var(--ac-900) / 0.3) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/40 {
+  background-color: rgb(var(--ac-900) / 0.4) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .bg-purple-900\/50 {
+  background-color: rgb(var(--ac-900) / 0.5) !important;
+}
 
 /* Dark mode backgrounds */
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-50  { background-color: rgb(var(--ac-50)  / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-100 { background-color: rgb(var(--ac-100) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-200 { background-color: rgb(var(--ac-200) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-400 { background-color: rgb(var(--ac-400) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500 { background-color: rgb(var(--ac-500) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-600 { background-color: rgb(var(--ac-600) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-700 { background-color: rgb(var(--ac-700) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-800 { background-color: rgb(var(--ac-800) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900 { background-color: rgb(var(--ac-900) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/5  { background-color: rgb(var(--ac-500) / 0.05) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/10 { background-color: rgb(var(--ac-500) / 0.1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/15 { background-color: rgb(var(--ac-500) / 0.15) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/20 { background-color: rgb(var(--ac-500) / 0.2) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/25 { background-color: rgb(var(--ac-500) / 0.25) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/30 { background-color: rgb(var(--ac-500) / 0.3) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/20 { background-color: rgb(var(--ac-900) / 0.2) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/30 { background-color: rgb(var(--ac-900) / 0.3) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/40 { background-color: rgb(var(--ac-900) / 0.4) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/50 { background-color: rgb(var(--ac-900) / 0.5) !important; }
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-50 {
+  background-color: rgb(var(--ac-50) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-100 {
+  background-color: rgb(var(--ac-100) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-200 {
+  background-color: rgb(var(--ac-200) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-400 {
+  background-color: rgb(var(--ac-400) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500 {
+  background-color: rgb(var(--ac-500) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-600 {
+  background-color: rgb(var(--ac-600) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-700 {
+  background-color: rgb(var(--ac-700) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-800 {
+  background-color: rgb(var(--ac-800) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900 {
+  background-color: rgb(var(--ac-900) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/5 {
+  background-color: rgb(var(--ac-500) / 0.05) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/10 {
+  background-color: rgb(var(--ac-500) / 0.1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/15 {
+  background-color: rgb(var(--ac-500) / 0.15) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/20 {
+  background-color: rgb(var(--ac-500) / 0.2) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/25 {
+  background-color: rgb(var(--ac-500) / 0.25) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-500\/30 {
+  background-color: rgb(var(--ac-500) / 0.3) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/20 {
+  background-color: rgb(var(--ac-900) / 0.2) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/30 {
+  background-color: rgb(var(--ac-900) / 0.3) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/40 {
+  background-color: rgb(var(--ac-900) / 0.4) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:bg-purple-900\/50 {
+  background-color: rgb(var(--ac-900) / 0.5) !important;
+}
 
 /* Hover backgrounds */
-html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-50:hover  { background-color: rgb(var(--ac-50)  / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-100:hover { background-color: rgb(var(--ac-100) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-600:hover { background-color: rgb(var(--ac-600) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-700:hover { background-color: rgb(var(--ac-700) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-800:hover { background-color: rgb(var(--ac-800) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:hover\:bg-purple-900\/20:hover { background-color: rgb(var(--ac-900) / 0.2) !important; }
+html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-50:hover {
+  background-color: rgb(var(--ac-50) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-100:hover {
+  background-color: rgb(var(--ac-100) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-600:hover {
+  background-color: rgb(var(--ac-600) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-700:hover {
+  background-color: rgb(var(--ac-700) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:bg-purple-800:hover {
+  background-color: rgb(var(--ac-800) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:hover\:bg-purple-900\/20:hover {
+  background-color: rgb(var(--ac-900) / 0.2) !important;
+}
 
 /* group-hover backgrounds */
-html[data-accent]:not([data-accent="purple"]) .group:hover .group-hover\:bg-purple-100 { background-color: rgb(var(--ac-100) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .group:hover .dark\:group-hover\:bg-purple-900\/30 { background-color: rgb(var(--ac-900) / 0.3) !important; }
-
+html[data-accent]:not([data-accent="purple"])
+  .group:hover
+  .group-hover\:bg-purple-100 {
+  background-color: rgb(var(--ac-100) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .group:hover
+  .dark\:group-hover\:bg-purple-900\/30 {
+  background-color: rgb(var(--ac-900) / 0.3) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    3. TEXT COLOR OVERRIDES
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .text-purple-300 { color: rgb(var(--ac-300) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-400 { color: rgb(var(--ac-400) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-500 { color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-600 { color: rgb(var(--ac-600) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-700 { color: rgb(var(--ac-700) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-800 { color: rgb(var(--ac-800) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .text-purple-900 { color: rgb(var(--ac-900) / 1) !important; }
+html[data-accent]:not([data-accent="purple"]) .text-purple-300 {
+  color: rgb(var(--ac-300) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-400 {
+  color: rgb(var(--ac-400) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-500 {
+  color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-600 {
+  color: rgb(var(--ac-600) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-700 {
+  color: rgb(var(--ac-700) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-800 {
+  color: rgb(var(--ac-800) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .text-purple-900 {
+  color: rgb(var(--ac-900) / 1) !important;
+}
 
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-200 { color: rgb(var(--ac-200) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-300 { color: rgb(var(--ac-300) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-400 { color: rgb(var(--ac-400) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-500 { color: rgb(var(--ac-500) / 1) !important; }
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-200 {
+  color: rgb(var(--ac-200) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-300 {
+  color: rgb(var(--ac-300) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-400 {
+  color: rgb(var(--ac-400) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:text-purple-500 {
+  color: rgb(var(--ac-500) / 1) !important;
+}
 
 /* Hover text */
-html[data-accent]:not([data-accent="purple"]) .hover\:text-purple-600:hover { color: rgb(var(--ac-600) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:text-purple-700:hover { color: rgb(var(--ac-700) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:hover\:text-purple-300:hover { color: rgb(var(--ac-300) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:hover\:text-purple-400:hover { color: rgb(var(--ac-400) / 1) !important; }
+html[data-accent]:not([data-accent="purple"]) .hover\:text-purple-600:hover {
+  color: rgb(var(--ac-600) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:text-purple-700:hover {
+  color: rgb(var(--ac-700) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:hover\:text-purple-300:hover {
+  color: rgb(var(--ac-300) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:hover\:text-purple-400:hover {
+  color: rgb(var(--ac-400) / 1) !important;
+}
 
 /* group-hover text */
-html[data-accent]:not([data-accent="purple"]) .group:hover .group-hover\:text-purple-600 { color: rgb(var(--ac-600) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .group:hover .dark\:group-hover\:text-purple-400 { color: rgb(var(--ac-400) / 1) !important; }
-
+html[data-accent]:not([data-accent="purple"])
+  .group:hover
+  .group-hover\:text-purple-600 {
+  color: rgb(var(--ac-600) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .group:hover
+  .dark\:group-hover\:text-purple-400 {
+  color: rgb(var(--ac-400) / 1) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    4. BORDER COLOR OVERRIDES
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .border-purple-100 { border-color: rgb(var(--ac-100) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-200 { border-color: rgb(var(--ac-200) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-300 { border-color: rgb(var(--ac-300) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-400 { border-color: rgb(var(--ac-400) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-500 { border-color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-600 { border-color: rgb(var(--ac-600) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-200\/60 { border-color: rgb(var(--ac-200) / 0.6) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-500\/10 { border-color: rgb(var(--ac-500) / 0.1) !important; }
-html[data-accent]:not([data-accent="purple"]) .border-purple-500\/20 { border-color: rgb(var(--ac-500) / 0.2) !important; }
+html[data-accent]:not([data-accent="purple"]) .border-purple-100 {
+  border-color: rgb(var(--ac-100) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-200 {
+  border-color: rgb(var(--ac-200) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-300 {
+  border-color: rgb(var(--ac-300) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-400 {
+  border-color: rgb(var(--ac-400) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-500 {
+  border-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-600 {
+  border-color: rgb(var(--ac-600) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-200\/60 {
+  border-color: rgb(var(--ac-200) / 0.6) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-500\/10 {
+  border-color: rgb(var(--ac-500) / 0.1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .border-purple-500\/20 {
+  border-color: rgb(var(--ac-500) / 0.2) !important;
+}
 
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-500\/10 { border-color: rgb(var(--ac-500) / 0.1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-500\/20 { border-color: rgb(var(--ac-500) / 0.2) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-600     { border-color: rgb(var(--ac-600) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-800     { border-color: rgb(var(--ac-800) / 1) !important; }
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:border-purple-500\/10 {
+  border-color: rgb(var(--ac-500) / 0.1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:border-purple-500\/20 {
+  border-color: rgb(var(--ac-500) / 0.2) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-600 {
+  border-color: rgb(var(--ac-600) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:border-purple-800 {
+  border-color: rgb(var(--ac-800) / 1) !important;
+}
 
-html[data-accent]:not([data-accent="purple"]) .hover\:border-purple-200:hover { border-color: rgb(var(--ac-200) / 1) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:hover\:border-purple-800:hover { border-color: rgb(var(--ac-800) / 1) !important; }
-
+html[data-accent]:not([data-accent="purple"]) .hover\:border-purple-200:hover {
+  border-color: rgb(var(--ac-200) / 1) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"])
+  .dark\:hover\:border-purple-800:hover {
+  border-color: rgb(var(--ac-800) / 1) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    5. RING COLOR OVERRIDES  (focus rings)
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .ring-purple-400      { --tw-ring-color: rgb(var(--ac-400) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .ring-purple-500      { --tw-ring-color: rgb(var(--ac-500) / var(--tw-ring-opacity, 1)) !important; }
-html[data-accent]:not([data-accent="purple"]) .ring-purple-500\/40  { --tw-ring-color: rgb(var(--ac-500) / 0.4) !important; }
-html[data-accent]:not([data-accent="purple"]) .focus\:ring-purple-500:focus     { --tw-ring-color: rgb(var(--ac-500) / var(--tw-ring-opacity, 1)) !important; }
-html[data-accent]:not([data-accent="purple"]) .focus\:ring-purple-500\/40:focus { --tw-ring-color: rgb(var(--ac-500) / 0.4) !important; }
-html[data-accent]:not([data-accent="purple"]) .focus\:border-purple-400:focus   { border-color: rgb(var(--ac-400) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .focus\:border-purple-500:focus   { border-color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .hover\:ring-purple-400:hover     { --tw-ring-color: rgb(var(--ac-400) / 1) !important; }
-
+html[data-accent]:not([data-accent="purple"]) .ring-purple-400 {
+  --tw-ring-color: rgb(var(--ac-400) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .ring-purple-500 {
+  --tw-ring-color: rgb(var(--ac-500) / var(--tw-ring-opacity, 1)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .ring-purple-500\/40 {
+  --tw-ring-color: rgb(var(--ac-500) / 0.4) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .focus\:ring-purple-500:focus {
+  --tw-ring-color: rgb(var(--ac-500) / var(--tw-ring-opacity, 1)) !important;
+}
+html[data-accent]:not([data-accent="purple"])
+  .focus\:ring-purple-500\/40:focus {
+  --tw-ring-color: rgb(var(--ac-500) / 0.4) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .focus\:border-purple-400:focus {
+  border-color: rgb(var(--ac-400) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .focus\:border-purple-500:focus {
+  border-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .hover\:ring-purple-400:hover {
+  --tw-ring-color: rgb(var(--ac-400) / 1) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    6. SHADOW COLOR OVERRIDES
@@ -273,41 +465,74 @@ html.dark[data-accent]:not([data-accent="purple"]) .dark\:shadow-purple-500\/5 {
   --tw-shadow: var(--tw-shadow-colored) !important;
 }
 
-
 /* ════════════════════════════════════════════════════════════
    7. GRADIENT OVERRIDES  (from-purple-*, to-purple-*, via-purple-*)
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .from-purple-400 { --tw-gradient-from: rgb(var(--ac-400)) !important; }
-html[data-accent]:not([data-accent="purple"]) .from-purple-500 { --tw-gradient-from: rgb(var(--ac-500)) !important; }
-html[data-accent]:not([data-accent="purple"]) .from-purple-600 { --tw-gradient-from: rgb(var(--ac-600)) !important; }
-html[data-accent]:not([data-accent="purple"]) .to-purple-400   { --tw-gradient-to:   rgb(var(--ac-400)) !important; }
-html[data-accent]:not([data-accent="purple"]) .to-purple-500   { --tw-gradient-to:   rgb(var(--ac-500)) !important; }
-html[data-accent]:not([data-accent="purple"]) .to-purple-600   { --tw-gradient-to:   rgb(var(--ac-600)) !important; }
-html[data-accent]:not([data-accent="purple"]) .to-purple-700   { --tw-gradient-to:   rgb(var(--ac-700)) !important; }
-html[data-accent]:not([data-accent="purple"]) .via-purple-500  { --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--ac-500)), var(--tw-gradient-to) !important; }
+html[data-accent]:not([data-accent="purple"]) .from-purple-400 {
+  --tw-gradient-from: rgb(var(--ac-400)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .from-purple-500 {
+  --tw-gradient-from: rgb(var(--ac-500)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .from-purple-600 {
+  --tw-gradient-from: rgb(var(--ac-600)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .to-purple-400 {
+  --tw-gradient-to: rgb(var(--ac-400)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .to-purple-500 {
+  --tw-gradient-to: rgb(var(--ac-500)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .to-purple-600 {
+  --tw-gradient-to: rgb(var(--ac-600)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .to-purple-700 {
+  --tw-gradient-to: rgb(var(--ac-700)) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .via-purple-500 {
+  --tw-gradient-stops:
+    var(--tw-gradient-from), rgb(var(--ac-500)), var(--tw-gradient-to) !important;
+}
 
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:from-purple-400 { --tw-gradient-from: rgb(var(--ac-400)) !important; }
-html.dark[data-accent]:not([data-accent="purple"]) .dark\:to-purple-400   { --tw-gradient-to:   rgb(var(--ac-400)) !important; }
-
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:from-purple-400 {
+  --tw-gradient-from: rgb(var(--ac-400)) !important;
+}
+html.dark[data-accent]:not([data-accent="purple"]) .dark\:to-purple-400 {
+  --tw-gradient-to: rgb(var(--ac-400)) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    8. OUTLINE / CARET / FILL / STROKE
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .outline-purple-500 { outline-color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .caret-purple-500   { caret-color:   rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .fill-purple-500    { fill:           rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .stroke-purple-500  { stroke:         rgb(var(--ac-500) / 1) !important; }
-
+html[data-accent]:not([data-accent="purple"]) .outline-purple-500 {
+  outline-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .caret-purple-500 {
+  caret-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .fill-purple-500 {
+  fill: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .stroke-purple-500 {
+  stroke: rgb(var(--ac-500) / 1) !important;
+}
 
 /* ════════════════════════════════════════════════════════════
    9. DIVIDE / DECORATION / PLACEHOLDER
    ════════════════════════════════════════════════════════════ */
 
-html[data-accent]:not([data-accent="purple"]) .divide-purple-200 > * + * { border-color: rgb(var(--ac-200) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .decoration-purple-500 { text-decoration-color: rgb(var(--ac-500) / 1) !important; }
-html[data-accent]:not([data-accent="purple"]) .placeholder-purple-400::placeholder { color: rgb(var(--ac-400) / 1) !important; }
+html[data-accent]:not([data-accent="purple"]) .divide-purple-200 > * + * {
+  border-color: rgb(var(--ac-200) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"]) .decoration-purple-500 {
+  text-decoration-color: rgb(var(--ac-500) / 1) !important;
+}
+html[data-accent]:not([data-accent="purple"])
+  .placeholder-purple-400::placeholder {
+  color: rgb(var(--ac-400) / 1) !important;
+}
 [data-accent]:not([data-accent="purple"]) .accent-text {
   color: var(--accent-600) !important;
 }
@@ -317,3 +542,42 @@ html.dark [data-accent]:not([data-accent="purple"]) .accent-bg {
 html.dark [data-accent]:not([data-accent="purple"]) .accent-text {
   color: var(--accent-400) !important;
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   GRADIENT TOGGLE — html[data-gradients="off"]
+   Strips gradient bg-image from any element that uses a purple
+   accent gradient colour, replacing it with a flat solid colour
+   derived from the `from-*` shade (first stop = representative hue).
+   Semantic gradients (emerald, red, amber) are intentionally untouched.
+   ════════════════════════════════════════════════════════════ */
+
+/* Remove bg-image on accent gradient elements */
+html[data-gradients="off"] .from-purple-400,
+html[data-gradients="off"] .from-purple-500,
+html[data-gradients="off"] .from-purple-600,
+html[data-gradients="off"] .from-purple-700,
+html[data-gradients="off"] .from-purple-800,
+html[data-gradients="off"] .from-purple-900 {
+  background-image: none !important;
+}
+
+/* Apply the first-stop shade as a flat solid bg */
+html[data-gradients="off"] .from-purple-400 { background-color: rgb(var(--ac-400)) !important; }
+html[data-gradients="off"] .from-purple-500 { background-color: rgb(var(--ac-500)) !important; }
+html[data-gradients="off"] .from-purple-600 { background-color: rgb(var(--ac-600)) !important; }
+html[data-gradients="off"] .from-purple-700 { background-color: rgb(var(--ac-700)) !important; }
+html[data-gradients="off"] .from-purple-800 { background-color: rgb(var(--ac-800)) !important; }
+html[data-gradients="off"] .from-purple-900 { background-color: rgb(var(--ac-900)) !important; }
+
+/* Dark-mode gradient classes */
+html.dark[data-gradients="off"] .dark\:from-purple-400,
+html.dark[data-gradients="off"] .dark\:from-purple-700,
+html.dark[data-gradients="off"] .dark\:from-purple-800,
+html.dark[data-gradients="off"] .dark\:from-purple-900 {
+  background-image: none !important;
+}
+html.dark[data-gradients="off"] .dark\:from-purple-400 { background-color: rgb(var(--ac-400)) !important; }
+html.dark[data-gradients="off"] .dark\:from-purple-700 { background-color: rgb(var(--ac-700)) !important; }
+html.dark[data-gradients="off"] .dark\:from-purple-800 { background-color: rgb(var(--ac-800)) !important; }
+html.dark[data-gradients="off"] .dark\:from-purple-900 { background-color: rgb(var(--ac-900)) !important; }

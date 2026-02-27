@@ -13,8 +13,11 @@ export default function CustomModal({
   onClockClick,
   onStarClick,
   isStarred = false,
-  hasReminder = false
+  hasReminder = false,
+  size = 'lg',
+  noPadding = false
 }) {
+  const sizeClasses = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl', '2xl': 'max-w-2xl', '3xl': 'max-w-3xl' };
   const { setClose } = useModal();
 
   // Close on Escape key
@@ -50,7 +53,7 @@ export default function CustomModal({
             duration: 0.3, 
             ease: [0.16, 1, 0.3, 1]
           }}
-          className="relative w-full max-w-lg rounded-xl shadow-2xl overflow-hidden max-h-[95vh] bg-white dark:bg-slate-900 mx-4 z-[100000]"
+          className={`relative w-full ${sizeClasses[size] || 'max-w-lg'} rounded-xl shadow-2xl overflow-hidden max-h-[95vh] bg-white dark:bg-slate-900 mx-4 z-[100000]`}
           onMouseDown={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -107,7 +110,7 @@ export default function CustomModal({
           </div>
         )}
 
-          <div className="text-slate-700 dark:text-slate-300 px-6 pb-6 overflow-y-auto max-h-[calc(95vh-5rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">{children}</div>
+          <div className={`text-slate-700 dark:text-slate-300 overflow-y-auto max-h-[calc(95vh-5rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${noPadding ? '' : 'px-6 pb-6'}`}>{children}</div>
 
           {/* modal footer intentionally omitted — modal content should render its own actions */}
         </motion.div>

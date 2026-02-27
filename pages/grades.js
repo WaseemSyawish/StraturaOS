@@ -8,15 +8,15 @@ import HygraphSidebar from '@/components/HygraphSidebar';
 
 // Design system styles matching landing/auth pages
 const ds = {
-  pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
-  headerBand: 'relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 dark:from-purple-900/40 dark:via-purple-800/30 dark:to-indigo-900/40 border border-purple-500/20 dark:border-purple-500/10',
+  pageBg: 'min-h-screen bg-slate-50 dark:bg-[#0a0a0f]',
+  headerBand: 'relative overflow-hidden rounded-2xl bg-purple-600 dark:bg-purple-900/40 border border-purple-500/20 dark:border-purple-500/10',
   card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-sm shadow-lg dark:shadow-xl dark:shadow-purple-500/5',
   statCard: 'bg-white/60 dark:bg-white/5 rounded-xl border border-slate-200/60 dark:border-white/5 p-4 backdrop-blur-sm',
   headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
   headingLg: 'text-lg font-semibold text-slate-900 dark:text-white',
   textMuted: 'text-slate-600 dark:text-slate-400',
   iconBox: 'w-12 h-12 rounded-xl flex items-center justify-center',
-  primaryBtn: 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 transition-all duration-200',
+  primaryBtn: 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/25 transition-all duration-200',
   secondaryBtn: 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-200',
 };
 
@@ -263,11 +263,17 @@ const GradesPage = () => {
 
   const handleAddItem = () => {
     if (!newItem.name || !newItem.score || !newItem.maxScore) return;
+    const parsedScore = parseFloat(newItem.score);
+    const parsedMax = parseFloat(newItem.maxScore);
+    if (parsedMax > 0 && parsedScore > parsedMax) {
+      // Silently cap to max — the input already enforces this
+      return;
+    }
     const item = {
       id: Date.now(),
       name: newItem.name,
-      score: parseFloat(newItem.score),
-      maxScore: parseFloat(newItem.maxScore)
+      score: parsedScore,
+      maxScore: parsedMax
     };
 
     // Optimistic UI update
@@ -714,7 +720,7 @@ const GradesPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
         
         {/* ========== HERO HEADER BAND ========== */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 dark:from-purple-700 dark:via-purple-800 dark:to-purple-900 p-6 sm:p-8 mb-6 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
+        <div className="relative overflow-hidden rounded-2xl bg-purple-700 dark:bg-purple-800 p-6 sm:p-8 mb-6 shadow-xl shadow-purple-500/10 dark:shadow-purple-900/30">
           {/* Decorative background elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/2" />
@@ -811,7 +817,7 @@ const GradesPage = () => {
                 <div className="flex flex-col items-center text-center">
                   {/* Animated icon container */}
                   <div className="relative mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+                    <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center animate-pulse">
                       <GraduationCap className="w-8 h-8 text-white" strokeWidth={2} />
                     </div>
                     {/* Spinning ring around icon */}
@@ -863,7 +869,7 @@ const GradesPage = () => {
                         <CustomSelect
                           options={semesters}
                           value={selectedSemester}
-                          onChange={(v) => setSelectedSemester(v)}
+                          onChange={(v) => { setSelectedSemester(v); setFilterCourseId('all'); }}
                           placeholder="Semester"
                           className="w-full"
                           id="grades-semester-select"
@@ -871,7 +877,7 @@ const GradesPage = () => {
                       </div>
                       <div className="w-56">
                         <CustomSelect
-                          options={[{ value: 'all', label: 'All courses' }, ...courses.map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
+                          options={[{ value: 'all', label: 'All courses' }, ...courses.filter(c => { if (selectedSemester === 'all') return true; if (c.semester === selectedSemester) return true; const ms = semesters.find(s => s.value === selectedSemester); return ms && c.semester === ms.label; }).map(c => ({ value: String(c.id), label: `${c.name}${c.code ? ` (${c.code})` : ''}` }))]}
                           value={String(filterCourseId)}
                           onChange={(v) => setFilterCourseId(v)}
                           placeholder="All courses"
@@ -960,7 +966,7 @@ const GradesPage = () => {
                   return (
                     <div key={course.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-shadow">
                       {/* Course Header - Calculator Display Style */}
-                      <div className="bg-gradient-to-r from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700 p-6">
+                      <div className="bg-purple-600 dark:bg-purple-700 p-6">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
@@ -1008,10 +1014,10 @@ const GradesPage = () => {
                             <div 
                               className={`h-3 rounded-full transition-all duration-500 ${
                                 totalWeight === 100 
-                                  ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                                  ? 'bg-green-500' 
                                   : totalWeight > 100 
-                                  ? 'bg-gradient-to-r from-red-500 to-red-600'
-                                  : 'bg-gradient-to-r from-amber-500 to-amber-600'
+                                  ? 'bg-red-500'
+                                  : 'bg-amber-500'
                               }`}
                               style={{ width: `${Math.min(totalWeight, 100)}%` }}
                             ></div>
@@ -1042,14 +1048,14 @@ const GradesPage = () => {
                                 setCalculatorCourse(course);
                                 setShowCalculator(true);
                               }}
-                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
                             >
                               <Calculator className="w-4 h-4" />
                               Calculate
                             </button>
                             <button 
                               onClick={() => openCategoryModal(course)}
-                              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
+                              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-all text-sm font-semibold shadow-md active:scale-95"
                             >
                               <Plus className="w-4 h-4" />
                               Add
@@ -1064,7 +1070,7 @@ const GradesPage = () => {
 
                           return (
                             <div key={category.id} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800/40 hover:border-purple-300 dark:hover:border-purple-700 transition-colors">
-                              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-4">
+                              <div className="bg-purple-50/40 dark:bg-purple-900/10 p-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3 flex-1">
                                     <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-lg flex items-center justify-center shadow-sm border border-slate-200 dark:border-slate-600">
@@ -1177,28 +1183,49 @@ const GradesPage = () => {
         )}
       </div>
 
-      {/* Add Category Modal */}
+      {/* Add Category Modal — Modernized */}
       {showCategoryModal && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
           onClick={(e) => e.target === e.currentTarget && (setShowCategoryModal(false), setCategoryError(''))}
+          onKeyDown={(e) => e.key === 'Escape' && (setShowCategoryModal(false), setCategoryError(''))}
         >
-          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-2xl shadow-2xl max-w-md w-full p-6 animate-modal-in">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Grading Category</h3>
-              <button 
-                onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Add a new category to track your grades</p>
+          <div className="w-full max-w-lg bg-white dark:bg-[#0f0f17] rounded-2xl shadow-2xl border border-slate-200/60 dark:border-white/5 overflow-hidden"
+               style={{ animation: 'popIn 160ms cubic-bezier(.2,.9,.25,1)' }}>
+            <style dangerouslySetInnerHTML={{__html: `@keyframes popIn { from { opacity:0; transform:scale(.96) } to { opacity:1; transform:scale(1) } }`}} />
 
-            <div className="space-y-5">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            {/* Header */}
+            <div className="relative px-6 pt-6 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <Plus className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">New Grading Category</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {selectedCourse.code} — {selectedCourse.name}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-slate-100 dark:bg-white/5 mx-6" />
+
+            {/* Form body */}
+            <div className="px-6 py-5 space-y-5">
+              {/* Category Name */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-400" />
                   Category Name
                 </label>
                 <input
@@ -1206,73 +1233,98 @@ const GradesPage = () => {
                   id="grades-cat-name"
                   placeholder="e.g., Quizzes, Assignments, Midterm"
                   ref={catNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white font-medium placeholder:text-gray-400 placeholder:dark:text-gray-500 placeholder:font-normal transition-all duration-200"
+                  autoFocus
+                  className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
                   value={newCategory.name}
                   onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
                 />
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Tag className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  Type
-                </label>
-                <div id="grades-cat-type">
-                  <CustomSelect
-                    options={categoryTypeOptions}
-                    value={newCategory.type}
-                    onChange={(v) => setNewCategory({...newCategory, type: v})}
-                    placeholder="Select type"
-                    className="w-full"
-                    id="grades-cat-type"
-                  />
+              {/* Type + Weight side by side */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-slate-400" />
+                    Type
+                  </label>
+                  <div id="grades-cat-type">
+                    <CustomSelect
+                      options={categoryTypeOptions}
+                      value={newCategory.type}
+                      onChange={(v) => setNewCategory({...newCategory, type: v})}
+                      placeholder="Select type"
+                      className="w-full"
+                      id="grades-cat-type"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-slate-400" />
+                    Weight
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="20"
+                      ref={weightRef}
+                      className={`w-full h-11 px-4 pr-8 rounded-xl bg-slate-50 dark:bg-white/5 border text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all ${categoryError ? 'border-red-400 dark:border-red-500' : 'border-slate-200 dark:border-white/10'}`}
+                      value={newCategory.weight}
+                      onChange={(e) => { setNewCategory({...newCategory, weight: e.target.value}); setCategoryError(''); }}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">%</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <Scale className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                  Weight (%)
-                </label>
-                <input
-                  type="text"
-                  placeholder="20 or 20%"
-                  ref={weightRef}
-                  className={`dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border ${categoryError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'} rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white font-medium placeholder:text-gray-400 placeholder:dark:text-gray-500 placeholder:font-normal transition-all duration-200`}
-                  value={newCategory.weight}
-                  onChange={(e) => {
-                    setNewCategory({...newCategory, weight: e.target.value});
-                    setCategoryError('');
-                  }}
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Negative values like -20% will be converted to 20%</p>
-                {categoryError && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-2 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    {categoryError}
-                  </p>
-                )}
-              </div>
+              {categoryError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+                  <AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium text-red-600 dark:text-red-400">{categoryError}</p>
+                </div>
+              )}
 
-              <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <span className="font-medium text-gray-900 dark:text-white">Course:</span> {selectedCourse.code} - {selectedCourse.name}
-                </p>
-              </div>
+              {/* Weight allocation preview */}
+              {(() => {
+                const currentTotal = (selectedCourse.categories || []).reduce((s, c) => s + (parseFloat(c.weight) || 0), 0);
+                const inputW = Math.abs(parseFloat(newCategory.weight) || 0);
+                const projectedTotal = currentTotal + inputW;
+                return (
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Weight allocation</span>
+                      <span className={`text-xs font-bold ${projectedTotal > 100 ? 'text-red-500' : projectedTotal === 100 ? 'text-emerald-500' : 'text-slate-600 dark:text-slate-300'}`}>
+                        {projectedTotal.toFixed(0)}% / 100%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full flex">
+                        <div className="h-full bg-purple-500/60 dark:bg-purple-400/50 transition-all duration-300" style={{ width: `${Math.min(currentTotal, 100)}%` }} />
+                        {inputW > 0 && (
+                          <div className={`h-full transition-all duration-300 ${projectedTotal > 100 ? 'bg-red-500' : 'bg-purple-500'}`} style={{ width: `${Math.min(inputW, 100 - Math.min(currentTotal, 100))}%` }} />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5">{(100 - currentTotal).toFixed(0)}% remaining before this category</p>
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="flex gap-3 mt-6">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center gap-3">
               <button
                 onClick={() => { setShowCategoryModal(false); setCategoryError(''); }}
-                className="flex-1 px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 font-medium"
+                className="flex-1 h-11 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddCategory}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
+                className="flex-1 h-11 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all flex items-center justify-center gap-2"
               >
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4" />
                 Add Category
               </button>
             </div>
@@ -1280,28 +1332,48 @@ const GradesPage = () => {
         </div>
       )}
 
-      {/* Add Item Modal */}
+      {/* Add Item Modal — Modernized */}
       {showItemModal && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
           onClick={(e) => e.target === e.currentTarget && setShowItemModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && setShowItemModal(false)}
         >
-          <div className="w-full max-h-[85vh] bg-white dark:bg-gray-950 overflow-y-auto rounded-2xl shadow-2xl max-w-md w-full p-6 animate-modal-in">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Add Item</h3>
-              <button 
-                onClick={() => setShowItemModal(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-500 dark:text-gray-400"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Add a new grade item to this category</p>
+          <div className="w-full max-w-lg bg-white dark:bg-[#0f0f17] rounded-2xl shadow-2xl border border-slate-200/60 dark:border-white/5 overflow-hidden"
+               style={{ animation: 'popIn 160ms cubic-bezier(.2,.9,.25,1)' }}>
 
-            <div className="space-y-5">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            {/* Header */}
+            <div className="relative px-6 pt-6 pb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Add Grade Item</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {selectedCategory.name} · {selectedCourse.code}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowItemModal(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-slate-100 dark:bg-white/5 mx-6" />
+
+            {/* Form body */}
+            <div className="px-6 py-5 space-y-5">
+              {/* Item Name */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-slate-400" />
                   Item Name
                 </label>
                 <input
@@ -1309,32 +1381,46 @@ const GradesPage = () => {
                   id="grades-item-name"
                   placeholder="e.g., Quiz 1, Assignment 3, Midterm"
                   ref={itemNameRef}
-                  className="dark-mode-input w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white font-medium placeholder:text-gray-400 placeholder:dark:text-gray-500 placeholder:font-normal transition-all duration-200"
+                  autoFocus
+                  className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
                   value={newItem.name}
                   onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                 />
               </div>
 
+              {/* Score & Max Score */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
                     Score Earned
                   </label>
                   <input
                     type="number"
                     placeholder="85"
                     min="0"
+                    max={parseFloat(newItem.maxScore) > 0 ? newItem.maxScore : undefined}
                     ref={scoreRef}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white font-medium placeholder:text-gray-400 placeholder:dark:text-gray-500 placeholder:font-normal transition-all duration-200"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
                     value={newItem.score}
-                    onChange={(e) => setNewItem({...newItem, score: e.target.value})}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const maxVal = parseFloat(newItem.maxScore);
+                      if (val !== '' && maxVal > 0 && parseFloat(val) > maxVal) {
+                        setNewItem({...newItem, score: String(maxVal)});
+                      } else {
+                        setNewItem({...newItem, score: val});
+                      }
+                    }}
                   />
+                  {parseFloat(newItem.score) > 0 && parseFloat(newItem.maxScore) > 0 && parseFloat(newItem.score) >= parseFloat(newItem.maxScore) && (
+                    <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1 font-medium">Score capped at max ({newItem.maxScore})</p>
+                  )}
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Target className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-slate-400" />
                     Max Score
                   </label>
                   <input
@@ -1342,35 +1428,60 @@ const GradesPage = () => {
                     placeholder="100"
                     min="0"
                     ref={maxScoreRef}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#0f1419] border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 dark:text-white font-medium placeholder:text-gray-400 placeholder:dark:text-gray-500 placeholder:font-normal transition-all duration-200"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 transition-all"
                     value={newItem.maxScore}
                     onChange={(e) => setNewItem({...newItem, maxScore: e.target.value})}
                   />
                 </div>
               </div>
 
-              <div className="bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 rounded-xl p-3">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <span className="font-medium text-gray-900 dark:text-white">Adding to:</span> {selectedCategory.name} ({selectedCategory.weight}%)
-                </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                  <span className="font-medium text-gray-900 dark:text-white">Course:</span> {selectedCourse.code}
-                </p>
+              {/* Live score preview */}
+              {(() => {
+                const s = parseFloat(newItem.score) || 0;
+                const m = parseFloat(newItem.maxScore) || 100;
+                const pct = m > 0 ? ((s / m) * 100) : 0;
+                const pctColor = pct >= 90 ? 'text-emerald-500' : pct >= 80 ? 'text-blue-500' : pct >= 70 ? 'text-amber-500' : pct >= 60 ? 'text-orange-500' : 'text-red-500';
+                return newItem.score ? (
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Score Preview</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className={`text-2xl font-bold font-mono ${pctColor}`}>{pct.toFixed(1)}%</span>
+                        <span className="text-xs text-slate-400">({s}/{m})</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mt-2">
+                      <div className={`h-full rounded-full transition-all duration-300 ${pct >= 90 ? 'bg-emerald-500' : pct >= 80 ? 'bg-blue-500' : pct >= 70 ? 'bg-amber-500' : pct >= 60 ? 'bg-orange-500' : 'bg-red-500'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Context badge */}
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200/50 dark:border-purple-500/15">
+                <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
+                  {getCategoryIcon(selectedCategory.type || 'assignment')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 truncate">{selectedCategory.name}</p>
+                  <p className="text-[10px] text-purple-500/70 dark:text-purple-400/60">Weight: {selectedCategory.weight}%</p>
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center gap-3">
               <button
                 onClick={() => setShowItemModal(false)}
-                className="flex-1 px-4 py-3 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 font-medium"
+                className="flex-1 h-11 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddItem}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
+                className="flex-1 h-11 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all flex items-center justify-center gap-2"
               >
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4" />
                 Add Item
               </button>
             </div>

@@ -10,22 +10,29 @@ datasource db {
 }
 
 model User {
-  id                  String              @id @default(uuid())
-  email               String              @unique
-  settings            Json?
-  password_hash       String?
-  name                String?
-  password_reset_token String?
+  id                     String              @id @default(uuid())
+  email                  String              @unique
+  settings               Json?
+  password_hash          String?
+  name                   String?
+  password_reset_token   String?
   password_reset_expires DateTime?
-  created_at          DateTime?           @default(now())
-  updated_at          DateTime?           @default(now())
-  archived_events     ArchivedEvent[]
-  attendance_sessions AttendanceSession[]
-  courses             Course[]
-  events              Event[]
-  focus_sessions      FocusSession[]
-  focus_settings      FocusSettings?
-  semester_settings   SemesterSetting[]
+  role                   String              @default("user")
+  locale                 String              @default("en")
+  created_at             DateTime?           @default(now())
+  updated_at             DateTime?           @default(now())
+  archived_events        ArchivedEvent[]
+  attendance_sessions    AttendanceSession[]
+  courses                Course[]
+  events                 Event[]
+  focus_sessions         FocusSession[]
+  focus_settings         FocusSettings?
+  semester_settings      SemesterSetting[]
+  calendar_connections   CalendarConnection[]
+  owned_lists            TaskList[]          @relation("list_owner")
+  list_memberships       TaskListMember[]
+  comments               Comment[]
+  activity_logs          ActivityLog[]
 
   @@map("users")
 }
@@ -117,6 +124,7 @@ model Event {
   description    String?
   completed      Boolean        @default(false)
   user_id        String
+  list_id        String?
   created_at     DateTime?      @default(now())
   updated_at     DateTime?      @default(now())
   meta           Json?
@@ -125,13 +133,17 @@ model Event {
   location       String?
   reminders      String[]       @default([])
   remindersFired String[]       @default([])
+  version        Int            @default(1)
   attachments    Attachment[]
+  comments       Comment[]
   courses        Course?        @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   eventTemplate  EventTemplate? @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users          User           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  list           TaskList?      @relation(fields: [list_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([date], map: "idx_events_date")
   @@index([user_id], map: "idx_events_user")
+  @@index([list_id], map: "idx_events_list")
   @@map("events")
 }
 
@@ -247,6 +259,93 @@ model FocusSettings {
   user                      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("focus_settings")
+}
+
+// ── Feature C: Calendar Sync ──────────────────────────────
+model CalendarConnection {
+  id            String    @id @default(uuid())
+  user_id       String
+  provider      String    // "google" | "outlook"
+  access_token  String
+  refresh_token String?
+  token_expires DateTime?
+  calendar_id   String?
+  sync_token    String?
+  last_synced   DateTime?
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @default(now())
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, provider])
+  @@map("calendar_connections")
+}
+
+// ── Feature E: Shared Task Lists ──────────────────────────
+model TaskList {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  owner_id    String
+  is_shared   Boolean          @default(false)
+  share_token String?          @unique
+  created_at  DateTime?        @default(now())
+  updated_at  DateTime?        @default(now())
+  owner       User             @relation("list_owner", fields: [owner_id], references: [id], onDelete: Cascade)
+  members     TaskListMember[]
+  events      Event[]
+
+  @@index([owner_id])
+  @@map("task_lists")
+}
+
+model TaskListMember {
+  id        String    @id @default(uuid())
+  list_id   String
+  user_id   String
+  role      String    @default("member") // "owner" | "admin" | "member" | "viewer"
+  joined_at DateTime? @default(now())
+  list      TaskList  @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([list_id, user_id])
+  @@map("task_list_members")
+}
+
+// ── Feature E: Comments & Activity ────────────────────────
+model Comment {
+  id         String    @id @default(uuid())
+  event_id   String
+  user_id    String
+  content    String
+  parent_id  String?
+  created_at DateTime? @default(now())
+  updated_at DateTime? @default(now())
+  event      Event     @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent     Comment?  @relation("comment_threads", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("comment_threads")
+
+  @@index([event_id])
+  @@index([user_id])
+  @@map("comments")
+}
+
+model ActivityLog {
+  id         String    @id @default(uuid())
+  event_id   String?
+  list_id    String?
+  user_id    String
+  action     String    // "created" | "completed" | "commented" | "assigned" | "moved" | "priority_changed" | etc.
+  details    Json?
+  created_at DateTime? @default(now())
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([event_id])
+  @@index([list_id])
+  @@index([user_id])
+  @@map("activity_logs")
 }
 
 enum attendance_status {

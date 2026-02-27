@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ExternalLink, FileText, Link as LinkIcon, Trash2, Edit, Save, X, BookOpen, Presentation, FileCheck, MoreHorizontal } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 /**
  * Component for managing course resources (links, files, notes)
@@ -201,32 +202,26 @@ export default function CourseResourcesPanel({ courseId }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Type
               </label>
-              <select
+              <CustomSelect
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="input w-full"
-              >
-                <option value="link">Link</option>
-                <option value="note">Note</option>
-                <option value="file">File</option>
-              </select>
+                onChange={(val) => setFormData({ ...formData, type: val })}
+                options={[
+                  { value: 'link', label: 'Link' },
+                  { value: 'note', label: 'Note' },
+                  { value: 'file', label: 'File' },
+                ]}
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
-              <select
+              <CustomSelect
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input w-full"
-              >
-                {categories.map(cat => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setFormData({ ...formData, category: val })}
+                options={categories.map(cat => ({ value: cat.value, label: cat.label }))}
+              />
             </div>
           </div>
 

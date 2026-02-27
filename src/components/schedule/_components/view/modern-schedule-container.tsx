@@ -285,7 +285,11 @@ export default function ModernScheduleContainer({
                 const response = await fetch("/api/events", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(eventData),
+                  credentials: 'include',
+                  body: JSON.stringify({
+                    ...eventData,
+                    courseId: eventData?.course_id || eventData?.courseId || null,
+                  }),
                 });
                 if (!response.ok) throw new Error("Failed to create event");
               }

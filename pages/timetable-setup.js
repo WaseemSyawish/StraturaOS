@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import HygraphSidebar from '@/components/HygraphSidebar';
-import { Calendar, Clock, CheckCircle, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, ArrowRight, ArrowLeft, Sparkles, ShieldAlert } from 'lucide-react';
 import { showCustomAlert } from '@/utils/dialogs';
+import excludedPeriodsData from '../data/excluded-periods.json';
 
 export default function TimetableSetup() {
   const router = useRouter();
@@ -42,8 +43,8 @@ export default function TimetableSetup() {
   const fetchInitialData = async () => {
     try {
       // Fetch courses
-      const coursesRes = await fetch('/api/courses');
-      const coursesData = await coursesRes.json();
+      const coursesRes = await fetch('/api/courses', { credentials: 'include' });
+      const coursesData = await coursesRes.json().catch(() => null);
       if (coursesData.success && coursesData.courses) {
         setCourses(coursesData.courses);
         if (coursesData.courses.length === 0) {
@@ -54,8 +55,8 @@ export default function TimetableSetup() {
       }
 
       // Fetch semester settings
-      const semesterRes = await fetch('/api/semester-settings');
-      const semesterData = await semesterRes.json();
+      const semesterRes = await fetch('/api/semester-settings', { credentials: 'include' });
+      const semesterData = await semesterRes.json().catch(() => null);
       if (semesterData.success) {
         setSemesterSettings(semesterData.settings);
         
@@ -112,9 +113,43 @@ export default function TimetableSetup() {
 
   // Filter courses to show only those in the selected semester
   const getCoursesForSemester = () => {
-    // Always show all courses - the semester selection only affects the date range
-    // Users should be able to add any module to their timetable regardless of semester
-    return courses;
+    if (semester === 'custom') return courses;
+    // Find the semester setting object for the selected ID
+    const selectedSetting = semesterSettings.find(s => String(s.id) === String(semester));
+    if (!selectedSetting) return courses;
+    // Match by semester ID (how Modules page stores it) or by label/name
+    const settingName = (selectedSetting.name || '').trim().toLowerCase();
+    const settingId = String(selectedSetting.id || '').trim().toLowerCase();
+    const settingNorm = settingName.replace(/[^a-z0-9]/g, '');
+    const settingYear = (selectedSetting.start_date || '').slice(0, 4);
+
+    const semesterOrderFromName = (() => {
+      if (/\b(first|1st|semester\s*1|s1)\b/i.test(selectedSetting.name || '')) return '1';
+      if (/\b(second|2nd|semester\s*2|s2)\b/i.test(selectedSetting.name || '')) return '2';
+      if (/\b(third|3rd|semester\s*3|s3)\b/i.test(selectedSetting.name || '')) return '3';
+      return null;
+    })();
+
+    const withSemester = courses.filter((c) => {
+      const courseSem = String(c.semester || '').trim().toLowerCase();
+      if (!courseSem) return false;
+      const courseNorm = courseSem.replace(/[^a-z0-9]/g, '');
+      // Exact ID match (primary)
+      if (settingId && courseSem === settingId) return true;
+      // Exact match
+      if (courseSem === settingName) return true;
+      // Normalized exact match
+      if (settingNorm && courseNorm === settingNorm) return true;
+      // Substring match (e.g. "Fall" in "Fall 2025-2026")
+      if (settingName.includes(courseSem) || courseSem.includes(settingName)) return true;
+      // Match compact stored format like "2025-1" against active semester metadata
+      if (semesterOrderFromName && /^\d{4}-[1-3]$/.test(courseSem)) {
+        const [yearPart, orderPart] = courseSem.split('-');
+        if (orderPart === semesterOrderFromName && (!settingYear || yearPart === settingYear)) return true;
+      }
+      return false;
+    });
+    return withSemester;
   };
 
   const filteredCourses = getCoursesForSemester();
@@ -385,8 +420,40 @@ export default function TimetableSetup() {
                   </div>
                 )}
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Select Your Modules</h2>
-                <p className="text-gray-600 mb-6">Choose the courses you want to add to your timetable</p>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Select Your Modules</h2>
+                  {semester !== 'custom' && semesterSettings.find((s) => String(s.id) === String(semester)) && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs font-semibold text-indigo-700">
+                      <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                      {semesterSettings.find((s) => String(s.id) === String(semester))?.name}
+                    </span>
+                  )}
+                </div>
+
+                {/* Excluded academic periods notice */}
+                {excludedPeriodsData.length > 0 && (
+                  <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ShieldAlert className="w-4 h-4 text-orange-600" />
+                      <p className="text-sm font-semibold text-orange-800">Excluded Academic Periods</p>
+                    </div>
+                    <p className="text-xs text-orange-700 mb-2">Sessions will <strong>not</strong> be generated on these dates:</p>
+                    <div className="space-y-1">
+                      {excludedPeriodsData.map(period => (
+                        <div key={period.id} className="flex items-baseline gap-2 text-xs text-orange-800">
+                          <span className="font-semibold whitespace-nowrap">{period.label}:</span>
+                          <span>{new Date(period.start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(period.end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-gray-600 mb-6">
+                  {semester !== 'custom' && filteredCourses.length < courses.length
+                    ? 'Showing modules for the selected semester. '
+                    : ''}
+                  Choose the courses you want to add to your timetable
+                </p>
 
                 {filteredCourses.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg">

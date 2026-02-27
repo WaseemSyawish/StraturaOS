@@ -6,11 +6,39 @@ import path from 'path';
 const isDev = process.env.NODE_ENV === 'development';
 const DATA_DIR = path.join(process.cwd(), 'data');
 
+function getSemesterOrderFromName(name) {
+  const s = String(name || '').toLowerCase();
+  if (/\b(first|1st|semester\s*1|s1)\b/.test(s)) return '1';
+  if (/\b(second|2nd|semester\s*2|s2)\b/.test(s)) return '2';
+  if (/\b(third|3rd|semester\s*3|s3)\b/.test(s)) return '3';
+  return null;
+}
+
+function normalizeLabel(value) {
+  return String(value || '').trim().toLowerCase().replace(/[-_\s]+/g, ' ');
+}
+
+// Map session types from SmartScheduleManager to actual event type values
+function sessionTypeToEventType(sessionType) {
+  if (!sessionType) return 'class';
+  const lower = sessionType.toLowerCase();
+  if (lower === 'lab') return 'lab';
+  if (lower === 'tutorial') return 'tutorial';
+  if (lower === 'seminar') return 'class';
+  return 'class'; // Lecture and others default to 'class'
+}
+
 // Helper: Calculate all dates for a specific day of week between start and end dates
-function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
+function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = [], excludedRanges = []) {
   const occurrences = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
+  
+  // Pre-compute excluded ranges as [startMs, endMs] pairs for fast lookup
+  const excludedPairs = excludedRanges.map(r => [
+    new Date(r.start + 'T00:00:00').getTime(),
+    new Date(r.end + 'T23:59:59').getTime()
+  ]);
   
   // Find first occurrence of the target day
   let current = new Date(start);
@@ -21,6 +49,7 @@ function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
   // Collect all occurrences
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
+    const currentMs = current.getTime();
     
     // Skip if it's a holiday
     const isHoliday = holidays.some(h => {
@@ -28,7 +57,10 @@ function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
       return holidayDate === dateStr;
     });
     
-    if (!isHoliday) {
+    // Skip if it falls within an excluded period
+    const isExcluded = excludedPairs.some(([s, e]) => currentMs >= s && currentMs <= e);
+    
+    if (!isHoliday && !isExcluded) {
       occurrences.push(new Date(current));
     }
     
@@ -108,29 +140,58 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       // Get all unique smart schedule patterns for this user
       // Returns grouped patterns by course + pattern characteristics
+      const activeSemester = await prisma.semesterSetting.findFirst({
+        where: { user_id: userId, is_active: true },
+        select: { id: true, name: true, start_date: true }
+      });
+
+      const activeYear = activeSemester?.start_date ? new Date(activeSemester.start_date).getFullYear() : null;
+      const activeOrder = getSemesterOrderFromName(activeSemester?.name);
+      const activeLegacy = activeYear && activeOrder ? `${activeYear}-${activeOrder}` : null;
+
+      const isCourseInActiveSemester = (course) => {
+        if (!activeSemester) return true;
+        const semesterRaw = String(course?.semester || '').trim();
+        if (!semesterRaw) return false;
+        if (semesterRaw === String(activeSemester.id)) return true;
+        if (activeLegacy && semesterRaw === activeLegacy) return true;
+        if (normalizeLabel(semesterRaw) === normalizeLabel(activeSemester.name)) return true;
+        return false;
+      };
       
       const events = await prisma.event.findMany({
         where: {
-          user_id: userId,
-          type: 'class' // Only get class events (smart schedules)
+          user_id: userId
         },
         include: {
           courses: true
         },
-        orderBy: [
-          { courses: { name: 'asc' } },
-          { date: 'asc' }
-        ]
+        orderBy: { date: 'asc' }
       });
 
       // Filter to only those with schedulePattern metadata
-      const patternEvents = events.filter(e => e.meta?.schedulePattern);
+      const patternEvents = events.filter(e => e.meta?.schedulePattern && isCourseInActiveSemester(e.courses));
 
       // Group events by course and pattern to find unique patterns
       const patternMap = new Map(); // key = "${courseId}_${dayOfWeek}_${startTime}"
       
       patternEvents.forEach(event => {
-        const pattern = event.meta.schedulePattern;
+        // Support both old format (meta.schedulePattern = true with fields at meta level)
+        // and new format (meta.schedulePattern = { ...fields })
+        const rawPattern = event.meta.schedulePattern;
+        const pattern = typeof rawPattern === 'object' && rawPattern !== null
+          ? rawPattern
+          : {
+              courseId: event.meta.courseId || event.courseId,
+              dayOfWeek: event.meta.dayOfWeek ?? (event.date ? new Date(event.date).getDay() : 0),
+              startTime: event.meta.startTime || event.time || '',
+              endTime: event.meta.endTime || '',
+              sessionType: event.meta.sessionType || 'lecture',
+              location: event.meta.location || '',
+              courseName: event.meta.courseName || '',
+              courseCode: event.meta.courseCode || '',
+              courseColor: event.meta.courseColor || '',
+            };
         if (!pattern) return;
         
         const key = `${pattern.courseId}_${pattern.dayOfWeek}_${pattern.startTime}`;
@@ -193,8 +254,7 @@ export default async function handler(req, res) {
       // Find all events for this user (no course filter, will check pattern metadata instead)
       const allPatternEvents = await prisma.event.findMany({
         where: {
-          user_id: userId,
-          type: 'class' // Only class events have schedulePattern
+          user_id: userId
         }
       });
 
@@ -235,23 +295,15 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      // Update a pattern: delete old instances and create new ones
-      // Body: { oldPattern: {...}, newPattern: {...}, semesterInfo: { start_date, end_date } }
+      // Update a pattern by modifying currently available instances in-place.
+      // Body: { oldPattern: {...}, newPattern: {...} }
       
-      const { oldPattern, newPattern, semesterInfo } = req.body;
+      const { oldPattern, newPattern } = req.body;
       
-      if (!oldPattern || !newPattern || !semesterInfo) {
+      if (!oldPattern || !newPattern) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required fields: oldPattern, newPattern, semesterInfo'
-        });
-      }
-
-      const { start_date, end_date } = semesterInfo;
-      if (!start_date || !end_date) {
-        return res.status(400).json({
-          success: false,
-          error: 'semesterInfo must contain start_date and end_date'
+          error: 'Missing required fields: oldPattern, newPattern'
         });
       }
 
@@ -263,22 +315,19 @@ export default async function handler(req, res) {
         }
       });
 
-      const toDelete = allPatternEvents.filter(e => {
+      const toUpdate = allPatternEvents.filter(e => {
         const p = e.meta?.schedulePattern;
         return p && 
                p.dayOfWeek === oldPattern.dayOfWeek && 
                p.startTime === oldPattern.startTime;
       });
 
-      // Delete old instances
-      let deletedCount = 0;
-      if (toDelete.length > 0) {
-        const result = await prisma.event.deleteMany({
-          where: {
-            id: { in: toDelete.map(e => e.id) }
-          }
+      if (toUpdate.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No matching pattern instances found',
+          modifiedCount: 0
         });
-        deletedCount = result.count;
       }
 
       // Get course details and verify authorization
@@ -293,66 +342,63 @@ export default async function handler(req, res) {
         });
       }
 
-      // Load holidays for the semester date range
-      const startYear = new Date(start_date).getFullYear();
-      const endYear = new Date(end_date).getFullYear();
-      const holidays = loadHolidays(startYear, endYear);
-
-      // Calculate all new occurrence dates with the NEW dayOfWeek
-      const occurrences = calculateOccurrences(
-        new Date(start_date),
-        new Date(end_date),
-        newPattern.dayOfWeek,
-        holidays
-      );
-
-      // Build event title with session type suffix
+      // Build updated event title with session type suffix
       const sessionSuffix = newPattern.sessionType && newPattern.sessionType.toLowerCase() !== 'lecture' 
         ? ` - ${newPattern.sessionType}` 
         : '';
       const eventTitle = `${course.name}${sessionSuffix}`;
 
-      // Prepare new events data
-      const eventsData = occurrences.map(date => ({
-        title: eventTitle,
-        type: 'class',
-        course_id: newPattern.courseId,
-        date: date,
-        time: `${newPattern.startTime}-${newPattern.endTime}`,
-        description: newPattern.location || null,
-        user_id: userId,
-        completed: false,
-        archived: false,
-        meta: {
+      // Shift each available instance date to target weekday within the same week window,
+      // then update metadata and timing fields in-place.
+      const updatePromises = toUpdate.map((event) => {
+        const baseDate = event.date ? new Date(event.date) : null;
+        let nextDate = baseDate;
+        if (baseDate && !Number.isNaN(baseDate.getTime())) {
+          const targetDow = Number(newPattern.dayOfWeek);
+          const currentDow = baseDate.getDay();
+          const delta = targetDow - currentDow;
+          nextDate = new Date(baseDate);
+          nextDate.setDate(baseDate.getDate() + delta);
+        }
+
+        const nextMeta = {
+          ...(event.meta || {}),
           schedulePattern: {
             courseId: newPattern.courseId,
             sessionType: newPattern.sessionType || 'Lecture',
-            dayOfWeek: newPattern.dayOfWeek,
+            dayOfWeek: Number(newPattern.dayOfWeek),
             startTime: newPattern.startTime,
             endTime: newPattern.endTime,
             location: newPattern.location || null
           },
           durationMinutes: calculateDuration(newPattern.startTime, newPattern.endTime)
-        }
-      }));
+        };
 
-      // Bulk insert new events
-      let createdCount = 0;
-      if (eventsData.length > 0) {
-        await prisma.event.createMany({
-          data: eventsData
+        return prisma.event.update({
+          where: { id: event.id },
+          data: {
+            title: eventTitle,
+            type: sessionTypeToEventType(newPattern.sessionType),
+            course_id: newPattern.courseId,
+            date: nextDate,
+            time: `${newPattern.startTime}-${newPattern.endTime}`,
+            location: newPattern.location || null,
+            meta: nextMeta,
+          }
         });
-        createdCount = eventsData.length;
-      }
+      });
+
+      const updatedEvents = await prisma.$transaction(updatePromises);
+      const modifiedCount = updatedEvents.length;
 
       if (isDev) {
-        console.log(`Pattern update: deleted ${deletedCount}, created ${createdCount} for ${course.name}`);
+        console.log(`Pattern update: modified ${modifiedCount} existing instances for ${course.name}`);
       }
 
       return res.status(200).json({
         success: true,
-        message: `Modified ${createdCount} instances`,
-        modifiedCount: createdCount
+        message: `Updated ${modifiedCount} existing instance${modifiedCount === 1 ? '' : 's'}`,
+        modifiedCount
       });
     }
 

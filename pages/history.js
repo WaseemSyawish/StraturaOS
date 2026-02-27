@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { Archive, Search, Calendar, Clock, Tag, X, RotateCcw, Trash2, ChevronDown, ChevronUp, BookOpen, AlertCircle, CheckCircle, Home, Settings, LogOut, FileText, TrendingUp, GraduationCap, Users, Package } from 'lucide-react';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import CustomSelect from '@/components/CustomSelect';
 
 const ArchivedEventsPage = () => {
   const [events, setEvents] = useState([]);
@@ -373,40 +374,33 @@ const ArchivedEventsPage = () => {
               </div>
 
               {/* Type filter */}
-              <select
+              <CustomSelect
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
-              >
-                <option value="all">All Types</option>
-                {eventTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                onChange={(val) => setFilterType(val)}
+                options={[{ value: 'all', label: 'All Types' }, ...eventTypes.map(type => ({ value: type, label: type }))]}
+                placeholder="All Types"
+              />
 
               {/* Course filter */}
-              <select
+              <CustomSelect
                 value={filterCourse}
-                onChange={(e) => setFilterCourse(e.target.value)}
-                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
-              >
-                <option value="all">All Courses</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>{course.code} - {course.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setFilterCourse(val)}
+                options={[{ value: 'all', label: 'All Courses' }, ...courses.map(course => ({ value: String(course.id), label: `${course.code} - ${course.name}` }))]}
+                placeholder="All Courses"
+              />
 
               {/* Sort */}
-              <select
+              <CustomSelect
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 md:px-4 py-2 md:py-2.5 text-sm bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
-              >
-                <option value="date-desc">Newest</option>
-                <option value="date-asc">Oldest</option>
-                <option value="title-asc">A-Z</option>
-                <option value="title-desc">Z-A</option>
-              </select>
+                onChange={(val) => setSortBy(val)}
+                options={[
+                  { value: 'date-desc', label: 'Newest' },
+                  { value: 'date-asc', label: 'Oldest' },
+                  { value: 'title-asc', label: 'A-Z' },
+                  { value: 'title-desc', label: 'Z-A' },
+                ]}
+                placeholder="Sort by"
+              />
             </div>
           </div>
         </div>

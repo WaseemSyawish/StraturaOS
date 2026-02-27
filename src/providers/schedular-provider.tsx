@@ -420,16 +420,8 @@ export const SchedulerProvider = ({
           try { dispatch({ type: "ADD_EVENT", payload: event }); } catch (e) {}
           return event;
         } catch (e: any) {
-          // If the error is a client-side (4xx) response, rethrow so callers can show validation
-          // Otherwise (network error or 5xx) we can fallback to local optimistic add to keep UI responsive
-          try {
-            const status = e && (e.status || e.statusCode || (e.response && e.response.status))
-            if (status && Number(status) >= 400 && Number(status) < 500) {
-              console.warn('[SchedulerProvider] onAddEvent returned client error, aborting local fallback', status, e)
-              throw e
-            }
-          } catch (inner) {}
-          console.warn('[SchedulerProvider] onAddEvent handler failed, falling back to local add', e);
+          console.warn('[SchedulerProvider] onAddEvent failed; aborting local fallback to avoid DB/UI mismatch', e);
+          throw e;
         }
     }
     dispatch({ type: "ADD_EVENT", payload: event });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function EventForm({ values = {}, onChange = () => {}, courseOptions = [], repeatOption, onOpenRepeat, date }) {
   // showRepeatPanel removed; repeat options handled by external modal now
@@ -60,21 +61,27 @@ export default function EventForm({ values = {}, onChange = () => {}, courseOpti
         
         <div className="pt-3">
           <label htmlFor="ev-course" className="text-xs text-gray-500">Course</label>
-          <select id="ev-course" value={values.selectedCourse || ''} onChange={e => update({ selectedCourse: e.target.value })} className="mt-2 w-full px-3 py-2 border border-gray-100 rounded-md text-sm">
-            <option value="">No course</option>
-            {courseOptions.map(c => (<option key={c.id} value={c.id}>{c.code ? `${c.code} — ${c.name}` : c.name}</option>))}
-          </select>
+          <CustomSelect
+            value={values.selectedCourse || ''}
+            onChange={(val) => update({ selectedCourse: val })}
+            placeholder="No course"
+            options={courseOptions.map(c => ({ value: c.id, label: c.code ? `${c.code} — ${c.name}` : c.name }))}
+          />
         </div>
         <div className="pt-3 grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="ev-type" className="text-xs text-gray-500">Type</label>
-            <select id="ev-type" value={values.type || 'class'} onChange={e => update({ type: e.target.value })} className="mt-2 w-full px-3 py-2 border border-gray-100 rounded-md text-sm">
-              <option value="class">Class / Lecture</option>
-              <option value="tutorial">Tutorial</option>
-              <option value="lab">Lab</option>
-              <option value="assignment">Assignment</option>
-              <option value="exam">Exam</option>
-            </select>
+            <CustomSelect
+              value={values.type || 'class'}
+              onChange={(val) => update({ type: val })}
+              options={[
+                { value: 'class', label: 'Class / Lecture' },
+                { value: 'tutorial', label: 'Tutorial' },
+                { value: 'lab', label: 'Lab' },
+                { value: 'assignment', label: 'Assignment' },
+                { value: 'exam', label: 'Exam' },
+              ]}
+            />
           </div>
           <div>
             <label htmlFor="ev-color" className="text-xs text-gray-500">Color</label>

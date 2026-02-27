@@ -7,10 +7,16 @@ const isDev = process.env.NODE_ENV === 'development';
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 // Helper: Calculate all dates for a specific day of week between start and end dates
-function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
+function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = [], excludedRanges = []) {
   const occurrences = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
+  
+  // Pre-compute excluded ranges as [startMs, endMs] pairs for fast lookup
+  const excludedPairs = excludedRanges.map(r => [
+    new Date(r.start + 'T00:00:00').getTime(),
+    new Date(r.end + 'T23:59:59').getTime()
+  ]);
   
   // Find first occurrence of the target day
   let current = new Date(start);
@@ -21,6 +27,7 @@ function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
   // Collect all occurrences
   while (current <= end) {
     const dateStr = current.toISOString().split('T')[0];
+    const currentMs = current.getTime();
     
     // Skip if it's a holiday
     const isHoliday = holidays.some(h => {
@@ -28,7 +35,10 @@ function calculateOccurrences(startDate, endDate, dayOfWeek, holidays = []) {
       return holidayDate === dateStr;
     });
     
-    if (!isHoliday) {
+    // Skip if it falls within an excluded period
+    const isExcluded = excludedPairs.some(([s, e]) => currentMs >= s && currentMs <= e);
+    
+    if (!isHoliday && !isExcluded) {
       occurrences.push(new Date(current));
     }
     
@@ -123,6 +133,34 @@ export default async function handler(req, res) {
     
     if (isDev) console.log(`Loaded ${holidays.length} holidays for date range`);
 
+    // Load excluded academic periods (review weeks, finals, mid-semester breaks, etc.)
+    let excludedRanges = [];
+    try {
+      const excludedFile = path.join(DATA_DIR, 'excluded-periods.json');
+      if (fs.existsSync(excludedFile)) {
+        const excludedData = JSON.parse(fs.readFileSync(excludedFile, 'utf8'));
+        if (Array.isArray(excludedData)) {
+          // Filter to ranges that overlap with our generation window
+          excludedRanges = excludedData.filter(r => {
+            const rStart = new Date(r.start);
+            const rEnd = new Date(r.end);
+            const genStart = new Date(startDate);
+            const genEnd = new Date(endDate);
+            return rStart <= genEnd && rEnd >= genStart;
+          });
+        }
+      }
+    } catch (err) {
+      if (isDev) console.warn('Failed to load excluded periods:', err.message);
+    }
+    
+    // Also accept client-supplied excluded ranges (merged with file-based ones)
+    if (req.body.excludedRanges && Array.isArray(req.body.excludedRanges)) {
+      excludedRanges.push(...req.body.excludedRanges);
+    }
+    
+    if (isDev && excludedRanges.length) console.log(`Excluding ${excludedRanges.length} academic periods from generation`);
+
     const summary = {};;
     let totalEvents = 0;
 
@@ -150,7 +188,8 @@ export default async function handler(req, res) {
         new Date(startDate),
         new Date(endDate),
         dayOfWeek,
-        holidays
+        holidays,
+        excludedRanges
       );
 
       if (isDev) console.log(`Creating ${occurrences.length} events for ${course.name} on day ${dayOfWeek}`);
@@ -168,7 +207,8 @@ export default async function handler(req, res) {
         course_id: courseId,
         date: date,
         time: `${startTime}-${endTime}`,
-        description: location || null,
+        description: null,
+        location: location || null,
         user_id: userId,
         completed: false,
         archived: false,

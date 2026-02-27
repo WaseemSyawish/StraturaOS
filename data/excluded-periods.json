@@ -1,0 +1,34 @@
+[
+  {
+    "id": "sem2-midterm-break",
+    "label": "Mid-Semester Break (Weeks 4–5)",
+    "start": "2026-03-08",
+    "end": "2026-03-15",
+    "semester": "2",
+    "reason": "No lectures scheduled between Week 4 and beginning of Week 5"
+  },
+  {
+    "id": "sem2-review-week",
+    "label": "Review Week",
+    "start": "2026-05-24",
+    "end": "2026-06-01",
+    "semester": "2",
+    "reason": "Dedicated review/revision period before final exams"
+  },
+  {
+    "id": "sem2-official-holidays-may",
+    "label": "Official Holidays (May)",
+    "start": "2026-05-27",
+    "end": "2026-05-30",
+    "semester": "2",
+    "reason": "Official national holidays"
+  },
+  {
+    "id": "sem2-finals-period",
+    "label": "Final Exams Period",
+    "start": "2026-06-01",
+    "end": "2026-07-31",
+    "semester": "2",
+    "reason": "Finals period — no lectures, labs, or tutorials"
+  }
+]

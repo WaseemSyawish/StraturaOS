@@ -3,7 +3,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Calendar, BookOpen, TrendingUp, Clock, CheckCircle, Check, AlertCircle, AlertTriangle, GraduationCap, Users, Plus, Home, Settings, LogOut, Target, Archive, XCircle, Award, MapPin, User, FileText, Timer, BarChart3, Flame, ChevronRight, Lightbulb, ArrowRight, CalendarOff, CheckSquare, Navigation, MoreVertical, Edit2, Trash2, Bell, Beaker, Tag, ListTodo } from 'lucide-react';
-import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 import { fetchWithCache, invalidateCache } from '../lib/cache';
@@ -29,6 +28,10 @@ const URGENCY_COLORS = {
   normal: { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', text: 'text-blue-700 dark:text-blue-400', badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
   success: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-400', badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
 };
+
+const CLASS_LIKE_TYPES = new Set(['class', 'lecture', 'lab', 'tutorial', 'seminar', 'workshop', 'practical', 'session']);
+
+const isClassLikeType = (value) => CLASS_LIKE_TYPES.has(String(value || '').toLowerCase());
 
 // Get course color with fallback
 function getCourseColor(course, index = 0) {
@@ -482,74 +485,143 @@ export default function UniversityOverview() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [router]);
   
-  // Open modal for creating events
-  const openCreateEventModal = useCallback(() => {
-    setOpen(
-      <CustomModal title="Add Event">
-        <AddEventModal />
-      </CustomModal>,
-      async () => ({ default: { date: new Date().toISOString().split('T')[0] } })
-    );
-  }, [setOpen]);
-
-  // Full task creation modal - uses TaskDetailPanel from tasks page
-  const openQuickTaskModal = useCallback(() => {
-    const handleCreate = async (data) => {
-      try {
-        // Build event payload matching tasks page format
-        const payload = {
-          title: data.title,
-          type: data.meta?.type || 'task',
-          status: data.meta?.status || 'todo',
+  const createOverviewTask = useCallback(async (data) => {
+    try {
+      const payload = {
+        title: data.title,
+        type: data.meta?.type || 'task',
+        status: data.meta?.status || 'todo',
+        priority: data.meta?.priority || 'not-urgent-not-important',
+        startDate: data.dueDate || null,
+        dueDate: data.dueDate || null,
+        meta: {
+          myDay: data.meta?.myDay || false,
+          course: data.meta?.course || null,
+          courseColor: data.meta?.courseColor || null,
           priority: data.meta?.priority || 'not-urgent-not-important',
-          startDate: data.dueDate || null,
-          dueDate: data.dueDate || null,
-          meta: {
-            myDay: data.meta?.myDay || false,
-            course: data.meta?.course || null,
-            courseColor: data.meta?.courseColor || null,
-            priority: data.meta?.priority || 'not-urgent-not-important',
-            tags: data.meta?.tags || [],
-            status: data.meta?.status || 'todo',
-            type: data.meta?.type || 'task',
-          },
-        };
-        
-        const res = await fetch('/api/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        
-        if (res.ok) {
-          showToast('Task added!', 'success');
-          // Refresh events to show the new task
-          const eventsRes = await fetch('/api/events');
-          if (eventsRes.ok) {
-            const eventsData = await eventsRes.json();
-            setEvents(eventsData.events || []);
-          }
-          return { success: true };
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          return { success: false, error: errData.message || 'Failed to create task' };
-        }
-      } catch (err) {
-        return { success: false, error: err.message || 'Failed to create task' };
+          tags: data.meta?.tags || [],
+          status: data.meta?.status || 'todo',
+          type: data.meta?.type || 'task',
+        },
+      };
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        return { success: false, error: errData.message || 'Failed to create task' };
       }
-    };
+      const eventsRes = await fetch('/api/events');
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        setEvents(eventsData.events || []);
+      }
+      showToast('Task added!', 'success');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to create task' };
+    }
+  }, [showToast]);
 
+  const mapEventToTask = useCallback((eventLike) => ({
+    id: eventLike.id,
+    title: eventLike.title || eventLike.name || '',
+    description: eventLike.description || '',
+    dueDate: eventLike.date || eventLike.startDate || eventLike.endDate || eventLike.end_date || null,
+    course: eventLike.course || eventLike.courseName || eventLike.courses?.name || eventLike.meta?.course || null,
+    courseColor: eventLike.courseColor || eventLike.courses?.color || eventLike.meta?.courseColor || null,
+    type: eventLike.type || eventLike.meta?.type || 'task',
+    status: eventLike.status || eventLike.meta?.status || 'todo',
+    priority: eventLike.priority || eventLike.meta?.priority || 'not-urgent-not-important',
+    tags: Array.isArray(eventLike.tags) ? eventLike.tags : Array.isArray(eventLike.meta?.tags) ? eventLike.meta.tags : [],
+    myDay: Boolean(eventLike.myDay || eventLike.addedToMyDay || eventLike.meta?.myDay),
+    addedToMyDay: Boolean(eventLike.myDay || eventLike.addedToMyDay || eventLike.meta?.myDay),
+    completed: Boolean(eventLike.completed),
+    meta: eventLike.meta || {},
+  }), []);
+
+  const updateOverviewTaskFields = useCallback(async (taskId, updates) => {
+    try {
+      const payload = { ...updates };
+      if ('dueDate' in payload) {
+        payload.date = payload.dueDate;
+      }
+      const res = await fetch(`/api/events/${encodeURIComponent(taskId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => null);
+      const nextEvent = data?.event || null;
+      if (nextEvent) {
+        setEvents((prev) => prev.map((ev) => (String(ev.id) === String(taskId) ? { ...ev, ...nextEvent } : ev)));
+      } else {
+        setEvents((prev) => prev.map((ev) => (String(ev.id) === String(taskId) ? { ...ev, ...updates } : ev)));
+      }
+    } catch (e) {
+      // silent fail for optimistic UX
+    }
+  }, []);
+
+  const openOverviewTaskModal = useCallback((eventLike) => {
+    const task = mapEventToTask(eventLike);
+    if (!task?.id) return;
     setOpen(
-      <CustomModal title="Add Task">
-        <TaskDetailPanel 
-          mode="create"
+      <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}>
+        <TaskDetailPanel
+          task={task}
           modules={courses}
-          onCreate={handleCreate}
+          toast={{ showToast }}
+          onUpdateFields={updateOverviewTaskFields}
+          onTagsChange={(taskId, tags) => updateOverviewTaskFields(taskId, { tags, meta: { ...(task.meta || {}), tags } })}
+          onToggleComplete={(taskId) => {
+            const current = events.find((e) => String(e.id) === String(taskId));
+            updateOverviewTaskFields(taskId, { completed: !current?.completed, completedAt: !current?.completed ? new Date().toISOString() : null });
+          }}
+          onQuickAction={(taskId, action, value) => {
+            if (action === 'set-date') updateOverviewTaskFields(taskId, { date: value, dueDate: value });
+            if (action === 'set-priority') updateOverviewTaskFields(taskId, { priority: value, meta: { ...(task.meta || {}), priority: value } });
+            if (action === 'my-day') {
+              const current = events.find((e) => String(e.id) === String(taskId));
+              const next = !(current?.meta?.myDay || current?.myDay || current?.addedToMyDay);
+              updateOverviewTaskFields(taskId, { myDay: next, addedToMyDay: next, meta: { ...(current?.meta || {}), myDay: next } });
+            }
+          }}
+          onDeleteTask={async (taskId) => {
+            const res = await fetch(`/api/events/${encodeURIComponent(taskId)}`, { method: 'DELETE' });
+            if (res.ok) {
+              setEvents((prev) => prev.filter((ev) => String(ev.id) !== String(taskId)));
+              setClose();
+            }
+            return { success: res.ok };
+          }}
           onClose={() => setClose()}
         />
       </CustomModal>
     );
-  }, [setOpen, setClose, showToast, courses]);
+  }, [courses, events, mapEventToTask, setClose, setOpen, updateOverviewTaskFields]);
+
+  // Open modal for creating tasks/events using the same Task modal style as Tasks page
+  const openCreateEventModal = useCallback(() => {
+    setOpen(
+      <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}>
+        <TaskDetailPanel
+          mode="create"
+          modules={courses}
+          toast={{ showToast }}
+          onCreate={createOverviewTask}
+          onClose={() => setClose()}
+        />
+      </CustomModal>
+    );
+  }, [courses, createOverviewTask, setClose, setOpen]);
+
+  const openQuickTaskModal = useCallback(() => {
+    openCreateEventModal();
+  }, [openCreateEventModal]);
 
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -654,7 +726,7 @@ export default function UniversityOverview() {
       const list = [];
       for (const ev of events || []) {
         if (!ev) continue;
-        const t = (ev.type || '').toString().toLowerCase();
+        const t = (ev.type || ev.meta?.type || '').toString().toLowerCase();
         // Today's classes: instructional/session types only
         const classTypes = ['class', 'lecture', 'lab', 'tutorial', 'seminar', 'workshop', 'practical'];
         if (!classTypes.includes(t)) continue;
@@ -833,9 +905,8 @@ export default function UniversityOverview() {
         if (!ev) continue;
         const t = (ev.type || '').toString().toLowerCase();
         const evId = String(ev.id);
-        // Upcoming deadlines: all actionable event types (exclude only recurring class schedules)
-        const excludeTypes = ['class']; // Only exclude recurring class schedule items
-        if (excludeTypes.includes(t)) continue;
+        // Upcoming deadlines: actionable task-like items only (exclude all instructional sessions)
+        if (isClassLikeType(t)) continue;
         // Skip completed events - they shouldn't show as overdue
         if (ev.completed === true || ev.completedAt || ev.completed_at) continue;
         // For deadline types, prioritize date field (where tasks store due date), then end_date
@@ -1049,7 +1120,7 @@ export default function UniversityOverview() {
       const start = new Date(startOfWeek);
       const end = new Date(start);
       end.setDate(end.getDate() + 7);
-      setWeekClassesCount(events.filter(e => e && (String(e.type || '').toLowerCase() === 'class' || String(e.type || '').toLowerCase() === 'lecture') && e.startDate).filter(ev => {
+      setWeekClassesCount(events.filter(e => e && isClassLikeType(e.type || e.meta?.type) && e.startDate).filter(ev => {
         const d = new Date(ev.startDate);
         return d >= start && d < end;
       }).length);
@@ -1127,7 +1198,32 @@ export default function UniversityOverview() {
           return;
         }
 
-  const targets = courseList;
+        // Prefer current semester courses for attendance aggregation.
+        let targets = courseList;
+        try {
+          const semJson = await safeFetchJson('/api/semester-settings');
+          const semesterList = Array.isArray(semJson?.settings)
+            ? semJson.settings
+            : Array.isArray(semJson?.semesters)
+            ? semJson.semesters
+            : [];
+          const activeSemester = semesterList.find((s) => s?.is_active) || semesterList[0] || null;
+          if (activeSemester) {
+            const activeId = String(activeSemester.id || '').trim();
+            const activeName = String(activeSemester.name || '').trim().toLowerCase();
+            const semesterCourses = courseList.filter((course) => {
+              const courseSemester = String(course?.semester || '').trim();
+              if (!courseSemester) return false;
+              if (activeId && courseSemester === activeId) return true;
+              return Boolean(activeName && courseSemester.toLowerCase() === activeName);
+            });
+            if (semesterCourses.length > 0) {
+              targets = semesterCourses;
+            }
+          }
+        } catch (e) {
+          // fallback to all courses when semester settings are unavailable
+        }
         // fetch attendance for each course in parallel. Try multiple param fallbacks when necessary.
         const fetchForCourse = async (c) => {
           try {
@@ -1433,11 +1529,12 @@ export default function UniversityOverview() {
   }, [events, completedDeadlines, completedAtMap, currentDate]);
 
   // Overdue / missed tasks (daysLeft < 0)
+  // Use visibleUpcomingDeadlines so completed items are excluded, and guard hasRealDueDate
   const overdueList = useMemo(() => {
     try {
-      return upcomingDeadlines.filter(d => (d.daysLeft ?? 0) < 0);
+      return visibleUpcomingDeadlines.filter(d => (d.daysLeft ?? 0) < 0 && d.hasRealDueDate !== false);
     } catch (e) { return []; }
-  }, [upcomingDeadlines]);
+  }, [visibleUpcomingDeadlines]);
 
   // Calculate quick stats for header (must be before early return to avoid hook order issues)
   const todayTasksCount = useMemo(() => {
@@ -1844,7 +1941,7 @@ export default function UniversityOverview() {
                     const eventDate = new Date(e.startDate);
                     return eventDate.toDateString() === dayDate.toDateString();
                   });
-                  const hasClasses = dayEvents.some(e => ['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes((e.type || '').toLowerCase()));
+                  const hasClasses = dayEvents.some(e => isClassLikeType(e.type || e.meta?.type));
                   const hasDeadlines = dayEvents.some(e => ['deadline', 'assignment', 'exam', 'quiz'].includes((e.type || '').toLowerCase()));
                   
                   return (
@@ -1895,8 +1992,8 @@ export default function UniversityOverview() {
                         endOfWeek.setDate(endOfWeek.getDate() + 7);
                         const attended = events.filter(e => {
                           if (!e || !e.startDate) return false;
-                          const t = (e.type || '').toLowerCase();
-                          if (!['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes(t)) return false;
+                          const t = (e.type || e.meta?.type || '').toLowerCase();
+                          if (!isClassLikeType(t)) return false;
                           const d = new Date(e.startDate);
                           const isThisWeek = d >= startOfWeek && d < endOfWeek;
                           const isPast = e.endDate ? new Date(e.endDate) < currentDate : d < currentDate;
@@ -1914,8 +2011,8 @@ export default function UniversityOverview() {
                         endOfWeek.setDate(endOfWeek.getDate() + 7);
                         return events.filter(e => {
                           if (!e || !e.startDate) return false;
-                          const t = (e.type || '').toLowerCase();
-                          if (!['class', 'lecture', 'lab', 'tutorial', 'seminar'].includes(t)) return false;
+                          const t = (e.type || e.meta?.type || '').toLowerCase();
+                          if (!isClassLikeType(t)) return false;
                           const d = new Date(e.startDate);
                           const isThisWeek = d >= startOfWeek && d < endOfWeek;
                           const isPast = e.endDate ? new Date(e.endDate) < currentDate : d < currentDate;
@@ -2037,7 +2134,7 @@ export default function UniversityOverview() {
                       return (
                         <div 
                           key={deadline.id}
-                          onClick={() => router.push(`/tasks?openTask=${deadline.id}`)}
+                          onClick={() => openOverviewTaskModal(deadline)}
                           className={`group relative cursor-pointer rounded-xl border transition-all duration-200 hover:shadow-md ${
                             isChecked 
                               ? 'bg-gray-50 dark:bg-slate-800/30 border-gray-100 dark:border-slate-800 opacity-60' 

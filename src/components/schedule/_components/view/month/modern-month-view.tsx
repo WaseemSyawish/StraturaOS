@@ -102,6 +102,7 @@ export default function ModernMonthView({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
 
   // Get calendar grid
   const calendarGrid = useMemo(() => {
@@ -387,6 +388,7 @@ export default function ModernMonthView({
                         if (onEventClick) {
                           onEventClick(event);
                         } else {
+                          setModalMode('view');
                           setSelectedEvent(event);
                         }
                       }}
@@ -476,11 +478,10 @@ export default function ModernMonthView({
       {selectedEvent && (
         <UnifiedEventModal
           event={selectedEvent}
-          mode="view"
-          onClose={() => setSelectedEvent(null)}
-          onEdit={(event) => {
-            setSelectedEvent(null);
-            setTimeout(() => setSelectedEvent(event), 50);
+          mode={modalMode}
+          onClose={() => { setSelectedEvent(null); setModalMode('view'); }}
+          onEdit={() => {
+            setModalMode('edit');
           }}
           onSave={async (eventData) => {
             if (handlers?.handleUpdateEvent) {

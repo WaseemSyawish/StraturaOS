@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { parseDatePreserveLocal } from "@/lib/dateHelpers";
-import { ChevronLeft, ChevronRight, Plus, Clock, CalendarDays, Sparkles } from "lucide-react";
+import { 
+  ChevronLeft, ChevronRight, Plus, Clock, CalendarDays, Sparkles,
+  BookOpen, FlaskConical, Lightbulb, ClipboardList, Users, Heart, Tag,
+  MapPin, BookMarked, FileText, Target, AlertTriangle
+} from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { useModal } from "@/providers/modal-context";
 import UnifiedEventModal from "../../../_modals/unified-event-modal";
-import SimpleQuickAddModal from "@/components/Timetable/SimpleQuickAddModal";
+import EventDetailPopover from "@/components/schedule/EventDetailPopover";
 import { Event, CustomEventModal } from "@/types";
 
 // Constants
@@ -96,6 +101,14 @@ const getEventColorClasses = (color: string | undefined) => {
   return EVENT_COLORS[key] || EVENT_COLORS.purple;
 };
 
+// Convert hex to rgba for visible colored fills
+const hexToRgba = (hex: string, alpha: number): string => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 // Format hour for display
 const formatHour = (hour: number): string => {
   if (hour === 0) return "12 AM";
@@ -111,6 +124,24 @@ const formatEventTime = (date: Date): string => {
   const hour12 = h % 12 || 12;
   const ampm = h < 12 ? "a" : "p";
   return m === 0 ? `${hour12}${ampm}` : `${hour12}:${String(m).padStart(2, "0")}${ampm}`;
+};
+
+// Event type icon mapping
+const EVENT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+  class: BookOpen,
+  lab: FlaskConical,
+  tutorial: Lightbulb,
+  study: BookMarked,
+  exam: AlertTriangle,
+  meeting: Users,
+  personal: Heart,
+  assignment: FileText,
+  deadline: Clock,
+  other: Target,
+};
+
+const getEventTypeIcon = (type?: string) => {
+  return EVENT_TYPE_ICONS[type || 'other'] || Tag;
 };
 
 interface ModernDayViewProps {
@@ -130,8 +161,11 @@ export default function ModernDayView({
   const gridRef = useRef<HTMLDivElement>(null);
 
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [slideDirection, setSlideDirection] = useState(0); // -1 left, 1 right
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [popoverEvent, setPopoverEvent] = useState<Event | null>(null);
+  const [popoverRect, setPopoverRect] = useState<DOMRect | null>(null);
   const [createEventModal, setCreateEventModal] = useState<{
     date: Date;
     time: string;
@@ -172,6 +206,7 @@ export default function ModernDayView({
 
   // Navigation
   const goToPrevDay = useCallback(() => {
+    setSlideDirection(-1);
     setCurrentDate((d) => {
       const newDate = new Date(d);
       newDate.setDate(d.getDate() - 1);
@@ -180,6 +215,7 @@ export default function ModernDayView({
   }, []);
 
   const goToNextDay = useCallback(() => {
+    setSlideDirection(1);
     setCurrentDate((d) => {
       const newDate = new Date(d);
       newDate.setDate(d.getDate() + 1);
@@ -188,6 +224,7 @@ export default function ModernDayView({
   }, []);
 
   const goToToday = useCallback(() => {
+    setSlideDirection(1);
     setCurrentDate(new Date());
   }, []);
 
@@ -214,16 +251,25 @@ export default function ModernDayView({
   // Save event from create modal
   const handleCreateSave = useCallback(
     async (eventData: any) => {
-      if (handlers?.handleAddEvent) {
-        await handlers.handleAddEvent(eventData);
-      } else {
-        await fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(eventData),
-        });
+      try {
+        if (handlers?.handleAddEvent) {
+          await handlers.handleAddEvent(eventData);
+        } else {
+          const res = await fetch("/api/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: 'include',
+            body: JSON.stringify(eventData),
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(text || `POST /api/events failed (${res.status})`);
+          }
+        }
+        setCreateEventModal(null);
+      } catch (err) {
+        console.error('[ModernDayView] Failed to create event:', err);
       }
-      setCreateEventModal(null);
     },
     [handlers]
   );
@@ -234,6 +280,11 @@ export default function ModernDayView({
 
     const ensureDate = (d: any): Date =>
       d instanceof Date ? d : parseDatePreserveLocal(d) || new Date(String(d));
+
+    const minuteStamp = (d: any) => {
+      const dt = ensureDate(d);
+      return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours(), dt.getMinutes(), 0, 0).getTime();
+    };
 
     // Sort by start time
     const sorted = [...dayEvents].sort(
@@ -246,8 +297,8 @@ export default function ModernDayView({
     let groupEnd = 0;
 
     sorted.forEach((event) => {
-      const start = ensureDate(event.startDate).getTime();
-      const end = ensureDate(event.endDate).getTime();
+      const start = minuteStamp(event.startDate);
+      const end = minuteStamp(event.endDate);
 
       if (currentGroup.length === 0 || start < groupEnd) {
         currentGroup.push(event);
@@ -274,12 +325,12 @@ export default function ModernDayView({
       const columns: Event[][] = [];
 
       group.forEach((event) => {
-        const eventStart = ensureDate(event.startDate).getTime();
+        const eventStart = minuteStamp(event.startDate);
         let placed = false;
 
         for (let i = 0; i < columns.length; i++) {
           const lastInColumn = columns[i][columns[i].length - 1];
-          const lastEnd = ensureDate(lastInColumn.endDate).getTime();
+          const lastEnd = minuteStamp(lastInColumn.endDate);
           if (eventStart >= lastEnd) {
             columns[i].push(event);
             placed = true;
@@ -368,9 +419,18 @@ export default function ModernDayView({
               <CalendarDays className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                {headerDate}
-              </h2>
+              <AnimatePresence mode="wait">
+                <motion.h2 
+                  key={headerDate}
+                  initial={{ opacity: 0, x: slideDirection * 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -slideDirection * 20 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="text-lg font-bold text-slate-900 dark:text-white tracking-tight"
+                >
+                  {headerDate}
+                </motion.h2>
+              </AnimatePresence>
               {isToday && (
                 <span 
                   className="text-xs font-semibold flex items-center gap-1"
@@ -406,10 +466,10 @@ export default function ModernDayView({
         )}
       </div>
 
-      {/* Time Grid - Premium dark styling */}
+      {/* Time Grid */}
       <div
         ref={gridRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50 dark:bg-slate-950"
+        className="flex-1 overflow-y-auto overflow-x-hidden relative bg-white dark:bg-slate-950"
         style={{ 
           maxHeight: "calc(100vh - 300px)",
         }}
@@ -423,9 +483,9 @@ export default function ModernDayView({
               className="absolute w-full flex"
               style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}
             >
-              {/* Time label - premium styling */}
+              {/* Time label */}
               <div className="w-16 flex-shrink-0 pr-3 text-right relative">
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 -mt-2 block tabular-nums tracking-tight">
+                <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 -mt-2 block tabular-nums tracking-tight">
                   {formatHour(hour)}
                 </span>
               </div>
@@ -433,40 +493,45 @@ export default function ModernDayView({
               {/* Grid line and clickable area */}
               <div
                 className={cn(
-                  "flex-1 cursor-pointer group relative border-l",
+                  "flex-1 cursor-pointer group relative",
                   "transition-all duration-200",
-                  "border-l-slate-200 dark:border-l-slate-700"
                 )}
                 onMouseEnter={() => setHoveredHour(hour)}
                 onMouseLeave={() => setHoveredHour(null)}
                 onClick={(e) => handleSlotClick(hour, e)}
               >
-                {/* Hour line - subtle */}
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-slate-300/50 via-slate-200/30 to-transparent dark:from-slate-600/80 dark:via-slate-600/50 dark:to-transparent" />
+                {/* Hour line */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-slate-100 dark:bg-slate-800" />
 
-                {/* Half-hour line - very subtle */}
+                {/* Half-hour line */}
                 <div
-                  className="absolute w-full h-px bg-gradient-to-r from-slate-200/40 to-transparent dark:from-slate-700/60 dark:to-transparent"
+                  className="absolute w-full h-px bg-slate-50 dark:bg-slate-800/50"
                   style={{ top: HOUR_HEIGHT / 2 }}
                 />
 
-                {/* Hover effect - premium gradient */}
+                {/* Hover effect */}
                 <div className={cn(
-                  "absolute inset-0 opacity-0 transition-opacity duration-200 bg-gradient-to-r from-purple-500/10 to-transparent dark:from-purple-500/15",
+                  "absolute inset-0 opacity-0 transition-opacity duration-200 rounded-r-lg",
                   hoveredHour === hour && "opacity-100"
-                )} />
+                )} 
+                style={{
+                  background: hoveredHour === hour 
+                    ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.04) 0%, rgba(147, 51, 234, 0.02) 50%, transparent 100%)' 
+                    : 'none'
+                }}
+                />
 
-                {/* Hover indicator - premium pill */}
+                {/* Hover indicator pill */}
                 {hoveredHour === hour && !createEventModal && (
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
                     <div 
-                      className="flex items-center gap-1.5 px-4 py-2 text-white text-xs font-semibold rounded-full transform group-hover:scale-100 scale-90 transition-transform duration-200"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-white text-[11px] font-semibold rounded-full transform group-hover:scale-100 scale-90 transition-transform duration-200"
                       style={{
                         background: 'linear-gradient(135deg, #9333EA 0%, #A855F7 100%)',
-                        boxShadow: '0 4px 20px rgba(147, 51, 234, 0.4)'
+                        boxShadow: '0 4px 16px rgba(147, 51, 234, 0.3)'
                       }}
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3 h-3" />
                       <span>Add event</span>
                     </div>
                   </div>
@@ -475,44 +540,64 @@ export default function ModernDayView({
             </div>
           ))}
 
-          {/* Events Layer - Today's Schedule style cards */}
+          {/* Events – Vibrant animated blocks */}
           <div className="absolute inset-0 pl-16 pr-3 pointer-events-none overflow-hidden">
             <div className="relative w-full h-full">
-            {positionedEvents.map(({ event, top, height, left, width, zIndex }) => {
-              // Color priority: course.color → event.color → variant → default
+            <AnimatePresence mode="popLayout">
+            {positionedEvents.map(({ event, top, height, left, width, zIndex }, idx) => {
               const courseColor = (event as any).courses?.color;
               const rawColor = courseColor || event.color || (event as any).variant || 'blue';
               const startDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
               const endDate = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
-              const isCompact = height < 50;
-              const isVeryCompact = height < 30;
               
-              // Check if event is in the past
+              // Size tiers for responsive content
+              const isTiny = height < 32;
+              const isCompact = height < 55;
+              const isMedium = height >= 55 && height < 90;
+              const isTall = height >= 90;
+              const isVeryTall = height >= 140;
+              
               const now = new Date();
               const isPast = endDate < now;
               
-              // Hex colors
               const hexColors: Record<string, string> = {
-                purple: '#9333EA', blue: '#4285F4', green: '#0F9D58', emerald: '#0F9D58',
-                red: '#DB4437', rose: '#E91E63', orange: '#F4511E', amber: '#F09300',
-                pink: '#E91E63', cyan: '#00ACC1', teal: '#009688', yellow: '#F6BF26',
-                indigo: '#3F51B5', lime: '#7CB342', slate: '#607D8B', gray: '#616161'
+                purple: '#8B5CF6', blue: '#3B82F6', green: '#10B981', emerald: '#10B981',
+                red: '#EF4444', rose: '#F43F5E', orange: '#F97316', amber: '#F59E0B',
+                pink: '#EC4899', cyan: '#06B6D4', teal: '#14B8A6', yellow: '#EAB308',
+                indigo: '#6366F1', lime: '#84CC16', slate: '#64748B', gray: '#6B7280'
               };
               
               const hex = rawColor.startsWith('#') 
                 ? rawColor 
                 : (hexColors[rawColor.toLowerCase()] || hexColors.blue);
               
+              const courseName = (event as any).courses?.name || null;
               const courseCode = (event as any).courses?.code || (event as any).course_code || null;
+              const eventLocation = (event as any).location || (event as any).room || null;
+              const eventType = event.type || 'other';
+              const TypeIcon = getEventTypeIcon(eventType);
+              const durationMins = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
 
               return (
-                <div
+                <motion.div
                   key={event.id}
+                  initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                  animate={{ opacity: isPast ? 0.45 : 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                  transition={{ 
+                    duration: 0.35, 
+                    delay: idx * 0.04,
+                    ease: [0.25, 0.46, 0.45, 0.94] 
+                  }}
+                  whileHover={!isPast ? { 
+                    scale: 1.015, 
+                    y: -2,
+                    transition: { duration: 0.2 } 
+                  } : undefined}
+                  whileTap={!isPast ? { scale: 0.98 } : undefined}
                   className={cn(
-                    "absolute cursor-pointer pointer-events-auto overflow-hidden group rounded-xl border transition-all",
-                    isPast 
-                      ? "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 opacity-60 hover:opacity-80" 
-                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600"
+                    "absolute cursor-pointer pointer-events-auto overflow-hidden group",
+                    isPast && "grayscale-[30%]"
                   )}
                   style={{
                     top: top + 1,
@@ -520,84 +605,149 @@ export default function ModernDayView({
                     left: 0,
                     right: 0,
                     marginLeft: left,
-                    width: `min(${width}, calc(100% - 8px))`,
-                    maxWidth: 'calc(100% - 8px)',
+                    width: `min(${width}, calc(100% - 6px))`,
+                    maxWidth: 'calc(100% - 6px)',
                     zIndex,
+                    borderRadius: '12px',
+                    background: `linear-gradient(135deg, ${hexToRgba(hex, 0.22)} 0%, ${hexToRgba(hex, 0.12)} 100%)`,
+                    borderLeft: `4px solid ${hex}`,
+                    boxShadow: isPast ? 'none' : `0 2px 8px ${hexToRgba(hex, 0.12)}, 0 0 0 1px ${hexToRgba(hex, 0.08)}`,
+                    backdropFilter: 'blur(8px)',
                   }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (onEventClick) {
                       onEventClick(event);
                     } else {
-                      setSelectedEvent(event);
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setPopoverEvent(event);
+                      setPopoverRect(rect);
                     }
                   }}
                 >
-                  {/* Left color indicator */}
+                  {/* Decorative gradient accent on hover */}
                   <div 
-                    className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
-                    style={{ backgroundColor: hex, opacity: isPast ? 0.5 : 1 }}
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" 
+                    style={{ 
+                      background: `linear-gradient(135deg, ${hexToRgba(hex, 0.08)} 0%, transparent 60%)`,
+                      borderRadius: '12px' 
+                    }} 
                   />
                   
                   <div className={cn(
-                    "h-full flex items-center gap-3 overflow-hidden pl-4 pr-3",
-                    isVeryCompact ? "py-1" : "py-2"
+                    "h-full flex overflow-hidden relative z-10",
+                    isTiny ? "items-center px-2.5" : "flex-col justify-start px-3 py-2"
                   )}>
-                    {/* Time column */}
-                    <div className="flex-shrink-0 text-center min-w-[50px]">
-                      <p className={cn(
-                        "text-sm font-bold",
-                        isPast ? "text-slate-500 dark:text-slate-500" : "text-slate-900 dark:text-white"
-                      )}>
-                        {formatEventTime(startDate)}
-                      </p>
-                      {!isVeryCompact && (
-                        <p className={cn(
-                          "text-[10px]",
-                          isPast ? "text-slate-400 dark:text-slate-600" : "text-slate-400 dark:text-slate-500"
-                        )}>
-                          {formatEventTime(endDate)}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* Divider */}
-                    {!isVeryCompact && (
-                      <div className={cn(
-                        "w-px h-8 flex-shrink-0",
-                        isPast ? "bg-slate-200 dark:bg-slate-700/50" : "bg-slate-200 dark:bg-slate-700"
-                      )} />
-                    )}
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Course badge */}
-                      {!isVeryCompact && courseCode && (
-                        <span 
-                          className={cn(
-                            "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold mb-1",
-                            isPast && "opacity-70"
-                          )}
-                          style={{ backgroundColor: `${hex}20`, color: hex }}
+                    {isTiny ? (
+                      /* ── Tiny: icon + title only ── */
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div 
+                          className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center"
+                          style={{ backgroundColor: hexToRgba(hex, 0.2) }}
                         >
-                          {courseCode}
+                          <TypeIcon size={10} style={{ color: hex }} />
+                        </div>
+                        <span className="font-bold text-[11px] truncate" style={{ color: hex }}>
+                          {event.title}
                         </span>
-                      )}
-                      <p className={cn(
-                        "font-semibold truncate",
-                        isVeryCompact ? "text-xs" : "text-sm",
-                        isPast ? "text-slate-500 dark:text-slate-500" : "text-slate-900 dark:text-white"
-                      )}>
-                        {event.title}
-                      </p>
-                    </div>
+                      </div>
+                    ) : isCompact ? (
+                      /* ── Compact: icon + title, time below ── */
+                      <>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div 
+                            className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center"
+                            style={{ backgroundColor: hexToRgba(hex, 0.2) }}
+                          >
+                            <TypeIcon size={11} style={{ color: hex }} />
+                          </div>
+                          <span className="font-bold text-[12px] truncate leading-tight" style={{ color: hex }}>
+                            {event.title}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-semibold mt-0.5 truncate" style={{ color: hexToRgba(hex, 0.6) }}>
+                          {formatEventTime(startDate)} – {formatEventTime(endDate)}
+                        </span>
+                      </>
+                    ) : (
+                      /* ── Medium / Tall / Very Tall: clean layout ── */
+                      <>
+                        {/* Title — prominent, with type icon inline */}
+                        <div className="flex items-start gap-1.5 mb-0.5">
+                          <div 
+                            className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center mt-0.5"
+                            style={{ backgroundColor: hexToRgba(hex, 0.15) }}
+                          >
+                            <TypeIcon size={11} style={{ color: hex }} />
+                          </div>
+                          <p 
+                            className={cn(
+                              "font-bold leading-snug truncate",
+                              isMedium ? "text-[13px]" : "text-[14px]"
+                            )}
+                            style={{ color: hex }}
+                          >
+                            {event.title}
+                          </p>
+                        </div>
+
+                        {/* Time range */}
+                        <p className="text-[11px] font-semibold flex items-center gap-1 ml-0.5" style={{ color: hexToRgba(hex, 0.55) }}>
+                          <Clock size={10} className="flex-shrink-0" />
+                          <span>{formatEventTime(startDate)} – {formatEventTime(endDate)}</span>
+                          <span className="ml-auto text-[10px] tabular-nums" style={{ color: hexToRgba(hex, 0.45) }}>
+                            {durationMins < 60 
+                              ? `${durationMins}m` 
+                              : durationMins % 60 === 0 
+                                ? `${durationMins / 60}h` 
+                                : `${Math.floor(durationMins / 60)}h${durationMins % 60}m`}
+                          </span>
+                        </p>
+
+                        {/* Course + Location row (if tall enough) */}
+                        {isTall && (courseName || eventLocation) && (
+                          <div className="flex items-center gap-2 mt-1.5 text-[10px] font-medium truncate" style={{ color: hexToRgba(hex, 0.5) }}>
+                            {courseName && (
+                              <span className="flex items-center gap-1 truncate">
+                                <BookOpen size={9} className="flex-shrink-0" style={{ color: hexToRgba(hex, 0.4) }} />
+                                <span className="truncate">{courseCode || courseName}</span>
+                              </span>
+                            )}
+                            {courseName && eventLocation && (
+                              <span style={{ color: hexToRgba(hex, 0.3) }}>·</span>
+                            )}
+                            {eventLocation && (
+                              <span className="flex items-center gap-1 truncate">
+                                <MapPin size={9} className="flex-shrink-0" style={{ color: hexToRgba(hex, 0.4) }} />
+                                <span className="truncate">{eventLocation}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Description preview (only very tall blocks) */}
+                        {isVeryTall && event.description && (
+                          <p 
+                            className="text-[10px] font-medium mt-2 line-clamp-2 leading-relaxed px-1.5 py-1 rounded-md"
+                            style={{ 
+                              color: hexToRgba(hex, 0.45),
+                              backgroundColor: hexToRgba(hex, 0.05)
+                            }}
+                          >
+                            {event.description}
+                          </p>
+                        )}
+                      </>
+                    )}
                   </div>
-                </div>
+                </motion.div>
               );
             })}
+            </AnimatePresence>
             </div>
           </div>
 
-          {/* Current time indicator - Premium */}
+          {/* Current time indicator */}
           {isToday && currentTimePosition >= 0 && (
             <div
               className="absolute left-12 right-0 flex items-center z-30 pointer-events-none"
@@ -621,16 +771,25 @@ export default function ModernDayView({
         </div>
       </div>
 
-      {/* Footer with event count - Premium */}
+      {/* Footer with event count - Animated */}
       <div 
         className="px-5 py-3 relative border-t border-slate-200/80 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900/80"
       >
         <div className="flex items-center justify-between relative">
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            {dayEvents.length === 0
-              ? "No events scheduled"
-              : `${dayEvents.length} event${dayEvents.length > 1 ? "s" : ""} scheduled`}
-          </p>
+          <AnimatePresence mode="wait">
+            <motion.p 
+              key={`${currentDate.toDateString()}-${dayEvents.length}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="text-sm font-medium text-slate-500 dark:text-slate-400"
+            >
+              {dayEvents.length === 0
+                ? "No events scheduled"
+                : `${dayEvents.length} event${dayEvents.length > 1 ? "s" : ""} scheduled`}
+            </motion.p>
+          </AnimatePresence>
           {dayEvents.length > 0 && (
             <div className="flex -space-x-1">
               {dayEvents.slice(0, 4).map((e, i) => {
@@ -662,7 +821,24 @@ export default function ModernDayView({
         </div>
       </div>
 
-      {/* Event Edit Modal - Goes directly to edit mode */}
+      {/* Event Detail Popover */}
+      {popoverEvent && popoverRect && (
+        <EventDetailPopover
+          event={popoverEvent}
+          anchorRect={popoverRect}
+          onClose={() => { setPopoverEvent(null); setPopoverRect(null); }}
+          onEdit={() => { setSelectedEvent(popoverEvent); setPopoverEvent(null); setPopoverRect(null); }}
+          onDelete={async () => {
+            if (handlers?.handleDeleteEvent) {
+              await handlers.handleDeleteEvent(popoverEvent.id);
+            }
+            setPopoverEvent(null);
+            setPopoverRect(null);
+          }}
+        />
+      )}
+
+      {/* Event Edit Modal */}
       {selectedEvent && (
         <UnifiedEventModal
           event={selectedEvent}
@@ -687,15 +863,12 @@ export default function ModernDayView({
         />
       )}
 
-      {/* Create Event Modal - NEW SIMPLE QUICK ADD */}
+      {/* Create Event Modal */}
       {createEventModal && (
-        <SimpleQuickAddModal
-          visible={!!createEventModal}
-          slot={{
-            date: createEventModal.date,
-            time: createEventModal.time
-          }}
-          courseOptions={[]}
+        <UnifiedEventModal
+          mode="create"
+          initialDate={createEventModal.date}
+          initialTime={createEventModal.time}
           onClose={() => setCreateEventModal(null)}
           onSave={handleCreateSave}
         />

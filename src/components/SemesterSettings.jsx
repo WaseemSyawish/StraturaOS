@@ -24,8 +24,9 @@ export default function SemesterSettings() {
   const fetchSettings = async () => {
     try {
       const response = await fetch('/api/semester-settings');
-      const data = await response.json();
-      if (data.success) {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json().catch(() => null);
+      if (data && data.success) {
         setSettings(data.settings);
       }
     } catch (err) {
@@ -67,13 +68,13 @@ export default function SemesterSettings() {
         body: JSON.stringify(form)
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const data = await response.json().catch(() => null);
+      if (data && data.success) {
         await fetchSettings();
         setShowAdd(false);
         setEditing(null);
       } else {
-        await showCustomAlert('Save Failed', data.error || 'Failed to save semester', 'danger');
+        await showCustomAlert('Save Failed', data?.error || 'Failed to save semester', 'danger');
       }
     } catch (err) {
       console.error('Save error:', err);
@@ -94,11 +95,11 @@ export default function SemesterSettings() {
         method: 'DELETE'
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const data = await response.json().catch(() => null);
+      if (data && data.success) {
         await fetchSettings();
       } else {
-        await showCustomAlert('Delete Failed', data.error || 'Failed to delete', 'danger');
+        await showCustomAlert('Delete Failed', data?.error || 'Failed to delete', 'danger');
       }
     } catch (err) {
       console.error('Delete error:', err);
@@ -114,8 +115,8 @@ export default function SemesterSettings() {
         body: JSON.stringify({ id, is_active: true })
       });
 
-      const data = await response.json();
-      if (data.success) {
+      const data = await response.json().catch(() => null);
+      if (data && data.success) {
         await fetchSettings();
         // Switch the semester in context so all pages update
         const semester = settings.find(s => s.id === id);
@@ -142,7 +143,7 @@ export default function SemesterSettings() {
   const activeSemester = settings.find(s => s.is_active);
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-indigo-50 dark:from-slate-800 dark:to-slate-900 rounded-xl shadow-sm p-6 mb-6 border border-indigo-100 dark:border-slate-700">
+    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl shadow-sm p-6 mb-6 border border-indigo-100 dark:border-slate-700">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">

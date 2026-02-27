@@ -197,7 +197,6 @@ async function handler(req, res) {
               location: true,
               archived: true,
               course_id: true,
-              color: true,
               template_id: true,
               date: true,
               time: true,
@@ -229,7 +228,6 @@ async function handler(req, res) {
                   type: true,
                   location: true,
                   course_id: true,
-                  color: true,
                   template_id: true,
                   date: true,
                   time: true,
@@ -529,7 +527,9 @@ async function handler(req, res) {
   }
   if (req.method === 'POST') {
     try {
-  const { title, type, courseId, date, time, description, notes, subtasks, attachments, durationMinutes, repeatOption } = req.body;
+  const { title, type, date, time, description, notes, subtasks, attachments, durationMinutes, repeatOption } = req.body;
+  // Accept both camelCase and snake_case for courseId
+  const courseId = req.body.courseId || req.body.course_id || null;
   // Debug: log truncated incoming body to help diagnose missing materialize/template flags
   if (isDev) {
     try {
@@ -623,6 +623,11 @@ async function handler(req, res) {
       const incomingPriority = normalizePriority(req.body?.priority) || normalizePriority(req.body?.meta?.priority);
       if (incomingPriority) {
         ensureMeta().priority = incomingPriority;
+      }
+
+      const incomingColor = req.body?.color ?? req.body?.meta?.color;
+      if (typeof incomingColor === 'string' && incomingColor.trim().length > 0) {
+        ensureMeta().color = incomingColor.trim();
       }
 
       const buildRecurrenceMeta = (body = {}) => {
@@ -809,7 +814,6 @@ async function handler(req, res) {
                   time: time || null,
                   description: finalDescription,
                   location: location,
-                  color: req.body && req.body.color ? String(req.body.color) : null,
                   user_id: resolvedUserId ? String(resolvedUserId) : null
                 };
                 // Include meta if supported
@@ -878,7 +882,6 @@ async function handler(req, res) {
                     time: time || null,
                     description: finalDescription,
                     location: location,
-                    color: req.body && req.body.color ? String(req.body.color) : null,
                     user_id: resolvedUserId ? String(resolvedUserId) : null
                   };
 
@@ -928,7 +931,6 @@ async function handler(req, res) {
                       time: time || null,
                       description: finalDescription,
                       location: location,
-                      color: req.body && req.body.color ? String(req.body.color) : null,
                       user_id: resolvedUserId ? String(resolvedUserId) : null,
                       template_id: mainEvent && mainEvent.id ? mainEvent.id : undefined
                     });
@@ -961,7 +963,6 @@ async function handler(req, res) {
                   time: time || null,
                   description: finalDescription,
                   location: location,
-                  color: req.body && req.body.color ? String(req.body.color) : null,
                   user_id: resolvedUserId ? String(resolvedUserId) : null
                 };
                 if (metaToStore !== null) {
@@ -1018,7 +1019,6 @@ async function handler(req, res) {
                     time: time || null,
                     description: finalDescription,
                     location: location,
-                    color: req.body && req.body.color ? String(req.body.color) : null,
                     user_id: resolvedUserId ? String(resolvedUserId) : null,
                     // ensure child occurrences inherit mainEvent.id as template_id when available
                     template_id: mainEvent && mainEvent.id ? mainEvent.id : tpl.id
@@ -1075,7 +1075,6 @@ async function handler(req, res) {
                       time: time || null,
                       description: finalDescription,
                       location: location,
-                      color: req.body && req.body.color ? String(req.body.color) : null,
                       user_id: resolvedUserId ? String(resolvedUserId) : null,
                       template_id: mainEvent && mainEvent.id ? mainEvent.id : tpl.id
                     });
@@ -1130,7 +1129,8 @@ async function handler(req, res) {
             date: parseDateForStorage(chosenDateObj),
             time: chosenTimeStr,
             description: finalDescription,
-            color: req.body && req.body.color ? String(req.body.color) : null,
+            location: location || null,
+            course_id: courseId || null,
             user_id: resolvedUserId ? String(resolvedUserId) : null
           };
           if (endDateToStore) createData.end_date = endDateToStore;
@@ -1162,7 +1162,8 @@ async function handler(req, res) {
                 date: parseDateForStorage(chosenDateObj),
                 time: chosenTimeStr,
                 description: finalDescription,
-                color: req.body && req.body.color ? String(req.body.color) : null,
+                location: location || null,
+                course_id: courseId || null,
                 user_id: resolvedUserId ? String(resolvedUserId) : null
               };
               // Only include meta if meta column is supported; otherwise embed later
@@ -1173,7 +1174,7 @@ async function handler(req, res) {
               } else if (typeof durationMinutes !== 'undefined' && durationMinutes !== null) {
                 fallbackData.meta = { durationMinutes: Number(durationMinutes) };
               }
-              created = await prisma.event.create({ data: fallbackData });
+              created = await createEventWithFallback(prisma, fallbackData);
               if (isDev) {
                 try { console.info('[api/events] fallback create (no meta/end_date) payload keys:', Object.keys(fallbackData)); } catch (le) {}
               }
@@ -1191,17 +1192,18 @@ async function handler(req, res) {
                     descriptionWithMeta = descriptionWithMeta ? (descriptionWithMeta + '\n\n__META__:' + safeMeta) : ('__META__:' + safeMeta);
                   }
                 } catch (se) { /* ignore */ }
-                created = await prisma.event.create({ data: {
+                created = await createEventWithFallback(prisma, {
                   title,
                   type: type || 'assignment',
                   date: parseDateForStorage(chosenDateObj),
                   time: chosenTimeStr,
                   description: descriptionWithMeta,
-                  color: req.body && req.body.color ? String(req.body.color) : null,
+                  location: location || null,
+                  course_id: courseId || null,
                   user_id: resolvedUserId ? String(resolvedUserId) : null
-                }});
+                });
                 if (isDev) {
-                  try { console.info('[api/events] fallback embed-meta create payload keys:', Object.keys({ title, type, date: dt, time: time || null, description: descriptionWithMeta, color: req.body && req.body.color ? String(req.body.color) : null, user_id: resolvedUserId ? String(resolvedUserId) : null })); } catch (le) {}
+                  try { console.info('[api/events] fallback embed-meta create payload keys:', Object.keys({ title, type, date: parseDateForStorage(chosenDateObj), time: chosenTimeStr, description: descriptionWithMeta, user_id: resolvedUserId ? String(resolvedUserId) : null })); } catch (le) {}
                 }
                 try { created.meta = metaToStore; } catch (a) {}
               } catch (ee3) {

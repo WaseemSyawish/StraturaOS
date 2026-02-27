@@ -74,6 +74,8 @@ function CustomDropdown({ value, options, onChange, label }) {
 }
 const DEFAULTS = {
   theme: 'system',
+  accentColor: 'purple',
+  enableGradients: true,
   weekStartsOn: 'monday',
   defaultView: 'week',
   notifications: true,
@@ -286,12 +288,14 @@ export default function Settings() {
   function update(key, value) {
     setSettings((s) => {
       const newSettings = { ...s, [key]: value };
-      // Persist to localStorage immediately for theme changes
-      if (key === 'theme') {
+      // Persist to localStorage immediately for theme/accent/gradient changes
+      if (key === 'theme' || key === 'accentColor' || key === 'enableGradients') {
         try { 
           localStorage.setItem('up:settings', JSON.stringify(newSettings));
-          // Also update the next-themes storage key directly
-          localStorage.setItem('up:theme', value);
+          if (key === 'theme') {
+            // Also update the next-themes storage key directly
+            localStorage.setItem('up:theme', value);
+          }
         } catch (e) {
           console.warn('Failed to persist settings:', e);
         }
@@ -301,10 +305,12 @@ export default function Settings() {
     // Immediately apply theme changes via next-themes
     if (key === 'theme' && setTheme && typeof setTheme === 'function') {
       setTheme(value);
-      // Also dispatch event so _app.js can sync
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('app:settings:changed', { detail: { theme: value } }));
-      }
+    }
+    // Dispatch event for theme, accent, and gradient changes so _app.js can sync
+    if ((key === 'theme' || key === 'accentColor' || key === 'enableGradients') && typeof window !== 'undefined') {
+      const detail = {};
+      detail[key] = value;
+      window.dispatchEvent(new CustomEvent('app:settings:changed', { detail }));
     }
   }
 
@@ -544,6 +550,65 @@ export default function Settings() {
                       })}
                     </div>
                   </div>
+
+                  {/* Accent Color Picker */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">Accent Color</label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Choose the primary accent color used throughout the app</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                      {[
+                        { value: 'purple', label: 'Purple', swatch: 'bg-purple-500' },
+                        { value: 'blue', label: 'Blue', swatch: 'bg-blue-500' },
+                        { value: 'green', label: 'Green', swatch: 'bg-green-500' },
+                        { value: 'rose', label: 'Rose', swatch: 'bg-rose-500' },
+                        { value: 'amber', label: 'Amber', swatch: 'bg-amber-500' },
+                        { value: 'teal', label: 'Teal', swatch: 'bg-teal-500' },
+                        { value: 'indigo', label: 'Indigo', swatch: 'bg-indigo-500' },
+                        { value: 'orange', label: 'Orange', swatch: 'bg-orange-500' },
+                      ].map((c) => (
+                        <button
+                          key={c.value}
+                          onClick={() => update('accentColor', c.value)}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                            (settings.accentColor || 'purple') === c.value
+                              ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-white/10'
+                              : 'border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                          }`}
+                          title={c.label}
+                        >
+                          <div className={`w-8 h-8 rounded-full ${c.swatch} shadow-sm ${
+                            (settings.accentColor || 'purple') === c.value ? 'ring-2 ring-offset-2 ring-slate-900 dark:ring-white dark:ring-offset-[#12121a]' : ''
+                          }`} />
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                            (settings.accentColor || 'purple') === c.value ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'
+                          }`}>{c.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 dark:border-white/5 pt-6">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hero Gradients</label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Use gradient backgrounds on page headers, or switch to flat solid accent colors</p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => update('enableGradients', !(settings.enableGradients ?? true))}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#12121a] ${
+                          (settings.enableGradients ?? true) ? 'bg-purple-600' : 'bg-slate-200 dark:bg-slate-700'
+                        }`}
+                        role="switch"
+                        aria-checked={settings.enableGradients ?? true}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          (settings.enableGradients ?? true) ? 'translate-x-5' : 'translate-x-0'
+                        }`} />
+                      </button>
+                      <span className="text-sm text-slate-600 dark:text-slate-400">
+                        {(settings.enableGradients ?? true) ? 'Gradients enabled' : 'Solid colors'}
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -743,7 +808,7 @@ export default function Settings() {
                   <div className="border-t border-slate-200 dark:border-white/5 my-6" />
 
                   {/* Two-Factor Authentication */}
-                  <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+                  <div className="p-5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-500/10 dark:to-indigo-500/10 border border-purple-200 dark:border-purple-500/20 rounded-xl">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                         <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -899,8 +964,10 @@ export default function Settings() {
 
         {/* Delete Account Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[#12121a] rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-white/10">
+          <div className="fixed inset-0 bg-slate-950/65 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-[#12121a] rounded-2xl shadow-2xl max-w-md w-full border border-slate-200/80 dark:border-white/10 overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-red-500 to-rose-500" />
+              <div className="p-6">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-12 h-12 bg-red-100 dark:bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                   <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -964,6 +1031,7 @@ export default function Settings() {
                     )}
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           </div>

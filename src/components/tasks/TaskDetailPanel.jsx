@@ -1,19 +1,34 @@
 /**
  * TaskDetailPanel - Shared component for creating/editing tasks
- * Extracted from pages/tasks.js for reuse across pages
+ * Todoist-inspired two-column layout with inline detail menus
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  AlarmClock,
+  ArrowRight,
   BookOpen,
   CalendarIcon,
   Check,
+  CheckCircle2,
   ChevronDown,
-  Clock3,
   Circle,
+  ClipboardList,
+  Clock,
+  Clock3,
   FileText,
   Flag,
+  GripVertical,
   Layers,
+  Lightbulb,
+  ListTodo,
+  Loader2,
+  MessageSquare,
+  Moon,
+  MoreHorizontal,
   Plus,
+  Search,
+  Sparkles,
+  Sun,
   Tag,
   Target,
   Users,
@@ -25,272 +40,65 @@ import {
 export const PRIORITY_DEFAULT = 'not-urgent-not-important';
 
 export const priorityMeta = {
-  'urgent-important': { label: 'Urgent & Important', color: '#ef4444', weight: 0, icon: Flag },
-  'urgent-not-important': { label: 'Urgent · Low Impact', color: '#f97316', weight: 1, icon: Flag },
-  'not-urgent-important': { label: 'Important, not urgent', color: '#0ea5e9', weight: 2, icon: Flag },
-  'not-urgent-not-important': { label: 'Low effort', color: '#94a3b8', weight: 3, icon: Flag },
+  'urgent-important': { label: 'Urgent & Important', color: '#ef4444', weight: 0, icon: Flag, desc: 'Do it now' },
+  'urgent-not-important': { label: 'Urgent · Low Impact', color: '#f97316', weight: 1, icon: Flag, desc: 'Delegate if possible' },
+  'not-urgent-important': { label: 'Important, not urgent', color: '#0ea5e9', weight: 2, icon: Flag, desc: 'Schedule it' },
+  'not-urgent-not-important': { label: 'Low effort', color: '#94a3b8', weight: 3, icon: Flag, desc: 'Maybe later' },
 };
 
 export const getPriorityMeta = (key) => priorityMeta[key] || priorityMeta[PRIORITY_DEFAULT];
 
 const accentPurple = '#8b5cf6';
 
-// Inline ReminderPicker for standalone use
-const ReminderPicker = ({ value, onChange, onDelete, onApply, onClose, onTimeChange }) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// Date helpers
+const getStartOfDay = (date) => { const c = new Date(date); c.setHours(0,0,0,0); return c; };
+const addDays = (date, days) => { const n = new Date(date); n.setDate(n.getDate() + days); return n; };
+const toDateSafe = (v) => { if (!v && v !== 0) return null; if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : new Date(v); const p = new Date(v); return Number.isNaN(p.getTime()) ? null : p; };
+const padTime = (v) => String(v).padStart(2, '0');
+const toYMDLocal = (v) => { const d = toDateSafe(v); if (!d) return ''; return `${d.getFullYear()}-${padTime(d.getMonth()+1)}-${padTime(d.getDate())}`; };
+const getNextDayOfWeek = (date, targetDay) => { const r = new Date(date instanceof Date ? date : new Date()); const diff = (targetDay + 7 - r.getDay()) % 7 || 7; r.setDate(r.getDate() + diff); r.setHours(0,0,0,0); return r; };
 
-  const initialDate = value ? new Date(value).toISOString().split('T')[0] : '';
-  const initialTime = value
-    ? new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-    : '';
-
-  const [date, setDate] = useState(initialDate);
-  const [time, setTime] = useState(initialTime);
-  const [viewMonth, setViewMonth] = useState(value ? new Date(value) : new Date());
-
-  const selectedDate = date ? new Date(date + 'T00:00:00') : null;
-  if (selectedDate) selectedDate.setHours(0, 0, 0, 0);
-
-  const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1).getDay();
-
-  const applyShortcut = (daysOffset, defaultTime = '') => {
-    if (daysOffset === null) {
-      setDate('');
-      setTime('');
-      onChange?.(null);
-      onTimeChange?.(null);
-      return;
-    }
-
-    const target = new Date();
-    target.setDate(target.getDate() + daysOffset);
-    const dateStr = target.toISOString().split('T')[0];
-    let timeStr = defaultTime;
-
-    if (daysOffset === 0) {
-      const now = new Date();
-      now.setHours(now.getHours() + 3);
-      timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    } else {
-      timeStr = defaultTime;
-    }
-
-    setDate(dateStr);
-    setTime(timeStr);
-    
-    // Create date object - if no time, just use date at midnight
-    const dateTime = new Date(dateStr + 'T00:00:00');
-    if (timeStr) {
-      const [hours, minutes] = timeStr.split(':');
-      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    }
-    onChange?.(dateTime.toISOString());
-    onTimeChange?.(timeStr || null);
-  };
-
-  const handleSet = () => {
-    if (!date) {
-      onChange?.(null);
-      onTimeChange?.(null);
-      onApply?.();
-      return;
-    }
-    const dateTime = new Date(date + 'T00:00:00');
-    if (time) {
-      const [hours, minutes] = time.split(':');
-      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    }
-    onChange?.(dateTime.toISOString());
-    onTimeChange?.(time || null);
-    onApply?.();
-  };
-
-  const handleDateClick = (day) => {
-    const year = viewMonth.getFullYear();
-    const month = String(viewMonth.getMonth() + 1).padStart(2, '0');
-    const dayStr = String(day).padStart(2, '0');
-    const newDate = `${year}-${month}-${dayStr}`;
-    setDate(newDate);
-
-    const dateTime = new Date(newDate + 'T00:00:00');
-    if (time) {
-      const [hours, minutes] = time.split(':');
-      dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-    }
-    onChange?.(dateTime.toISOString());
-  };
-
-  const prevMonth = () => {
-    setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1));
-  };
-
-  return (
-    <div className="w-[420px] rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl">
-      <div className="p-4 border-b border-slate-100">
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date</label>
-            <input
-              type="text"
-              value={date ? new Date(date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}
-              readOnly
-              className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-900 dark:text-slate-100"
-              placeholder="Select date"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Time <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
-            <div className="relative">
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => {
-                  const newTime = e.target.value;
-                  setTime(newTime);
-                  if (date && newTime) {
-                    const [hours, minutes] = newTime.split(':');
-                    const dateTime = new Date(date + 'T00:00:00');
-                    dateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                    onChange?.(dateTime.toISOString());
-                    onTimeChange?.(newTime);
-                  }
-                }}
-                className="w-full rounded-lg bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-3 py-2 pr-8 text-sm font-medium text-slate-900 dark:text-slate-100"
-                placeholder="No time"
-              />
-              {time && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTime('');
-                    onTimeChange?.(null);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  title="Clear time"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900">{viewMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
-          <div className="flex gap-1">
-            <button type="button" onClick={prevMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-              <ChevronDown size={16} className="rotate-90 text-slate-600" />
-            </button>
-            <button type="button" onClick={nextMonth} className="rounded-lg p-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-              <ChevronDown size={16} className="-rotate-90 text-slate-600" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-500 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day}>{day}</div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 mb-3">
-          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const cellDate = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-            cellDate.setHours(0, 0, 0, 0);
-            const isToday = cellDate.getTime() === today.getTime();
-            const isSelected = selectedDate && cellDate.getTime() === selectedDate.getTime();
-
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => handleDateClick(day)}
-                className={`aspect-square rounded-lg text-xs font-semibold transition-all ${
-                  isSelected
-                    ? 'bg-blue-500 text-white scale-105 ring-2 ring-blue-200'
-                    : isToday
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200 dark:ring-blue-700'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          <button type="button" onClick={() => applyShortcut(0)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-            Later today
-          </button>
-          <button type="button" onClick={() => applyShortcut(1, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-            Tomorrow
-          </button>
-          <button type="button" onClick={() => applyShortcut(7, '09:00')} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-            Next week
-          </button>
-          <button type="button" onClick={() => applyShortcut(null)} className="rounded-md bg-slate-100 dark:bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
-            Someday
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-800">
-        <button type="button" onClick={() => { setDate(''); setTime(''); onChange?.(null); onTimeChange?.(null); }} className="text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
-          Clear all
-        </button>
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors px-4">
-            Cancel
-          </button>
-          <button type="button" onClick={handleSet} className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
-            Set
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+const parseNaturalLanguageDate = (input) => {
+  if (!input) return null;
+  const text = input.toLowerCase();
+  const now = new Date();
+  const tokens = [
+    { match: 'today', date: now },
+    { match: 'tomorrow', date: addDays(now, 1) },
+    { match: 'next week', date: addDays(now, 7) },
+    { match: 'next month', date: addDays(now, 30) },
+    { match: 'this weekend', date: getNextDayOfWeek(now, 6) },
+  ];
+  for (const token of tokens) { if (text.includes(token.match)) return token.date; }
+  const weekdayMatch = text.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+  if (weekdayMatch) {
+    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const index = dayNames.indexOf(weekdayMatch[1]);
+    if (index >= 0) return getNextDayOfWeek(now, index);
+  }
+  const inMatch = text.match(/in\s+(\d+)\s+(day|days|week|weeks)/);
+  if (inMatch) { const val = Number(inMatch[1]); if (!Number.isNaN(val)) { const unit = inMatch[2].startsWith('week') ? 7 : 1; return addDays(now, val * unit); } }
+  const explicitMatch = text.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s(\d{1,2})/);
+  if (explicitMatch) {
+    const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const monthIndex = monthNames.indexOf(explicitMatch[1].slice(0,3));
+    const day = Number(explicitMatch[2]);
+    if (monthIndex >= 0 && day > 0) { const c = new Date(now.getFullYear(), monthIndex, day); if (c < now) c.setFullYear(c.getFullYear()+1); return c; }
+  }
+  return null;
 };
 
-const TaskDetailPanel = ({ 
-  task, 
-  mode = 'detail', // 'detail' or 'create'
-  onToggleComplete, 
-  onQuickAction, 
-  onStatusChange, 
-  onUpdateFields, 
-  onTagsChange, 
-  onDeleteTask, 
-  modules = [],
-  onCreate,
-  onClose,
-  initialStatus,
-  initialDueDate,
-  setOpen,
-  setClose
+const TaskDetailPanel = ({
+  task, mode = 'detail', onToggleComplete, onQuickAction, onStatusChange,
+  onUpdateFields, onTagsChange, onDeleteTask, modules = [],
+  onCreate, onClose, initialStatus, initialDueDate, setOpen, setClose, toast,
 }) => {
   const isCreateMode = mode === 'create';
-  
   const [localTitle, setLocalTitle] = useState(task?.title || '');
   const [localDescription, setLocalDescription] = useState(task?.description || '');
   const [dueStartInput, setDueStartInput] = useState('');
   const [dueEndInput, setDueEndInput] = useState('');
   const [tagDraft, setTagDraft] = useState('');
-  const [modalPage, setModalPage] = useState('main'); // 'main' or 'reminder'
-  const [tempDueDate, setTempDueDate] = useState(null);
-  const [tempDueTime, setTempDueTime] = useState(null);
   const [localDueDate, setLocalDueDate] = useState(task?.dueDate || '');
   const [localStatus, setLocalStatus] = useState(initialStatus || task?.status || 'todo');
   const [localPriority, setLocalPriority] = useState(task?.priority || PRIORITY_DEFAULT);
@@ -300,795 +108,514 @@ const TaskDetailPanel = ({
   const [localTags, setLocalTags] = useState([]);
   const [localSubtasks, setLocalSubtasks] = useState([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
-  const [includeMyDay, setIncludeMyDay] = useState(true);
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [includeMyDay, setIncludeMyDay] = useState(false);
+  const [openDetailMenu, setOpenDetailMenu] = useState(null);
+  const [dueDraftDate, setDueDraftDate] = useState('');
+  const [dueDraftTime, setDueDraftTime] = useState('');
+  const [duePickerMonth, setDuePickerMonth] = useState(() => {
+    const dateVal = task?.dueDate;
+    if (dateVal) { const d = new Date(dateVal); if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), 1); }
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  });
+  const detailPanelRef = useRef(null);
+  const dueBtnRef = useRef(null);
+  const [dueBtnRect, setDueBtnRect] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isCreateMode) {
-      if (initialDueDate) {
-        setDueStartInput(initialDueDate);
-        setDueEndInput(initialDueDate);
-      }
-      return;
-    }
-    
+    if (isCreateMode) { if (initialDueDate) { setDueStartInput(initialDueDate); setDueEndInput(initialDueDate); } return; }
     setLocalTitle(task?.title || '');
     setLocalDescription(task?.description || '');
     setLocalTags(Array.isArray(task?.tags) ? task.tags : []);
     setLocalSubtasks(Array.isArray(task?.subtasks) ? task.subtasks : []);
     setLocalDueDate(task?.dueDate || '');
-    if (task?.dueDate) {
-      const date = new Date(task.dueDate);
-      const dateStr = date.toISOString().split('T')[0];
-      setDueStartInput(dateStr);
-      setDueEndInput(dateStr);
-    } else {
-      setDueStartInput('');
-      setDueEndInput('');
-    }
+    if (task?.dueDate) { const date = new Date(task.dueDate); setDueStartInput(date.toISOString().split('T')[0]); setDueEndInput(date.toISOString().split('T')[0]); }
+    else { setDueStartInput(''); setDueEndInput(''); }
     setTagDraft('');
     setLocalStatus(task?.status || 'todo');
     setLocalPriority(task?.priority || PRIORITY_DEFAULT);
   }, [task?.id, task?.dueDate, task?.status, task?.priority, task?.title, task?.description, task?.tags, isCreateMode, initialDueDate]);
 
-  // Helper to close all dropdowns except the one being opened
-  const closeAllDropdowns = (exceptId = null) => {
-    const dropdownTypes = ['status', 'eventtype', 'priority', 'module'];
-    const taskId = task?.id || 'new';
-    dropdownTypes.forEach(type => {
-      const id = `${type}-dropdown-${taskId}`;
-      if (id !== exceptId) {
-        document.getElementById(id)?.classList.add('hidden');
-      }
-    });
-  };
-
-  // Close dropdowns when clicking outside
   useEffect(() => {
+    const sourceValue = isCreateMode ? dueStartInput : localDueDate;
+    if (!sourceValue) { setDueDraftDate(''); setDueDraftTime(''); return; }
+    const parsed = new Date(sourceValue);
+    if (Number.isNaN(parsed.getTime())) { setDueDraftDate(''); setDueDraftTime(''); return; }
+    setDueDraftDate(toYMDLocal(parsed));
+    const hasExplicitTime = !isCreateMode && (task?.hasTime === true || task?.meta?.hasTime === true);
+    const hasNonDefaultTime = parsed.getHours() !== 0 || parsed.getMinutes() !== 0;
+    if (hasExplicitTime || hasNonDefaultTime) { setDueDraftTime(`${String(parsed.getHours()).padStart(2,'0')}:${String(parsed.getMinutes()).padStart(2,'0')}`); }
+    else { setDueDraftTime(''); }
+  }, [dueStartInput, isCreateMode, localDueDate, task?.hasTime, task?.meta?.hasTime]);
+
+  useEffect(() => {
+    if (!openDetailMenu) return;
     const handleClickOutside = (event) => {
-      const taskId = task?.id || 'new';
-      const dropdownTypes = ['status', 'eventtype', 'priority', 'module'];
-      
-      dropdownTypes.forEach(type => {
-        const dropdown = document.getElementById(`${type}-dropdown-${taskId}`);
-        if (dropdown && !dropdown.classList.contains('hidden')) {
-          const button = dropdown.previousElementSibling;
-          if (!dropdown.contains(event.target) && !button?.contains(event.target)) {
-            dropdown.classList.add('hidden');
-          }
-        }
-      });
+      const target = event.target;
+      if (!detailPanelRef.current?.contains(target)) { setOpenDetailMenu(null); return; }
+      if (!target.closest('[data-detail-menu]') && !target.closest('[data-detail-trigger]')) { setOpenDetailMenu(null); }
     };
-
+    const handleEscape = (event) => { if (event.key === 'Escape') setOpenDetailMenu(null); };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [task?.id]);
+    document.addEventListener('keydown', handleEscape);
+    return () => { document.removeEventListener('mousedown', handleClickOutside); document.removeEventListener('keydown', handleEscape); };
+  }, [openDetailMenu]);
 
-  if (!isCreateMode && !task) {
-    return <p className="text-sm text-slate-500">Task data unavailable.</p>;
-  }
+  if (!isCreateMode && !task) return <p className="text-sm text-slate-500">Task data unavailable.</p>;
 
-  // Always use localTags for immediate UI feedback, synced from task.tags in useEffect
   const tags = localTags;
   const priorityInfo = getPriorityMeta(localPriority);
-  
   const statusOptions = [
-    { value: 'todo', label: 'To Do', color: '#f59e0b' },
-    { value: 'doing', label: 'In Progress', color: '#8b5cf6' },
-    { value: 'later', label: 'Later', color: '#f59e0b' },
-    { value: 'done', label: 'Done', color: '#10b981' },
+    { value: 'todo', label: 'To Do', icon: Circle, color: '#e01a1aff', desc: 'Not started yet' },
+    { value: 'doing', label: 'In Progress', icon: Loader2, color: '#8b5cf6', desc: 'Currently working on' },
+    { value: 'later', label: 'Later', icon: Clock, color: '#f59e0b', desc: 'Deferred for later' },
+    { value: 'done', label: 'Done', icon: CheckCircle2, color: '#10b981', desc: 'Completed' },
   ];
-  
   const currentStatus = statusOptions.find(s => s.value === localStatus) || statusOptions[0];
-  
+  const typeOptions = [
+    { value: 'task', label: 'Task', icon: ListTodo, color: '#6366f1' },
+    { value: 'class', label: 'Class', icon: BookOpen, color: '#8b5cf6' },
+    { value: 'lab', label: 'Lab', icon: Lightbulb, color: '#06b6d4' },
+    { value: 'tutorial', label: 'Tutorial', icon: MessageSquare, color: '#14b8a6' },
+    { value: 'exam', label: 'Exam', icon: AlertTriangle, color: '#ef4444' },
+    { value: 'quiz', label: 'Quiz', icon: ClipboardList, color: '#f97316' },
+    { value: 'assignment', label: 'Assignment', icon: FileText, color: '#3b82f6' },
+    { value: 'project', label: 'Project', icon: Target, color: '#8b5cf6' },
+    { value: 'deadline', label: 'Deadline', icon: AlarmClock, color: '#ef4444' },
+    { value: 'meeting', label: 'Meeting', icon: Users, color: '#06b6d4' },
+    { value: 'study-session', label: 'Study Session', icon: Clock3, color: '#f59e0b' },
+    { value: 'personal', label: 'Personal', icon: Sparkles, color: '#ec4899' },
+    { value: 'other', label: 'Other', icon: MoreHorizontal, color: '#64748b' },
+  ];
+  const currentType = typeOptions.find(t => t.value === localEventType) || typeOptions[0];
   const courseModuleTags = modules.map(m => m.name || m.title || m.code).filter(Boolean);
 
-  // Subtask handlers
+  const applyDueSelection = (dateToken, timeToken = '') => {
+    if (!dateToken) {
+      if (isCreateMode) { setDueStartInput(''); setDueEndInput(''); }
+      else { setLocalDueDate(''); onUpdateFields?.(task.id, { dueDate: null, meta: { ...(task?.meta || {}), hasTime: false } }); }
+      setDueDraftDate(''); setDueDraftTime(''); setOpenDetailMenu(null); return;
+    }
+    const candidate = new Date(`${dateToken}T${timeToken || '23:59'}:00`);
+    if (Number.isNaN(candidate.getTime())) return;
+    const isoValue = candidate.toISOString();
+    if (isCreateMode) { setDueStartInput(dateToken); setDueEndInput(dateToken); }
+    else { setLocalDueDate(isoValue); onUpdateFields?.(task.id, { dueDate: isoValue, meta: { ...(task?.meta || {}), hasTime: Boolean(timeToken) } }); }
+    setOpenDetailMenu(null);
+  };
+
+  const applyDueShortcut = (shortcut) => {
+    const base = getStartOfDay(new Date());
+    if (shortcut === 'clear') { applyDueSelection(null); return; }
+    if (shortcut === 'today') { applyDueSelection(toYMDLocal(base), dueDraftTime); return; }
+    if (shortcut === 'tomorrow') { applyDueSelection(toYMDLocal(addDays(base, 1)), dueDraftTime); return; }
+    if (shortcut === 'weekend') { const day = base.getDay(); const offset = (6 - day + 7) % 7 || 7; applyDueSelection(toYMDLocal(addDays(base, offset)), dueDraftTime); return; }
+    if (shortcut === 'next-week') { applyDueSelection(toYMDLocal(addDays(base, 7)), dueDraftTime); }
+  };
+
+  const handleAddTag = () => { const trimmed = tagDraft.trim(); if (!trimmed) return; setLocalTags(prev => { const n = Array.from(new Set([...prev, trimmed])); if (!isCreateMode) onTagsChange?.(task.id, n); return n; }); setTagDraft(''); };
+  const handleRemoveTag = (tag) => { setLocalTags(prev => { const n = prev.filter(v => v !== tag); if (!isCreateMode) onTagsChange?.(task.id, n); return n; }); };
+
   const handleAddSubtask = () => {
-    const trimmed = newSubtaskTitle.trim();
-    if (!trimmed) return;
-    
-    const newSubtask = {
-      id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      title: trimmed,
-      completed: false,
-    };
-    
-    setLocalSubtasks(prev => {
-      const newSubtasks = [...prev, newSubtask];
-      if (!isCreateMode) {
-        onUpdateFields?.(task.id, { subtasks: newSubtasks });
-      }
-      return newSubtasks;
-    });
-    
+    const trimmed = newSubtaskTitle.trim(); if (!trimmed) return;
+    const ns = { id: `subtask-${Date.now()}-${Math.random().toString(36).substr(2,9)}`, title: trimmed, completed: false, createdAt: new Date().toISOString() };
+    setLocalSubtasks(prev => { const n = [...prev, ns]; if (!isCreateMode) onUpdateFields?.(task.id, { subtasks: n }); return n; });
     setNewSubtaskTitle('');
   };
-
-  const handleToggleSubtask = (subtaskId) => {
-    setLocalSubtasks(prev => {
-      const newSubtasks = prev.map(st => 
-        st.id === subtaskId ? { ...st, completed: !st.completed } : st
-      );
-      if (!isCreateMode) {
-        onUpdateFields?.(task.id, { subtasks: newSubtasks });
-      }
-      return newSubtasks;
-    });
-  };
-
-  const handleDeleteSubtask = (subtaskId) => {
-    setLocalSubtasks(prev => {
-      const newSubtasks = prev.filter(st => st.id !== subtaskId);
-      if (!isCreateMode) {
-        onUpdateFields?.(task.id, { subtasks: newSubtasks });
-      }
-      return newSubtasks;
-    });
-  };
-
-  const handleAddTag = () => {
-    const trimmed = tagDraft.trim();
-    if (!trimmed) return;
-    
-    // Update local state immediately for UI feedback
-    setLocalTags(prev => {
-      const newTags = Array.from(new Set([...prev, trimmed]));
-      
-      // Also update backend if in edit mode
-      if (!isCreateMode) {
-        onTagsChange?.(task.id, newTags);
-      }
-      
-      return newTags;
-    });
-    
-    setTagDraft('');
-  };
-
-  const handleRemoveTag = (tag) => {
-    // Update local state immediately for UI feedback
-    setLocalTags(prev => {
-      const newTags = prev.filter((value) => value !== tag);
-      
-      // Also update backend if in edit mode
-      if (!isCreateMode) {
-        onTagsChange?.(task.id, newTags);
-      }
-      
-      return newTags;
-    });
-  };
-
-  const handleDueStartChange = (newDate) => {
-    setDueStartInput(newDate);
-    if (!isCreateMode) {
-      if (newDate) {
-        const dateObj = new Date(newDate + 'T23:59:00');
-        onUpdateFields?.(task.id, { dueDate: dateObj.toISOString() });
-      } else {
-        onUpdateFields?.(task.id, { dueDate: null });
-      }
-    }
-  };
-
-  const handleDueEndChange = (newDate) => {
-    setDueEndInput(newDate);
-    if (!isCreateMode && newDate) {
-      const dateObj = new Date(newDate + 'T23:59:00');
-      onUpdateFields?.(task.id, { dueDate: dateObj.toISOString() });
-    }
-  };
+  const handleUpdateSubtaskTitle = (subtaskId, newTitle) => { const trimmed = newTitle.trim(); if (!trimmed) return; setLocalSubtasks(prev => { const n = prev.map(st => st.id === subtaskId ? { ...st, title: trimmed } : st); if (!isCreateMode) onUpdateFields?.(task.id, { subtasks: n }); return n; }); };
+  const handleReorderSubtasks = (fromIndex, toIndex) => { if (fromIndex === toIndex) return; setLocalSubtasks(prev => { const n = [...prev]; const [removed] = n.splice(fromIndex, 1); n.splice(toIndex, 0, removed); if (!isCreateMode) onUpdateFields?.(task.id, { subtasks: n }); return n; }); };
+  const handleToggleSubtask = (subtaskId) => { setLocalSubtasks(prev => { const n = prev.map(st => st.id === subtaskId ? { ...st, completed: !st.completed } : st); if (!isCreateMode) onUpdateFields?.(task.id, { subtasks: n }); return n; }); };
+  const handleDeleteSubtask = (subtaskId) => { setLocalSubtasks(prev => { const n = prev.filter(st => st.id !== subtaskId); if (!isCreateMode) onUpdateFields?.(task.id, { subtasks: n }); return n; }); };
 
   const handleSubmit = async (event) => {
-    event?.preventDefault();
-    if (busy || !isCreateMode) return;
-    if (!localTitle.trim()) {
-      setError('Title is required');
-      return;
-    }
+    event?.preventDefault(); if (busy || !isCreateMode) return;
+    if (!localTitle.trim()) { if (toast) toast.showToast('Title is required', 'error'); else setError('Title is required'); return; }
     setBusy(true);
     const dueDate = dueStartInput ? new Date(dueStartInput) : null;
-    const meta = {
-      myDay: includeMyDay,
-      course: localCourse || null,
-      courseColor: localCourseColor || null,
-      priority: localPriority,
-      tags: localTags,
-      subtasks: localSubtasks,
-      status: localStatus,
-      type: localEventType,
-    };
-    const result = await onCreate({
-      title: localTitle,
-      dueDate: dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate.toISOString() : null,
-      meta,
-    });
+    const meta = { myDay: includeMyDay, course: localCourse || null, courseColor: localCourseColor || null, priority: localPriority, tags: localTags, subtasks: localSubtasks, status: localStatus, type: localEventType };
+    const result = await onCreate({ title: localTitle, dueDate: dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate.toISOString() : null, meta });
     setBusy(false);
-    if (result?.success) {
-      setError(null);
-      onClose?.();
-    } else {
-      setError(result?.error || 'Unable to create task');
-    }
+    if (result?.success) { setError(null); if (toast) toast.showToast('Task created', 'success'); onClose?.(); }
+    else { if (toast) toast.showToast(result?.error || 'Unable to create task', 'error'); else setError(result?.error || 'Unable to create task'); }
   };
 
   const createdDate = task?.meta?.createdAt || task?.createdAt;
+  const dateVal = isCreateMode ? dueStartInput : localDueDate;
+  const parsedDate = dateVal ? new Date(dateVal) : null;
+  const hasDate = parsedDate && !isNaN(parsedDate.getTime());
+  const todayStart = getStartOfDay(new Date());
+  const isOverdue = hasDate && parsedDate < new Date() && !task?.completed;
+  const isToday = hasDate && getStartOfDay(parsedDate).getTime() === todayStart.getTime();
+  const isTomorrow = hasDate && getStartOfDay(parsedDate).getTime() === addDays(todayStart, 1).getTime();
+  const dueTriggerColor = !hasDate ? 'text-gray-400 dark:text-gray-500' : isOverdue ? 'text-red-600 dark:text-red-400' : isToday ? 'text-emerald-600 dark:text-emerald-400' : isTomorrow ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white';
+  const dueTriggerBg = !hasDate ? {} : isOverdue ? { backgroundColor: '#ef444410' } : isToday ? { backgroundColor: '#10b98110' } : isTomorrow ? { backgroundColor: '#f9731610' } : { backgroundColor: '#6366f110' };
+  const dueDisplayText = (() => { if (!hasDate) return 'No date'; if (isToday) return 'Today'; if (isTomorrow) return 'Tomorrow'; return parsedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); })();
+  const tmrw = addDays(todayStart, 1);
+  const weekendDay = (() => { const d = todayStart.getDay(); const off = (6 - d + 7) % 7 || 7; return addDays(todayStart, off); })();
+  const nextWeekDay = addDays(todayStart, 7);
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dueShortcuts = [
+    { key: 'today', label: 'Today', icon: CalendarIcon, accent: '#10b981', info: dayNames[todayStart.getDay()], action: () => applyDueShortcut('today') },
+    { key: 'tomorrow', label: 'Tomorrow', icon: Sun, accent: '#f97316', info: dayNames[tmrw.getDay()], action: () => applyDueShortcut('tomorrow') },
+    { key: 'weekend', label: 'This Weekend', icon: Moon, accent: '#3b82f6', info: weekendDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), action: () => applyDueShortcut('weekend') },
+    { key: 'next-week', label: 'Next Week', icon: ArrowRight, accent: '#8b5cf6', info: nextWeekDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), action: () => applyDueShortcut('next-week') },
+  ];
+  const calMonth = duePickerMonth;
+  const daysInMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 0).getDate();
+  const firstDow = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1).getDay();
+  const prevMonthDays = new Date(calMonth.getFullYear(), calMonth.getMonth(), 0).getDate();
+  const leadingBlanks = (firstDow + 6) % 7;
 
   return (
-    <form className="flex flex-col" onSubmit={handleSubmit}>
-      {modalPage === 'reminder' ? (
-        <div className="px-6 py-6">
-          <button
-            type="button"
-            onClick={() => setModalPage('main')}
-            className="mb-4 flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <ChevronDown size={16} className="rotate-90" />
-            Back
-          </button>
-          <ReminderPicker
-            value={tempDueDate}
-            onChange={(dueDate) => {
-              setTempDueDate(dueDate);
-            }}
-            onTimeChange={(time) => {
-              setTempDueTime(time);
-            }}
-            onDelete={() => {
-              setTempDueDate(null);
-              setTempDueTime(null);
-            }}
-            onApply={() => {
-              if (isCreateMode) {
-                setDueStartInput(tempDueDate || '');
-              } else {
-                setLocalDueDate(tempDueDate || '');
-                // Send both dueDate and time to properly handle clearing time
-                const updates = { dueDate: tempDueDate };
-                if (tempDueTime !== undefined) {
-                  updates.time = tempDueTime;
-                }
-                onUpdateFields?.(task.id, updates);
-              }
-              setModalPage('main');
-            }}
-            onClose={() => {
-              setTempDueDate(isCreateMode ? (dueStartInput || null) : (task?.dueDate || null));
-              setTempDueTime(null);
-              setModalPage('main');
-            }}
-          />
-        </div>
-      ) : (
-      <div className="space-y-5 px-6 py-6">
-        <input
-          type="text"
-          value={localTitle}
-          onChange={(e) => setLocalTitle(e.target.value)}
-          onBlur={(e) => {
-            if (isCreateMode) return;
-            const newTitle = e.target.value.trim();
-            if (newTitle && newTitle !== task.title) {
-              onUpdateFields?.(task.id, { title: newTitle });
-            }
-          }}
-          className="w-full border-none bg-transparent text-2xl font-bold text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
-          placeholder="Task title"
-          autoFocus={isCreateMode}
-        />
-
-        <div className="space-y-3.5">
-          <div className="flex items-center gap-3 text-[13px]">
-            <div className="flex items-center gap-2.5">
-              <Circle size={15} className="text-slate-400" />
-              <span className="min-w-[95px] text-slate-500">Status</span>
-            </div>
-            <div className="relative group">
-              <button
-                type="button"
-                onClick={() => {
-                  const dropdownId = `status-dropdown-${task?.id || 'new'}`;
-                  const dropdown = document.getElementById(dropdownId);
-                  if (dropdown?.classList.contains('hidden')) {
-                    closeAllDropdowns(dropdownId);
-                    dropdown.classList.remove('hidden');
-                  } else {
-                    dropdown?.classList.add('hidden');
-                  }
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                style={{ backgroundColor: `${currentStatus.color}15`, color: currentStatus.color }}
-              >
-                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: currentStatus.color }}></span>
-                {currentStatus.label}
-                <ChevronDown size={14} className="ml-auto opacity-60" />
+    <form ref={detailPanelRef} className="flex flex-col" onSubmit={handleSubmit}>
+      <div className="flex flex-col md:flex-row">
+        {/* LEFT COLUMN */}
+        <div className="flex-1 min-w-0 px-6 pt-5 pb-4 md:border-r md:border-gray-100 md:dark:border-white/[0.06]">
+          <div className="flex items-start gap-3">
+            {!isCreateMode && (
+              <button type="button" onClick={() => onToggleComplete?.(task.id)}
+                className={`flex-shrink-0 flex h-[22px] w-[22px] items-center justify-center rounded-full border-2 mt-1 transition-all duration-200 ${task.completed ? 'border-gray-800 dark:border-white bg-gray-800 dark:bg-white scale-95' : 'border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/30'}`}>
+                {task.completed && <Check size={11} strokeWidth={3} className="text-white dark:text-gray-900" />}
               </button>
-              <div id={`status-dropdown-${task?.id || 'new'}`} className="absolute left-0 top-full z-50 mt-1 hidden w-48 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                {statusOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setLocalStatus(opt.value);
-                      if (!isCreateMode) {
-                        onStatusChange?.(task.id, opt.value);
-                        onUpdateFields?.(task.id, { status: opt.value });
-                      }
-                      document.getElementById(`status-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                    style={{ backgroundColor: localStatus === opt.value ? `${opt.color}08` : 'transparent' }}
-                  >
-                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: opt.color }}></span>
-                    <span style={{ color: opt.color }}>{opt.label}</span>
-                    {localStatus === opt.value && <Check size={16} className="ml-auto" style={{ color: opt.color }} />}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
+            <input type="text" value={localTitle} onChange={e => setLocalTitle(e.target.value)}
+              onBlur={e => { if (isCreateMode) return; const v = e.target.value.trim(); if (v && v !== task.title) onUpdateFields?.(task.id, { title: v }); }}
+              className={`w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600 tracking-[-0.01em] ${task?.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}
+              placeholder="Task title" autoFocus={isCreateMode} />
           </div>
+          <textarea value={localDescription} onChange={e => setLocalDescription(e.target.value)}
+            onBlur={() => { if (isCreateMode) return; if (localDescription !== (task.description || '')) onUpdateFields?.(task.id, { description: localDescription }); }}
+            placeholder="Add description..." rows={3}
+            className="mt-3 w-full resize-none border-none bg-transparent text-[13px] leading-relaxed text-gray-600 dark:text-gray-400 outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600" />
 
-          <div className="flex items-center gap-3 text-[13px]">
-            <BookOpen size={15} className="text-slate-400" />
-            <span className="min-w-[110px] text-slate-500">Event Type</span>
-            <div className="relative flex-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const dropdownId = `eventtype-dropdown-${task?.id || 'new'}`;
-                  const dropdown = document.getElementById(dropdownId);
-                  if (dropdown?.classList.contains('hidden')) {
-                    closeAllDropdowns(dropdownId);
-                    dropdown.classList.remove('hidden');
-                  } else {
-                    dropdown?.classList.add('hidden');
-                  }
-                }}
-                className="w-full h-9 px-3 rounded-lg border text-left text-xs font-medium bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent flex items-center justify-between gap-2 transition-all duration-200"
-              >
-                <span className="flex items-center gap-2">
-                  {localEventType === 'class' && <BookOpen className="w-4 h-4" />}
-                  {localEventType === 'lab' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 2h12M9 2v6l-4 8a4 4 0 003.6 6h6.8a4 4 0 003.6-6l-4-8V2" />
-                    </svg>
-                  )}
-                  {localEventType === 'tutorial' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  )}
-                  {localEventType === 'exam' && <AlertTriangle className="w-4 h-4" />}
-                  {localEventType === 'quiz' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                  )}
-                  {localEventType === 'assignment' && <FileText className="w-4 h-4" />}
-                  {localEventType === 'project' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  )}
-                  {localEventType === 'deadline' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  )}
-                  {localEventType === 'meeting' && <Users className="w-4 h-4" />}
-                  {localEventType === 'study-session' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  )}
-                  {localEventType === 'personal' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  )}
-                  {localEventType === 'task' && <Target className="w-4 h-4" />}
-                  {localEventType === 'other' && (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                    </svg>
-                  )}
-                  <span className="capitalize">{localEventType}</span>
-                </span>
-                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-200 transition-transform duration-200" />
-              </button>
-              <div id={`eventtype-dropdown-${task?.id || 'new'}`} className="absolute left-0 top-full z-50 mt-1 hidden w-full max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                {[
-                  { value: 'class', label: 'Class', icon: BookOpen },
-                  { value: 'lab', label: 'Lab', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 2h12M9 2v6l-4 8a4 4 0 003.6 6h6.8a4 4 0 003.6-6l-4-8V2" />
-                    </svg>
-                  ) },
-                  { value: 'tutorial', label: 'Tutorial', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  ) },
-                  { value: 'exam', label: 'Exam', icon: AlertTriangle },
-                  { value: 'quiz', label: 'Quiz', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                  ) },
-                  { value: 'assignment', label: 'Assignment', icon: FileText },
-                  { value: 'project', label: 'Project', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  ) },
-                  { value: 'deadline', label: 'Deadline', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ) },
-                  { value: 'meeting', label: 'Meeting', icon: Users },
-                  { value: 'study-session', label: 'Study Session', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  ) },
-                  { value: 'personal', label: 'Personal', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  ) },
-                  { value: 'task', label: 'Task', icon: Target },
-                  { value: 'other', label: 'Other', icon: () => (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                    </svg>
-                  ) }
-                ].map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setLocalEventType(type.value);
-                      if (!isCreateMode) {
-                        onUpdateFields?.(task.id, { type: type.value });
-                      }
-                      document.getElementById(`eventtype-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-gray-900 dark:text-white"
-                  >
-                    {typeof type.icon === 'function' ? <type.icon /> : <type.icon size={16} />}
-                    {type.label}
-                    {localEventType === type.value && <Check size={16} className="ml-auto text-purple-600" />}
-                  </button>
-                ))}
+          {/* Subtasks */}
+          <div className="mt-5 border-t border-gray-100 dark:border-white/[0.04] pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Layers size={14} className="text-gray-400 dark:text-gray-500" />
+                <p className="text-[13px] font-semibold text-gray-700 dark:text-gray-300">Sub-tasks</p>
+                {localSubtasks.length > 0 && <span className="text-[11px] text-gray-400 dark:text-gray-500">{localSubtasks.filter(st => st.completed).length}/{localSubtasks.length}</span>}
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-[13px]">
-            <div className="flex items-center gap-2.5">
-              <Flag size={15} className="text-slate-400" />
-              <span className="min-w-[95px] text-slate-500">Priority</span>
-            </div>
-            <div className="relative group">
-              <button
-                type="button"
-                onClick={() => {
-                  const dropdownId = `priority-dropdown-${task?.id || 'new'}`;
-                  const dropdown = document.getElementById(dropdownId);
-                  if (dropdown?.classList.contains('hidden')) {
-                    closeAllDropdowns(dropdownId);
-                    dropdown.classList.remove('hidden');
-                  } else {
-                    dropdown?.classList.add('hidden');
-                  }
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                style={{ backgroundColor: `${priorityInfo.color}15`, color: priorityInfo.color }}
-              >
-                {priorityInfo.icon && <priorityInfo.icon size={14} />}
-                {priorityInfo.label}
-                <ChevronDown size={14} className="ml-auto opacity-60" />
-              </button>
-              <div id={`priority-dropdown-${task?.id || 'new'}`} className="absolute left-0 top-full z-50 mt-1 hidden w-56 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                {Object.entries(priorityMeta).map(([key, meta]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setLocalPriority(key);
-                      if (!isCreateMode) {
-                        onUpdateFields?.(task.id, { priority: key });
-                      }
-                      document.getElementById(`priority-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                    style={{ backgroundColor: localPriority === key ? `${meta.color}08` : 'transparent', color: meta.color }}
-                  >
-                    {meta.icon && <meta.icon size={14} />}
-                    {meta.label}
-                    {localPriority === key && <Check size={16} className="ml-auto" />}
-                  </button>
-                ))}
+            {localSubtasks.length > 0 && (
+              <div className="h-1 w-full rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden mb-3">
+                <div className="h-full rounded-full bg-purple-500 transition-all duration-300" style={{ width: `${(localSubtasks.filter(st => st.completed).length / localSubtasks.length) * 100}%` }} />
               </div>
-            </div>
-          </div>
-
-          {/* Module/Course selector */}
-          {modules.length > 0 && (
-            <div className="flex items-center gap-3 text-[13px]">
-              <div className="flex items-center gap-2.5">
-                <Layers size={15} className="text-slate-400" />
-                <span className="min-w-[95px] text-slate-500">Module</span>
-              </div>
-              <div className="relative group">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const dropdownId = `module-dropdown-${task?.id || 'new'}`;
-                    const dropdown = document.getElementById(dropdownId);
-                    if (dropdown?.classList.contains('hidden')) {
-                      closeAllDropdowns(dropdownId);
-                      dropdown.classList.remove('hidden');
-                    } else {
-                      dropdown?.classList.add('hidden');
-                    }
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                  style={{ 
-                    backgroundColor: localCourseColor ? `${localCourseColor}15` : 'rgba(148, 163, 184, 0.1)', 
-                    color: localCourseColor || '#64748b' 
-                  }}
-                >
-                  <span 
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ backgroundColor: localCourseColor || '#94a3b8' }}
-                  />
-                  {localCourse || 'Select module'}
-                  <ChevronDown size={14} className="ml-auto opacity-60" />
-                </button>
-                <div id={`module-dropdown-${task?.id || 'new'}`} className="absolute left-0 top-full z-50 mt-1 hidden w-64 max-h-60 overflow-y-auto overflow-x-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                  {/* Clear selection option */}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setLocalCourse(null);
-                      setLocalCourseColor(null);
-                      if (!isCreateMode) {
-                        onUpdateFields?.(task.id, { course: null, courseColor: null });
-                      }
-                      document.getElementById(`module-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
-                  >
-                    <span className="inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    No module
-                    {!localCourse && <Check size={16} className="ml-auto text-purple-600" />}
-                  </button>
-                  {modules.map((mod) => {
-                    const moduleName = mod.name || mod.title || mod.code;
-                    const moduleColor = mod.color || accentPurple;
-                    return (
-                      <button
-                        key={mod.id || moduleName}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setLocalCourse(moduleName);
-                          setLocalCourseColor(moduleColor);
-                          if (!isCreateMode) {
-                            onUpdateFields?.(task.id, { course: moduleName, courseColor: moduleColor });
-                          }
-                          document.getElementById(`module-dropdown-${task?.id || 'new'}`)?.classList.add('hidden');
-                        }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 dark:hover:bg-slate-700"
-                        style={{ 
-                          backgroundColor: localCourse === moduleName ? `${moduleColor}08` : 'transparent',
-                          color: moduleColor 
-                        }}
-                      >
-                        <span 
-                          className="inline-block h-2 w-2 rounded-full"
-                          style={{ backgroundColor: moduleColor }}
-                        />
-                        <span className="truncate">{moduleName}</span>
-                        {localCourse === moduleName && <Check size={16} className="ml-auto" />}
+            )}
+            <div>
+              {localSubtasks.length > 0 && (
+                <div className="space-y-1 mb-3">
+                  {localSubtasks.map((subtask, index) => (
+                    <div key={subtask.id} draggable
+                      onDragStart={e => { e.dataTransfer.setData('subtaskIndex', index.toString()); e.currentTarget.classList.add('opacity-50'); }}
+                      onDragEnd={e => e.currentTarget.classList.remove('opacity-50')}
+                      onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('bg-purple-50','dark:bg-purple-900/20'); }}
+                      onDragLeave={e => e.currentTarget.classList.remove('bg-purple-50','dark:bg-purple-900/20')}
+                      onDrop={e => { e.preventDefault(); e.currentTarget.classList.remove('bg-purple-50','dark:bg-purple-900/20'); handleReorderSubtasks(parseInt(e.dataTransfer.getData('subtaskIndex'),10), index); }}
+                      className="group flex items-center gap-2 rounded-md px-1.5 py-1.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors cursor-grab active:cursor-grabbing">
+                      <GripVertical size={11} className="flex-shrink-0 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <button type="button" onClick={() => handleToggleSubtask(subtask.id)}
+                        className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${subtask.completed ? 'bg-purple-600 border-purple-600' : 'border-slate-300 dark:border-slate-500 hover:border-purple-400'}`}>
+                        {subtask.completed && <Check size={10} className="text-white" strokeWidth={3} />}
                       </button>
-                    );
-                  })}
+                      <input type="text" defaultValue={subtask.title}
+                        onBlur={e => { const v = e.target.value.trim(); if (v && v !== subtask.title) handleUpdateSubtaskTitle(subtask.id, v); else if (!v) e.target.value = subtask.title; }}
+                        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { e.currentTarget.value = subtask.title; e.currentTarget.blur(); } }}
+                        className={`flex-1 text-[13px] bg-transparent border-0 outline-none focus:bg-gray-50 dark:focus:bg-white/[0.04] focus:px-2 focus:py-0.5 focus:-mx-2 focus:-my-0.5 focus:rounded transition-all ${subtask.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-700 dark:text-gray-300'}`} />
+                      <button type="button" onClick={() => handleDeleteSubtask(subtask.id)} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="w-3 flex-shrink-0" />
+                <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-dashed border-gray-200 dark:border-gray-600" />
+                <input type="text" value={newSubtaskTitle} onChange={e => setNewSubtaskTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); } }}
+                  placeholder="Add a sub-task..." className="flex-1 text-[13px] bg-transparent border-0 outline-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-500" />
+                {newSubtaskTitle.trim() && <button type="button" onClick={handleAddSubtask} className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors"><Plus size={12} /></button>}
+              </div>
+            </div>
+          </div>
+
+          {error && <p className="mt-3 text-xs font-semibold text-red-500">{error}</p>}
+          {!isCreateMode && createdDate && <p className="mt-4 text-[11px] text-gray-400 dark:text-gray-500">Created {new Date(createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div className="w-full md:w-[300px] flex-shrink-0 px-5 pt-5 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Details</p>
+          <div className="space-y-1">
+            {/* Status */}
+            <div className="py-1.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 whitespace-nowrap"><currentStatus.icon size={13} style={{ color: currentStatus.color }} /> Status</span>
+                <div className="relative">
+                  <button type="button" data-detail-trigger onClick={() => setOpenDetailMenu(prev => prev === 'status' ? null : 'status')}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all hover:shadow-sm" style={{ color: currentStatus.color, backgroundColor: `${currentStatus.color}0a` }}>
+                    <currentStatus.icon size={14} className={localStatus === 'doing' ? 'animate-spin' : ''} /> {currentStatus.label} <ChevronDown size={11} className="opacity-50" />
+                  </button>
+                  {openDetailMenu === 'status' && (
+                    <div data-detail-menu className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-2xl">
+                      <div className="p-1.5">
+                        {statusOptions.map(opt => { const isActive = localStatus === opt.value; const StatusIcon = opt.icon; return (
+                          <button key={opt.value} type="button" onMouseDown={e => { e.preventDefault(); setLocalStatus(opt.value); if (!isCreateMode) { onStatusChange?.(task.id, opt.value); onUpdateFields?.(task.id, { status: opt.value }); } setOpenDetailMenu(null); }}
+                            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150 ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}
+                            style={isActive ? { backgroundColor: `${opt.color}12`, boxShadow: `inset 0 0 0 1px ${opt.color}25` } : {}}>
+                            <div className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${isActive ? '' : 'bg-gray-100/80 dark:bg-white/[0.06]'}`} style={isActive ? { backgroundColor: `${opt.color}18` } : {}}>
+                              <StatusIcon size={15} style={{ color: opt.color }} className={opt.value === 'doing' ? 'animate-spin' : ''} />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <p className={`text-[13px] font-semibold leading-tight ${isActive ? '' : 'text-gray-800 dark:text-gray-200'}`} style={isActive ? { color: opt.color } : {}}>{opt.label}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">{opt.desc}</p>
+                            </div>
+                            {isActive && <Check size={15} style={{ color: opt.color }} className="flex-shrink-0" />}
+                          </button>
+                        ); })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="flex items-center gap-3 text-[13px]">
-            <CalendarIcon size={15} className="text-slate-400" />
-            <span className="min-w-[110px] text-slate-500">Due & Reminder</span>
-            <button
-              type="button"
-              onClick={() => {
-                const currentDate = isCreateMode ? dueStartInput : localDueDate;
-                setTempDueDate(currentDate || null);
-                setModalPage('reminder');
-              }}
-              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-            >
-              {(isCreateMode ? dueStartInput : localDueDate) ? new Date(isCreateMode ? dueStartInput : localDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Set due date & reminder'}
-            </button>
-          </div>
-
-          <div className="flex items-start gap-3 text-[13px]">
-            <Tag size={15} className="mt-0.5 text-slate-400" />
-            <span className="min-w-[110px] text-slate-500">Tags</span>
-            <div className="flex flex-1 flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span key={tag} className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 dark:bg-slate-700 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600">
-                  {tag}
-                  <button type="button" onClick={() => handleRemoveTag(tag)} className="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                    <X size={11} />
+            {/* Type */}
+            <div className="py-1.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 whitespace-nowrap"><currentType.icon size={13} style={{ color: currentType.color }} /> Type</span>
+                <div className="relative">
+                  <button type="button" data-detail-trigger onClick={() => setOpenDetailMenu(prev => prev === 'eventtype' ? null : 'eventtype')}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all hover:shadow-sm" style={{ color: currentType.color, backgroundColor: `${currentType.color}0a` }}>
+                    <currentType.icon size={14} /> {currentType.label} <ChevronDown size={11} className="opacity-50" />
                   </button>
-                </span>
-              ))}
-              {courseModuleTags.filter(ct => !localTags.includes(ct)).slice(0, 3).map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => {
-                    setLocalTags(prev => {
-                      const newTags = Array.from(new Set([...prev, suggestion]));
-                      if (!isCreateMode) {
-                        onTagsChange?.(task.id, newTags);
-                      }
-                      return newTags;
-                    });
-                  }}
-                  className="inline-flex items-center rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300"
-                >
-                  + {suggestion}
-                </button>
-              ))}
-              <div className="flex flex-1 items-center gap-1">
-                <input
-                  value={tagDraft}
-                  onChange={(event) => setTagDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      handleAddTag();
-                    }
-                  }}
-                  placeholder={tags.length === 0 ? 'Type tag name and press +' : 'Add another tag'}
-                  className="min-w-[80px] flex-1 rounded-md border-0 bg-slate-50 dark:bg-slate-700 px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-slate-200 dark:focus:ring-slate-600"
-                />
-                {tagDraft.trim() && (
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="flex h-6 w-6 items-center justify-center rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-                  >
-                    <Plus size={14} />
-                  </button>
-                )}
+                  {openDetailMenu === 'eventtype' && (
+                    <div data-detail-menu className="absolute right-0 top-full z-50 mt-2 w-56 max-h-[320px] overflow-y-auto overflow-x-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-2xl">
+                      <div className="p-1.5">
+                        {typeOptions.map(type => { const isActive = localEventType === type.value; const TypeIcon = type.icon; return (
+                          <button key={type.value} type="button" onMouseDown={e => { e.preventDefault(); setLocalEventType(type.value); if (!isCreateMode) onUpdateFields?.(task.id, { type: type.value }); setOpenDetailMenu(null); }}
+                            className={`group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 transition-all duration-150 ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}
+                            style={isActive ? { backgroundColor: `${type.color}12`, boxShadow: `inset 0 0 0 1px ${type.color}25` } : {}}>
+                            <div className={`flex h-6 w-6 items-center justify-center rounded-md transition-all ${isActive ? '' : 'bg-gray-100/80 dark:bg-white/[0.06]'}`} style={isActive ? { backgroundColor: `${type.color}18` } : {}}>
+                              <TypeIcon size={13} style={{ color: type.color }} />
+                            </div>
+                            <span className={`text-[13px] font-medium flex-1 text-left ${isActive ? '' : 'text-gray-800 dark:text-gray-200'}`} style={isActive ? { color: type.color } : {}}>{type.label}</span>
+                            {isActive && <Check size={14} style={{ color: type.color }} className="flex-shrink-0" />}
+                          </button>
+                        ); })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Subtasks Section */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers size={15} className="text-slate-400" />
-              <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Subtasks</p>
-              {localSubtasks.length > 0 && (
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                  {localSubtasks.filter(st => st.completed).length}/{localSubtasks.length} done
-                </span>
-              )}
+            {/* Priority */}
+            <div className="py-1.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 whitespace-nowrap"><Flag size={13} style={{ color: priorityInfo.color }} /> Priority</span>
+                <div className="relative">
+                  <button type="button" data-detail-trigger onClick={() => setOpenDetailMenu(prev => prev === 'priority' ? null : 'priority')}
+                    className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all hover:shadow-sm" style={{ color: priorityInfo.color, backgroundColor: `${priorityInfo.color}0a` }}>
+                    <Flag size={14} fill={priorityInfo.color} /> {priorityInfo.label} <ChevronDown size={11} className="opacity-50" />
+                  </button>
+                  {openDetailMenu === 'priority' && (
+                    <div data-detail-menu className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-2xl">
+                      <div className="p-1.5">
+                        {Object.entries(priorityMeta).map(([key, meta]) => { const isActive = localPriority === key; return (
+                          <button key={key} type="button" onMouseDown={e => { e.preventDefault(); setLocalPriority(key); if (!isCreateMode) onUpdateFields?.(task.id, { priority: key }); setOpenDetailMenu(null); }}
+                            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-150 ${isActive ? '' : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'}`}
+                            style={isActive ? { backgroundColor: `${meta.color}12`, boxShadow: `inset 0 0 0 1px ${meta.color}25` } : {}}>
+                            <div className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${isActive ? '' : 'bg-gray-100/80 dark:bg-white/[0.06]'}`} style={isActive ? { backgroundColor: `${meta.color}18` } : {}}>
+                              <Flag size={15} fill={isActive ? meta.color : 'none'} style={{ color: meta.color }} />
+                            </div>
+                            <div className="flex-1 text-left min-w-0">
+                              <p className={`text-[13px] font-semibold leading-tight ${isActive ? '' : 'text-gray-800 dark:text-gray-200'}`} style={isActive ? { color: meta.color } : {}}>{meta.label}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-tight mt-0.5">{meta.desc}</p>
+                            </div>
+                            {isActive && <Check size={15} style={{ color: meta.color }} className="flex-shrink-0" />}
+                          </button>
+                        ); })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div className="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3">
-            {/* Subtask List */}
-            {localSubtasks.length > 0 && (
-              <div className="space-y-1.5 mb-3">
-                {localSubtasks.map((subtask) => (
-                  <div 
-                    key={subtask.id}
-                    className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white dark:hover:bg-slate-600/50 transition-colors"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSubtask(subtask.id)}
-                      className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                        subtask.completed 
-                          ? 'bg-purple-600 border-purple-600' 
-                          : 'border-slate-300 dark:border-slate-500 hover:border-purple-400'
-                      }`}
-                    >
-                      {subtask.completed && <Check size={10} className="text-white" strokeWidth={3} />}
-                    </button>
-                    <span 
-                      className={`flex-1 text-[13px] ${
-                        subtask.completed 
-                          ? 'text-slate-400 dark:text-slate-500 line-through' 
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {subtask.title}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSubtask(subtask.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-all"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+
+            {/* Due Date */}
+            <div className="py-1.5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 whitespace-nowrap"><CalendarIcon size={13} className="text-gray-400 dark:text-gray-500" /> Due date</span>
+                <div className="relative">
+                  <button type="button" data-detail-trigger ref={dueBtnRef}
+                    onClick={() => {
+                      const rect = dueBtnRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+                        const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+                        const modalEl = dueBtnRef.current?.closest('[role="dialog"]');
+                        const modalRect = modalEl?.getBoundingClientRect();
+                        const spaceRight = modalRect ? vw - modalRect.right : vw - rect.right;
+                        const spaceLeft = modalRect ? modalRect.left : rect.left;
+                        let placement = 'right';
+                        if (spaceRight < 310 && spaceLeft >= 310) placement = 'left';
+                        else if (spaceRight < 310) placement = 'inline';
+                        setDueBtnRect({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, modalRight: modalRect?.right || rect.right, modalLeft: modalRect?.left || rect.left, modalTop: modalRect?.top || 40, modalBottom: modalRect?.bottom || vh - 40, placement, vh });
+                      } else { setDueBtnRect(null); }
+                      setOpenDetailMenu(prev => prev === 'due' ? null : 'due');
+                    }}
+                    className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all hover:shadow-sm ${dueTriggerColor}`} style={dueTriggerBg}>
+                    <CalendarIcon size={14} /> {dueDisplayText}
+                    {hasDate && dueDraftTime && <span className="text-[11px] opacity-60">{dueDraftTime}</span>}
+                    <ChevronDown size={11} className="opacity-50" />
+                  </button>
+
+                  {openDetailMenu === 'due' && dueBtnRect && (
+                    <div data-detail-menu style={{
+                      position: 'fixed',
+                      ...(dueBtnRect.placement === 'right' ? { left: dueBtnRect.modalRight + 12, top: Math.max(8, Math.min(dueBtnRect.top - 92, (dueBtnRect.vh || 800) - 580)) }
+                        : dueBtnRect.placement === 'left' ? { right: typeof window !== 'undefined' ? window.innerWidth - dueBtnRect.modalLeft + 12 : 20, top: Math.max(8, Math.min(dueBtnRect.top - 92, (dueBtnRect.vh || 800) - 580)) }
+                        : { top: Math.min(dueBtnRect.bottom + 8, (dueBtnRect.vh || 800) - 580), right: typeof window !== 'undefined' ? window.innerWidth - dueBtnRect.right : 20 }),
+                      zIndex: 999999, width: 270, maxHeight: 'calc(100vh - 16px)', overflowY: 'auto'
+                    }} className="overflow-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-2xl">
+                      <div className="px-3 pt-3 pb-2">
+                        <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.06] px-3 py-2">
+                          <Search size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                          <input type="text" placeholder="Type a date..." className="w-full bg-transparent border-0 outline-none text-[13px] text-gray-800 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                            onKeyDown={e => { if (e.key === 'Enter') { const result = parseNaturalLanguageDate(e.target.value); if (result) { applyDueSelection(toYMDLocal(result), dueDraftTime); e.target.value = ''; } } }} />
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 dark:border-white/[0.05]">
+                        {dueShortcuts.map(s => { const ShortcutIcon = s.icon; return (
+                          <button key={s.key} type="button" onMouseDown={e => { e.preventDefault(); s.action(); }}
+                            className="flex w-full items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ backgroundColor: `${s.accent}15` }}><ShortcutIcon size={14} style={{ color: s.accent }} /></div>
+                            <span className="flex-1 text-left text-[13px] font-medium text-gray-800 dark:text-gray-200">{s.label}</span>
+                            <span className="text-[12px] font-medium text-gray-400 dark:text-gray-500">{s.info}</span>
+                          </button>
+                        ); })}
+                      </div>
+                      <div className="border-t border-gray-100 dark:border-white/[0.05] p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[13px] font-bold text-gray-800 dark:text-gray-200">{calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                          <div className="flex gap-0.5">
+                            <button type="button" onMouseDown={e => { e.preventDefault(); setDuePickerMonth(new Date(calMonth.getFullYear(), calMonth.getMonth()-1, 1)); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><ChevronDown size={14} className="rotate-90 text-gray-500" /></button>
+                            <button type="button" onMouseDown={e => { e.preventDefault(); setDuePickerMonth(new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 1)); }} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><ChevronDown size={14} className="-rotate-90 text-gray-500" /></button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-7 text-center mb-1">
+                          {['M','T','W','T','F','S','S'].map((d,i) => <div key={i} className="text-[10px] font-bold text-gray-400 dark:text-gray-500 py-1">{d}</div>)}
+                        </div>
+                        <div className="grid grid-cols-7 gap-px">
+                          {Array.from({ length: leadingBlanks }).map((_,i) => <div key={`prev-${i}`} className="aspect-square flex items-center justify-center text-[11px] text-gray-300 dark:text-gray-600">{prevMonthDays - leadingBlanks + 1 + i}</div>)}
+                          {Array.from({ length: daysInMonth }).map((_,i) => {
+                            const day = i + 1;
+                            const cellDate = new Date(calMonth.getFullYear(), calMonth.getMonth(), day); cellDate.setHours(0,0,0,0);
+                            const isCellToday = cellDate.getTime() === todayStart.getTime();
+                            const isCellSelected = dueDraftDate === toYMDLocal(cellDate);
+                            const isPast = cellDate < todayStart;
+                            return (
+                              <button key={day} type="button" onMouseDown={e => { e.preventDefault(); const nd = toYMDLocal(cellDate); setDueDraftDate(nd); applyDueSelection(nd, dueDraftTime); }}
+                                className={`aspect-square flex items-center justify-center rounded-md text-[11px] font-semibold transition-all ${isCellSelected ? 'bg-purple-600 text-white shadow-sm' : isCellToday ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-300/50 dark:ring-emerald-600/30' : isPast ? 'text-gray-300 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/[0.03]' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06]'}`}>
+                                {day}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 dark:border-white/[0.05] px-3 py-2.5 flex items-center gap-2.5">
+                        <Clock size={14} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                        <span className="text-[12px] font-medium text-gray-500 dark:text-gray-400">Time</span>
+                        <input type="time" value={dueDraftTime} onChange={e => setDueDraftTime(e.target.value)}
+                          className="ml-auto rounded-md border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] px-2 py-1 text-[12px] font-medium text-gray-700 dark:text-gray-300 outline-none focus:border-purple-400 w-24" />
+                        {dueDraftTime && <button type="button" onMouseDown={e => { e.preventDefault(); setDueDraftTime(''); }} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><X size={12} /></button>}
+                      </div>
+                      <div className="border-t border-gray-100 dark:border-white/[0.05] flex items-center justify-between px-3 py-2.5 bg-gray-50/50 dark:bg-white/[0.02]">
+                        <button type="button" onMouseDown={e => { e.preventDefault(); applyDueShortcut('clear'); }} className="flex items-center gap-1.5 text-[12px] font-semibold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"><X size={12} /> No date</button>
+                        <button type="button" onMouseDown={e => { e.preventDefault(); applyDueSelection(dueDraftDate, dueDraftTime); }} className="rounded-lg bg-purple-600 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-purple-700 transition-colors shadow-sm">Save</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Module */}
+            {modules.length > 0 && (
+              <div className="flex items-center justify-between py-2 text-[13px]">
+                <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 whitespace-nowrap"><Layers size={13} className="text-gray-400 dark:text-gray-500" /> Module</span>
+                <div className="relative">
+                  <button type="button" data-detail-trigger onClick={() => setOpenDetailMenu(prev => prev === 'module' ? null : 'module')}
+                    className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-all hover:shadow-sm"
+                    style={{ color: localCourseColor || '#64748b', backgroundColor: localCourseColor ? `${localCourseColor}18` : 'rgba(100,116,139,0.08)' }}>
+                    <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: localCourseColor || '#94a3b8' }} />
+                    <span className="truncate max-w-[130px]">{localCourse || 'None'}</span>
+                    <ChevronDown size={11} className="opacity-50" />
+                  </button>
+                  {openDetailMenu === 'module' && (
+                    <div data-detail-menu className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-xl">
+                      <div className="max-h-52 overflow-y-auto py-1">
+                        <button type="button" onMouseDown={e => { e.preventDefault(); setLocalCourse(null); setLocalCourseColor(null); if (!isCreateMode) onUpdateFields?.(task.id, { course: null, courseColor: null }); setOpenDetailMenu(null); }}
+                          className={`flex w-full items-center gap-2.5 px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04] ${!localCourse ? 'bg-gray-50/80 dark:bg-white/[0.03]' : ''}`}>
+                          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-gray-100 dark:bg-white/[0.06] shrink-0"><span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600" /></div>
+                          <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 flex-1 text-left">No module</p>
+                          {!localCourse && <Check size={12} className="text-purple-600 dark:text-purple-400 shrink-0" />}
+                        </button>
+                        {modules.map(mod => {
+                          const moduleName = mod.name || mod.title || mod.code;
+                          const moduleColor = mod.color || accentPurple;
+                          const isSelected = localCourse === moduleName;
+                          return (
+                            <button key={mod.id || moduleName} type="button" onMouseDown={e => { e.preventDefault(); setLocalCourse(moduleName); setLocalCourseColor(moduleColor); if (!isCreateMode) onUpdateFields?.(task.id, { course: moduleName, courseColor: moduleColor }); setOpenDetailMenu(null); }}
+                              className={`flex w-full items-center gap-2.5 px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04] ${isSelected ? 'bg-gray-50/80 dark:bg-white/[0.03]' : ''}`}>
+                              <div className="flex h-5 w-5 items-center justify-center rounded-md shrink-0" style={{ backgroundColor: `${moduleColor}20` }}><span className="w-2 h-2 rounded-full" style={{ backgroundColor: moduleColor }} /></div>
+                              <p className="text-[12px] font-semibold flex-1 text-left truncate" style={{ color: moduleColor }}>{moduleName}</p>
+                              {isSelected && <Check size={12} className="shrink-0" style={{ color: moduleColor }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            
-            {/* Add Subtask Input */}
-            <div className="flex items-center gap-2">
-              <div className="flex-shrink-0 w-4 h-4 rounded border-2 border-dashed border-slate-300 dark:border-slate-500" />
-              <input
-                type="text"
-                value={newSubtaskTitle}
-                onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddSubtask();
-                  }
-                }}
-                placeholder="Add a subtask..."
-                className="flex-1 text-[13px] bg-transparent border-0 outline-none text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-              />
-              {newSubtaskTitle.trim() && (
-                <button
-                  type="button"
-                  onClick={handleAddSubtask}
-                  className="flex h-5 w-5 items-center justify-center rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-                >
-                  <Plus size={12} />
-                </button>
-              )}
+
+            {/* Labels */}
+            <div className="py-2 text-[13px]">
+              <span className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2 mb-2"><Tag size={13} className="text-gray-400 dark:text-gray-500" /> Labels</span>
+              <div className="flex flex-wrap gap-1.5 ml-5">
+                {tags.map(tag => (
+                  <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-gray-100 dark:bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                    {tag}
+                    <button type="button" onClick={() => handleRemoveTag(tag)} className="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><X size={9} /></button>
+                  </span>
+                ))}
+                {courseModuleTags.filter(ct => !localTags.includes(ct)).slice(0, 2).map(suggestion => (
+                  <button key={suggestion} type="button" onClick={() => { setLocalTags(prev => { const n = Array.from(new Set([...prev, suggestion])); if (!isCreateMode) onTagsChange?.(task.id, n); return n; }); }}
+                    className="inline-flex items-center rounded-md border border-dashed border-gray-200 dark:border-white/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:text-gray-500 hover:border-gray-300 dark:hover:border-white/[0.12] hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    + {suggestion}
+                  </button>
+                ))}
+                <div className="flex items-center gap-1 w-full mt-1">
+                  <input value={tagDraft} onChange={e => setTagDraft(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
+                    placeholder={tags.length === 0 ? 'Add label...' : ''} className="min-w-[60px] flex-1 bg-transparent border-0 px-1 py-0.5 text-[11px] text-gray-700 dark:text-gray-300 outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500" />
+                  {tagDraft.trim() && <button type="button" onClick={handleAddTag} className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors"><Plus size={12} /></button>}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-        {error && <p className="text-xs font-semibold text-rose-500">{error}</p>}
       </div>
-      )}
 
       {isCreateMode && (
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-700 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-lg bg-purple-600 hover:bg-purple-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 shadow-sm"
-          >
-            {busy ? 'Adding…' : 'Add task'}
-          </button>
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-white/[0.06] px-6 py-4">
+          <button type="button" onClick={onClose} disabled={busy} className="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+          <button type="submit" disabled={busy} className="rounded-lg bg-purple-600 hover:bg-purple-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 shadow-sm">{busy ? 'Adding...' : 'Add task'}</button>
         </div>
       )}
-
     </form>
   );
 };

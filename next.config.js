@@ -34,13 +34,25 @@ module.exports = {
   compress: true,
   poweredByHeader: false,
   
-  // Add security headers to all routes
+  // Add security + cache headers to all routes
   async headers() {
     return [
       {
-        // Apply to all routes
+        // JS/CSS/image assets — cache by content hash (immutable)
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        // All page routes — never serve a stale HTML shell from CDN/browser
         source: '/:path*',
-        headers: securityHeaders,
+        headers: [
+          ...securityHeaders,
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+        ],
       },
     ];
   },

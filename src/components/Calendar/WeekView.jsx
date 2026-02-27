@@ -326,7 +326,7 @@ export default function WeekView({ weekDates = [], timeSlots = [], classes = [],
                   className={`relative px-5 ${compact ? 'py-3 min-h-[48px]' : 'py-5 min-h-[88px]'} border-l-2 ${hoveredCol === idx ? 'border-sky-300/60' : 'border-slate-300/40'} ${!isTodayCol ? 'hover:bg-gray-800/5' : ''} cursor-pointer`}
                 >
                   {/* faint horizontal lines */}
-                  <div className="absolute left-6 top-4 bottom-4 w-1 bg-gradient-to-b from-transparent to-transparent opacity-0 pointer-events-none" aria-hidden="true"></div>
+                  <div className="absolute left-6 top-4 bottom-4 w-1 opacity-0 pointer-events-none" aria-hidden="true"></div>
 
                   {/* render events that fall within this hour slot with minute-accurate positioning */}
                   {eventsForCell.length > 0 ? (

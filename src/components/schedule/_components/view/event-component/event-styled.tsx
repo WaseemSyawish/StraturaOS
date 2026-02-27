@@ -345,12 +345,21 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
           onClick={(e: React.MouseEvent<HTMLDivElement>) => {
             e.stopPropagation();
             handleEditEvent({
+              ...event,
               id: event?.id,
               title: event?.title,
               startDate: event?.startDate,
               endDate: event?.endDate,
               description: event?.description,
               variant: event?.variant,
+              type: (event as any)?.type,
+              location: (event as any)?.location,
+              color: (event as any)?.color || event?.variant,
+              course_id: (event as any)?.course_id,
+              courses: (event as any)?.courses,
+              meta: (event as any)?.meta,
+              template_id: (event as any)?.template_id,
+              raw: (event as any)?.raw,
             });
           }}
           className="w-full h-full cursor-pointer"
@@ -362,12 +371,21 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
           onClick={(e: React.MouseEvent<HTMLDivElement>) => {
             e.stopPropagation();
             handleEditEvent({
+              ...event,
               id: event?.id,
               title: event?.title,
               startDate: event?.startDate,
               endDate: event?.endDate,
               description: event?.description,
               variant: event?.variant,
+              type: (event as any)?.type,
+              location: (event as any)?.location,
+              color: (event as any)?.color || event?.variant,
+              course_id: (event as any)?.course_id,
+              courses: (event as any)?.courses,
+              meta: (event as any)?.meta,
+              template_id: (event as any)?.template_id,
+              raw: (event as any)?.raw,
             });
           }}
           className="w-full h-full event-tile"

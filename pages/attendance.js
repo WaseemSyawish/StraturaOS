@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, Download, Loader2, AlertCircle, Calendar, Settings, BookOpen, CheckCircle, ArrowRight, X, ClipboardCheck, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Download, Loader2, AlertCircle, Calendar, Settings, BookOpen, CheckCircle, ArrowRight, X, ClipboardCheck, Sparkles, BarChart3 } from 'lucide-react';
 import CustomSelect from '../src/components/CustomSelect';
 // WeekView (timetable grid) removed from Attendance page per UI request
 import Notification from '../src/components/Notification';
@@ -14,7 +14,7 @@ import { isSemesterActive, findActiveSemester } from '@/utils/semesterUtils';
    ───────────────────────────────────────────────────────────── */
 const ds = {
   pageBg: 'min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 dark:from-[#0a0a0f] dark:via-[#0a0a0f] dark:to-[#12121a]',
-  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900 rounded-2xl mb-6',
+  headerBand: 'relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-700 to-purple-800 dark:from-purple-900 dark:via-purple-800 dark:to-purple-900 rounded-2xl mb-6',
   card: 'bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg dark:shadow-2xl dark:shadow-purple-500/5 border border-slate-200/60 dark:border-slate-800/60 backdrop-blur-sm',
   headingXl: 'text-2xl sm:text-3xl font-extrabold text-white tracking-tight',
   statCard: 'p-4 rounded-xl bg-white/90 dark:bg-[#16161f] border border-slate-200/60 dark:border-slate-800/60 shadow-sm',
@@ -587,81 +587,7 @@ useEffect(() => {
 
   const stats = calculateStats();
 
-  // Small inline dark-mode overrides specific to Attendance page
-  // Keep minimal and rely on global src/index.css for broader coverage
-    const attendanceDarkStyles = `
-    html.dark .attendance-root { background: #071023; color: rgba(255,255,255,0.92); }
-    html.dark .attendance-card { background: #071423; border-color: rgba(255,255,255,0.04); box-shadow: none; }
-    html.dark .attendance-card .card-header, html.dark .attendance-card .card-body { color: rgba(255,255,255,0.92); }
-    
-    /* Enhanced card borders and outlines for better definition */
-    html.dark .cozy { border: 1px solid rgba(139, 92, 246, 0.15); }
-    html.dark .attendance-table-wrapper { border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 0.75rem; }
-    html.dark .summary-panel { border: 1px solid rgba(139, 92, 246, 0.2); box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
-    
-  /* Table header surface and cells */
-  html.dark .attendance-table thead { background: rgba(255,255,255,0.02) !important; }
-  html.dark .attendance-table thead th { background: rgba(255,255,255,0.02) !important; color: rgba(255,255,255,0.92) !important; border-bottom-color: rgba(255,255,255,0.04) !important; }
-  html.dark .attendance-table td { color: rgba(255,255,255,0.9) !important; }
-  /* Table row hover in dark mode */
-  html.dark .attendance-root table tbody tr:hover { background: rgba(255,255,255,0.02) !important; }
-  /* Ensure cozy tbody background is dark */
-  html.dark .attendance-root .cozy tbody { background: transparent !important; }
-    /* Utility fix for hover:bg-gray-50 used on rows */
-    html.dark .attendance-root .hover\:bg-gray-50:hover { background: rgba(255,255,255,0.02) !important; }
 
-    /* Inputs, selects and small controls */
-    html.dark .attendance-root input[type="date"],
-    html.dark .attendance-root input[type="time"],
-    html.dark .attendance-root input[type="number"],
-    html.dark .attendance-root select,
-    html.dark .attendance-root textarea {
-      background: #0b1220; color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.06);
-    }
-    /* Force native select dropdowns to use dark backgrounds and readable option text */
-    html.dark .attendance-root select { background: #0b1220 !important; color: rgba(255,255,255,0.92) !important; }
-    /* Some browsers render options in a native popup - style fallback for options */
-    html.dark .attendance-root select option { background: #0b1220; color: rgba(255,255,255,0.92); }
-    /* Focus/hover states for options (where supported) */
-    html.dark .attendance-root select option:hover, html.dark .attendance-root select option:focus { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.98); }
-    /* Ensure selected option text is visible without focusing the select */
-    html.dark .attendance-root select, html.dark .attendance-root select option {
-      color: rgba(255,255,255,0.92) !important; background: transparent !important;
-    }
-    /* Some browsers render the selected value in a pseudo-element; target common ones */
-    html.dark .attendance-root select::-ms-value { color: rgba(255,255,255,0.92); }
-    html.dark .attendance-root select::-webkit-textfield-decoration { color: rgba(255,255,255,0.92); }
-    /* Force number inputs to show their value in dark mode */
-    html.dark .attendance-root input[type="number"] { color: rgba(255,255,255,0.92) !important; }
-    html.dark .attendance-root input:focus,
-    html.dark .attendance-root select:focus,
-    html.dark .attendance-root input:focus-visible {
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
-    }
-
-    /* Buttons and small controls */
-    html.dark .attendance-root button,
-    html.dark .attendance-root .btn-light {
-      background: transparent; color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.06);
-    }
-
-    /* Status badge color adjustments for dark mode */
-    html.dark .bg-green-50 { background: rgba(16,185,129,0.06) !important; color: rgba(16,185,129,0.95) !important; }
-    html.dark .bg-red-50 { background: rgba(239,68,68,0.06) !important; color: rgba(239,68,68,0.95) !important; }
-    html.dark .bg-blue-50 { background: rgba(59,130,246,0.06) !important; color: rgba(59,130,246,0.95) !important; }
-    html.dark .bg-yellow-50 { background: rgba(234,179,8,0.06) !important; color: rgba(234,179,8,0.95) !important; }
-    html.dark .bg-orange-50 { background: rgba(249,115,22,0.06) !important; color: rgba(249,115,22,0.95) !important; }
-
-    /* Stronger text mappings */
-    html.dark .text-gray-900, html.dark .text-gray-800 { color: rgba(255,255,255,0.92) !important; }
-    html.dark .text-gray-600 { color: rgba(255,255,255,0.72) !important; }
-
-    /* Summary panels and cards */
-    html.dark .cozy, html.dark .card { background: #071423; border-color: rgba(255,255,255,0.04); }
-
-    html.dark .modal-backdrop { background: rgba(0,0,0,0.6); }
-    html.dark .text-gray-600 { color: rgba(255,255,255,0.72) !important; }
-  `;
 
   // Note: addSession flow is replaced by modal-driven addSessionWithPayload
 
@@ -965,7 +891,7 @@ useEffect(() => {
   if (coursesLoading) {
   return (
     <HygraphSidebar pageName="Attendance">
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-6 flex items-center justify-center">
       <Head>
         <title>Attendance — StraturaOS</title>
       </Head>
@@ -974,11 +900,11 @@ useEffect(() => {
           <div className="flex flex-col items-center text-center">
             {/* Animated icon container */}
             <div className="relative mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
                 <BookOpen className="w-8 h-8 text-white" strokeWidth={2} />
               </div>
               {/* Spinning ring around icon */}
-              <div className="absolute inset-0 border-4 border-indigo-200 border-t-indigo-600 rounded-2xl animate-spin"></div>
+              <div className="absolute inset-0 border-4 border-purple-200 border-t-purple-600 rounded-2xl animate-spin"></div>
             </div>
             
             {/* Loading text */}
@@ -1000,21 +926,21 @@ useEffect(() => {
   if (!courses.length) {
   return (
     <HygraphSidebar pageName="Attendance">
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-purple-50 to-purple-100 p-6 flex items-center justify-center">
       <Head>
         <title>Attendance — StraturaOS</title>
       </Head>
       <div className="max-w-2xl w-full mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
           {/* Header Section - more integrated, less "hero-y" */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8">
+          <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-8">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <BookOpen className="w-7 h-7 text-white" strokeWidth={2} />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-white">No Courses Yet</h2>
-                <p className="text-indigo-100 text-sm">Let's get you set up</p>
+                <p className="text-purple-100 text-sm">Let's get you set up</p>
               </div>
             </div>
           </div>
@@ -1031,7 +957,7 @@ useEffect(() => {
             {/* Action Button */}
             <button
               onClick={() => window.location.href = '/modules'}
-              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 hover:scale-[1.02]"
+              className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 hover:scale-[1.02]"
             >
               <Plus className="w-5 h-5" />
               <span>Add Your First Course</span>
@@ -1059,8 +985,8 @@ useEffect(() => {
                   <p className="text-xs text-gray-600">Track assignments and deadlines</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Settings className="w-6 h-6 text-indigo-600" />
+                  <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Settings className="w-6 h-6 text-purple-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 text-sm mb-1">View Analytics</h4>
                   <p className="text-xs text-gray-600">Get performance insights</p>
@@ -1083,12 +1009,7 @@ useEffect(() => {
       <Head>
         <title>Attendance — StraturaOS</title>
       </Head>
-      <style>{`html.dark .attendance-root { background: linear-gradient(180deg,#0a0a0f,#12121a); }
-        html.dark .cozy, html.dark .card { background: #12121a; color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.04); }
-        html.dark .text-gray-800 { color: rgba(255,255,255,0.92) !important; }
-        html.dark .text-gray-600 { color: rgba(255,255,255,0.72) !important; }
-        html.dark .bg-red-50 { background: rgba(255,0,0,0.04) !important; }
-        ${attendanceDarkStyles}
+      <style>{`
         @keyframes popIn {
         from { opacity: 0; transform: scale(0.96); }
         to { opacity: 1; transform: scale(1); }
@@ -1224,96 +1145,115 @@ useEffect(() => {
             {/* Sessions Table */}
             <div className="lg:col-span-2">
               {/* Upcoming Sessions removed per user request */}
-              <div className="cozy rounded-xl shadow-lg overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-800">
-                    Sessions for {selectedCourse}
-                  </h2>
+              <div className="cozy rounded-2xl shadow-lg overflow-hidden border border-slate-200/60 dark:border-white/5">
+                <div className="p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center">
+                      <ClipboardCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                        {selectedCourse}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{sessions.length} session{sessions.length !== 1 ? 's' : ''} recorded</p>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="overflow-x-auto">
+                <div>
                   {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="animate-spin mr-2" size={24} />
-                      <span>Loading attendance data...</span>
+                    <div className="flex items-center justify-center py-16">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="relative w-10 h-10">
+                          <div className="absolute inset-0 rounded-full border-2 border-purple-200 dark:border-purple-900" />
+                          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-500 animate-spin" />
+                        </div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading sessions…</p>
+                      </div>
                     </div>
                   ) : sessions.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                      <p>No attendance sessions found for {selectedCourse}</p>
+                    <div className="text-center py-14 px-6">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
+                        <Calendar className="w-7 h-7 text-slate-400 dark:text-slate-500" />
+                      </div>
+                      <p className="font-semibold text-slate-700 dark:text-slate-300 mb-1">No sessions yet</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">Start tracking attendance for {selectedCourse}</p>
                       <button
                         onClick={() => setShowAddSessionModal(true)}
                         disabled={saving}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50"
                       >
-                        {saving ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="animate-spin" size={16} />
-                            Adding...
-                          </span>
-                        ) : (
-                          'Add First Session'
-                        )}
+                        <Plus className="w-4 h-4" />
+                        Add First Session
                       </button>
                     </div>
                   ) : (
-                    <table className="w-full attendance-table">
-                    <thead className="bg-gray-50 dark:bg-transparent">
-                      <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-black dark:text-slate-100 uppercase tracking-wider">Session</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-black dark:text-slate-100 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-black dark:text-slate-100 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-black dark:text-slate-100 uppercase tracking-wider">Points</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-black dark:text-slate-100 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="cozy divide-y divide-gray-200">
+                    <div className="divide-y divide-slate-100 dark:divide-white/5">
+                      {/* Table header */}
+                      <div className="grid grid-cols-12 gap-3 px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div className="col-span-1">#</div>
+                        <div className="col-span-3">Date</div>
+                        <div className="col-span-3">Status</div>
+                        <div className="col-span-2 text-center">Points</div>
+                        <div className="col-span-3 text-right">Actions</div>
+                      </div>
                       {sessions.map((session, index) => (
-                        <tr key={session.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {index + 1}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-black dark:text-slate-100">
+                        <div key={session.id} className="grid grid-cols-12 gap-3 items-center px-5 py-3.5 hover:bg-slate-50/60 dark:hover:bg-white/[0.02] transition-colors group">
+                          {/* Session number */}
+                          <div className="col-span-1">
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">{index + 1}</span>
+                          </div>
+                          {/* Date */}
+                          <div className="col-span-3">
                             <input
                               type="date"
                               value={session.date}
                               onChange={(e) => updateSession(session.id, 'date', e.target.value)}
-                              className="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white"
+                              className="w-full px-2.5 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500 outline-none transition-all"
                             />
-                            <div className="text-xs text-gray-500 mt-1">
-                              {formatDate(session.date)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <select
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">{formatDate(session.date)}</p>
+                          </div>
+                          {/* Status */}
+                          <div className="col-span-3 flex items-center">
+                            <CustomSelect
                               value={session.status}
-                              onChange={(e) => updateSession(session.id, 'status', e.target.value)}
-                              className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(session.status)} border-0 focus:ring-2 focus:ring-blue-500 text-black dark:text-white`}
-                            >
-                              <option value="PRESENT">Present</option>
-                              <option value="ABSENT">Absent</option>
-                              <option value="LATE">Late</option>
-                              <option value="HOLIDAY">Holiday</option>
-                              <option value="EXCUSED">Excused</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-slate-100">
-                            <div className="w-16 text-sm font-medium text-gray-800 dark:text-white">
+                              onChange={(val) => updateSession(session.id, 'status', val)}
+                              options={[
+                                { value: 'PRESENT', label: 'Present' },
+                                { value: 'ABSENT', label: 'Absent' },
+                                { value: 'LATE', label: 'Late' },
+                                { value: 'HOLIDAY', label: 'Holiday' },
+                                { value: 'EXCUSED', label: 'Excused' },
+                              ]}
+                              className={`w-full text-xs font-semibold rounded-lg ${
+                                session.status === 'PRESENT' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                                session.status === 'ABSENT' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400' :
+                                session.status === 'LATE' ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' :
+                                session.status === 'EXCUSED' ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400' :
+                                session.status === 'HOLIDAY' ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                'bg-slate-50 text-slate-700 dark:bg-white/5 dark:text-slate-400'
+                              }`}
+                            />
+                          </div>
+                          {/* Points */}
+                          <div className="col-span-2 text-center">
+                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
                               {session.points === null || session.points === undefined ? '—' : session.points}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            </span>
+                          </div>
+                          {/* Actions */}
+                          <div className="col-span-3 flex justify-end">
                             <button
                               onClick={() => deleteSession(session.id)}
-                              className="text-red-600 hover:text-red-800 transition-colors"
+                              className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
                               aria-label="Delete session"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} />
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1321,10 +1261,13 @@ useEffect(() => {
 
             {/* Summary Panel */}
             <div className="lg:col-span-1">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-gray-200/60 dark:border-slate-800 overflow-hidden">
+              <div className="bg-white/80 dark:bg-[#12121a] rounded-2xl shadow-lg border border-slate-200/60 dark:border-white/5 backdrop-blur-sm overflow-hidden">
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">Attendance Summary</h2>
+                <div className="px-5 py-4 border-b border-slate-100 dark:border-white/5">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-purple-500" />
+                    Attendance Summary
+                  </h2>
                 </div>
                 
                 <div className="p-6 space-y-6">
@@ -1530,7 +1473,7 @@ useEffect(() => {
     {showAddSessionModal && (
       <React.Fragment>
         <div
-          className="fixed inset-0 z-40 bg-black/20"
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
           onClick={() => { closeModal(); }}
         />
         <AddSessionModal

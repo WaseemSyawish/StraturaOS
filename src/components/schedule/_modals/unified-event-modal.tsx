@@ -9,7 +9,8 @@ import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Calendar, Clock, MapPin, ChevronDown, Check,
-  Repeat, BookOpen, Palette, AlertTriangle, Users, FileText, Target, GraduationCap, Trash2
+  Repeat, BookOpen, Palette, AlertTriangle, Users, FileText, Target, GraduationCap, Trash2,
+  FlaskConical, Lightbulb, Heart, Sparkles, ChevronRight
 } from "lucide-react";
 import { Event } from "@/types";
 
@@ -36,7 +37,16 @@ const getHexColor = (color: string | undefined): string => {
   return HEX_COLORS[color.toLowerCase()] || '#9333EA';
 };
 
-// Color options (used when no module is selected)
+// Convert hex to rgba
+const hexToRgba = (hex: string, alpha: number): string => {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Color options with vibrant gradients
 const COLORS = [
   { key: "purple", hex: "#9333EA", name: "Purple" },
   { key: "blue", hex: "#3B82F6", name: "Blue" },
@@ -46,31 +56,43 @@ const COLORS = [
   { key: "cyan", hex: "#06B6D4", name: "Cyan" },
   { key: "pink", hex: "#EC4899", name: "Pink" },
   { key: "indigo", hex: "#6366F1", name: "Indigo" },
+  { key: "orange", hex: "#F97316", name: "Orange" },
+  { key: "teal", hex: "#14B8A6", name: "Teal" },
 ];
 
 const EVENT_TYPES = [
   { value: "class", label: "Class", Icon: BookOpen },
-  { value: "lab", label: "Lab", Icon: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> },
-  { value: "tutorial", label: "Tutorial", Icon: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> },
+  { value: "lab", label: "Lab", Icon: FlaskConical },
+  { value: "tutorial", label: "Tutorial", Icon: Lightbulb },
   { value: "exam", label: "Exam", Icon: AlertTriangle },
   { value: "meeting", label: "Meeting", Icon: Users },
-  { value: "study", label: "Study", Icon: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
+  { value: "workshop", label: "Workshop", Icon: Sparkles },
+  { value: "presentation", label: "Presentation", Icon: Users },
+  { value: "study", label: "Study", Icon: BookOpen },
   { value: "deadline", label: "Deadline", Icon: Clock },
   { value: "assignment", label: "Assignment", Icon: FileText },
+  { value: "personal", label: "Personal", Icon: Heart },
   { value: "other", label: "Other", Icon: Target },
 ];
+
+const normalizeLabel = (value: unknown) =>
+  String(value || '').trim().toLowerCase().replace(/[-_\s]+/g, ' ');
+
+const getSemesterOrderFromName = (name: unknown) => {
+  const s = String(name || '').toLowerCase();
+  if (/\b(first|1st|semester\s*1|s1)\b/.test(s)) return '1';
+  if (/\b(second|2nd|semester\s*2|s2)\b/.test(s)) return '2';
+  if (/\b(third|3rd|semester\s*3|s3)\b/.test(s)) return '3';
+  return null;
+};
 
 const RECURRENCE_PRESETS = [
   { label: "No repeat", days: [], interval: 0 },
   { label: "Daily", days: [0, 1, 2, 3, 4, 5, 6], interval: 1 },
   { label: "Weekdays (Mon-Fri)", days: [1, 2, 3, 4, 5], interval: 1 },
-  { label: "Weekends (Sat-Sun)", days: [0, 6], interval: 1 },
   { label: "MWF", days: [1, 3, 5], interval: 1 },
   { label: "Tue/Thu", days: [2, 4], interval: 1 },
   { label: "Weekly", days: [-1], interval: 1 },
-  { label: "Biweekly", days: [-1], interval: 2 },
-  { label: "Monthly", days: [-2], interval: 1 }, // -2 = same day of month
-  { label: "Custom...", days: [], interval: 0, isCustom: true },
 ];
 
 // Day abbreviations for custom recurrence
@@ -84,21 +106,6 @@ const DAY_ABBREVIATIONS = [
   { value: 6, label: 'S', fullLabel: 'Sat' },
 ];
 
-// Duration options with cleaner labels - more granular
-const DURATION_OPTIONS = [
-  { value: 15, label: "15 min" },
-  { value: 30, label: "30 min" },
-  { value: 45, label: "45 min" },
-  { value: 60, label: "1 hour" },
-  { value: 75, label: "1h 15min" },
-  { value: 90, label: "1.5 hours" },
-  { value: 120, label: "2 hours" },
-  { value: 150, label: "2.5 hours" },
-  { value: 180, label: "3 hours" },
-  { value: 240, label: "4 hours" },
-  { value: -1, label: "Custom...", isCustom: true },
-];
-
 interface UnifiedEventModalProps {
   event?: Event | null;
   mode: 'view' | 'edit' | 'create';
@@ -109,9 +116,6 @@ interface UnifiedEventModalProps {
   onDelete?: (event: Event) => Promise<void>;
   onEdit?: (event: Event) => void;
 }
-
-// Active dropdown type for proper close handling
-type DropdownType = 'type' | 'color' | 'recurrence' | 'duration' | 'module' | null;
 
 export default function UnifiedEventModal({
   event,
@@ -131,6 +135,42 @@ export default function UnifiedEventModal({
   const [mode, setMode] = useState(initialMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [serverEvent, setServerEvent] = useState<any>(null);
+  const [loadingEvent, setLoadingEvent] = useState(false);
+
+  // Resolve the most complete event data: server > prop > raw
+  const resolvedEvent = useMemo(() => {
+    const ev = serverEvent || event;
+    if (!ev) return null;
+    const raw = (ev as any)?.raw || {};
+    return {
+      ...raw,
+      ...ev,
+      courses: ev.courses || (ev as any)?.courses || raw.courses || null,
+      location: (ev as any)?.location || raw.location || null,
+      type: (ev as any)?.type || raw.type || raw.sessionType || 'class',
+      course_id: (ev as any)?.course_id || raw.course_id || null,
+      meta: (ev as any)?.meta || raw.meta || null,
+      template_id: (ev as any)?.template_id || raw.template_id || raw.templateId || null,
+    };
+  }, [serverEvent, event]);
+  
+  // Fetch full event data from server when editing/viewing
+  useEffect(() => {
+    if ((initialMode === 'edit' || initialMode === 'view') && event?.id) {
+      setLoadingEvent(true);
+      fetch(`/api/events/${encodeURIComponent(event.id)}`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const serverEv = data?.event || data;
+          if (serverEv && typeof serverEv === 'object') {
+            setServerEvent(serverEv);
+          }
+        })
+        .catch(err => console.warn('Failed to fetch event details:', err))
+        .finally(() => setLoadingEvent(false));
+    }
+  }, [event?.id, initialMode]);
   
   // Form state
   const [title, setTitle] = useState(event?.title || "");
@@ -160,30 +200,42 @@ export default function UnifiedEventModal({
     }
     return 60;
   });
-  const [type, setType] = useState(event?.type || "class");
+  const [type, setType] = useState(() => {
+    return (event as any)?.type || (event as any)?.raw?.type || "class";
+  });
   const [color, setColor] = useState(() => {
-    const c = event?.color || event?.colorKey || (event as any)?.variant || "purple";
+    const c = event?.color || (event as any)?.colorKey || (event as any)?.variant || "purple";
     return c.toLowerCase();
   });
-  const [location, setLocation] = useState((event as any)?.location || "");
-  const [description, setDescription] = useState((event as any)?.description || "");
+  const [location, setLocation] = useState(() => {
+    return (event as any)?.location || (event as any)?.raw?.location || "";
+  });
+  const [description, setDescription] = useState(() => {
+    let desc = (event as any)?.description || "";
+    desc = desc.replace(/\[META\][\s\S]*?\[META\]/g, '').trim();
+    const loc = ((event as any)?.location || (event as any)?.raw?.location || "").trim().toLowerCase();
+    if (loc && desc.trim().toLowerCase() === loc) return "";
+    return desc;
+  });
   const [recurrencePreset, setRecurrencePreset] = useState("No repeat");
-  
-  // Custom input states
-  const [showCustomDuration, setShowCustomDuration] = useState(false);
-  const [customDurationHours, setCustomDurationHours] = useState(1);
-  const [customDurationMinutes, setCustomDurationMinutes] = useState(0);
   const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
   const [customRecurrenceDays, setCustomRecurrenceDays] = useState<number[]>([]);
+  const [showNotes, setShowNotes] = useState(() => {
+    // Auto-expand if there's existing notes content
+    const desc = (event as any)?.description || "";
+    return desc.replace(/\[META\][\s\S]*?\[META\]/g, '').trim().length > 0;
+  });
+  const [showRecurrence, setShowRecurrence] = useState(false);
   
   // Module state - fetch from /api/courses
   const [modules, setModules] = useState<Module[]>([]);
+  const [semesterSettings, setSemesterSettings] = useState<any[]>([]);
   const [selectedModule, setSelectedModule] = useState<Module | null>(() => {
-    // If event has a linked course, use it
     if ((event as any)?.courses) {
       return {
-        id: (event as any).courses.id,
+        id: (event as any).courses.id || (event as any).course_id,
         name: (event as any).courses.name,
+        code: (event as any).courses.code,
         color: (event as any).courses.color,
       };
     }
@@ -192,21 +244,88 @@ export default function UnifiedEventModal({
     }
     return null;
   });
+
+  const activeSemester = useMemo(() => {
+    if (!semesterSettings.length) return null;
+    return semesterSettings.find((s: any) => s && s.is_active) || semesterSettings[0];
+  }, [semesterSettings]);
+
+  const filteredModules = useMemo(() => {
+    if (!modules.length) return [];
+    if (!activeSemester) return modules;
+
+    const activeId = String(activeSemester.id || '');
+    const activeName = String(activeSemester.name || '');
+    const activeYear = activeSemester.start_date ? new Date(activeSemester.start_date).getFullYear() : null;
+    const activeOrder = getSemesterOrderFromName(activeName);
+    const activeLegacy = activeYear && activeOrder ? `${activeYear}-${activeOrder}` : null;
+
+    const inSemester = modules.filter((mod: any) => {
+      const semRaw = String(mod?.semester || '').trim();
+      if (!semRaw) return false;
+      if (semRaw === activeId) return true;
+      if (activeLegacy && semRaw === activeLegacy) return true;
+      if (normalizeLabel(semRaw) === normalizeLabel(activeName)) return true;
+      return false;
+    });
+
+    if (!selectedModule?.id) return inSemester;
+    if (inSemester.some((m: any) => String(m.id) === String(selectedModule.id))) return inSemester;
+    const selectedFromAll = modules.find((m: any) => String(m.id) === String(selectedModule.id));
+    return selectedFromAll ? [selectedFromAll, ...inSemester] : inSemester;
+  }, [modules, activeSemester, selectedModule]);
+
+  // Update form fields when server event loads
+  useEffect(() => {
+    if (serverEvent) {
+      if (serverEvent.location && !location) setLocation(serverEvent.location);
+      if (serverEvent.type) setType(serverEvent.type);
+      if (serverEvent.description && !description) {
+        let desc = serverEvent.description || '';
+        desc = desc.replace(/\[META\][\s\S]*?\[META\]/g, '').trim();
+        const loc = (serverEvent.location || '').trim().toLowerCase();
+        if (desc && (!loc || desc.trim().toLowerCase() !== loc)) setDescription(desc);
+      }
+      if (serverEvent.courses && !selectedModule?.name) {
+        setSelectedModule({
+          id: serverEvent.courses.id || serverEvent.course_id,
+          name: serverEvent.courses.name,
+          code: serverEvent.courses.code,
+          color: serverEvent.courses.color,
+        });
+      }
+      if (serverEvent.color) {
+        setColor(serverEvent.color.toLowerCase());
+      } else if (serverEvent.courses?.color) {
+        setColor(serverEvent.courses.color.toLowerCase());
+      }
+    }
+  }, [serverEvent]);
   
   // Fetch modules on mount
   useEffect(() => {
     const fetchModules = async () => {
       try {
-        const res = await fetch('/api/courses');
-        if (res.ok) {
-          const data = await res.json();
+        const [coursesRes, semestersRes] = await Promise.all([
+          fetch('/api/courses', { credentials: 'include' }),
+          fetch('/api/semester-settings', { credentials: 'include' }),
+        ]);
+
+        if (coursesRes.ok) {
+          const data = await coursesRes.json();
           if (data.success && Array.isArray(data.courses)) {
             setModules(data.courses);
-            // If we have a course_id but no name, find it
             if (selectedModule?.id && !selectedModule.name) {
               const found = data.courses.find((c: Module) => c.id === selectedModule.id);
               if (found) setSelectedModule(found);
             }
+          }
+        }
+
+        if (semestersRes.ok) {
+          const semData = await semestersRes.json();
+          if (semData?.success && Array.isArray(semData.settings)) {
+            setSemesterSettings(semData.settings);
           }
         }
       } catch (err) {
@@ -224,49 +343,21 @@ export default function UnifiedEventModal({
     return getHexColor(color);
   }, [selectedModule, color]);
   
-  // Single active dropdown state - only one can be open at a time
-  const [activeDropdown, setActiveDropdown] = useState<DropdownType>(null);
-
-  // Toggle dropdown - closes others and opens/closes this one
-  const toggleDropdown = useCallback((dropdown: DropdownType) => {
-    setActiveDropdown(prev => prev === dropdown ? null : dropdown);
-  }, []);
-
-  // Close all dropdowns
-  const closeAllDropdowns = useCallback(() => {
-    setActiveDropdown(null);
-  }, []);
-
   useEffect(() => {
     if ((mode === 'create' || mode === 'edit') && titleInputRef.current) {
-      setTimeout(() => titleInputRef.current?.focus(), 100);
+      setTimeout(() => titleInputRef.current?.focus(), 200);
     }
-    
+  }, [mode]);
+
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (activeDropdown) {
-          closeAllDropdowns();
-        } else {
-          onClose();
-        }
+        onClose();
       }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [mode, onClose, activeDropdown, closeAllDropdowns]);
-
-  // Close dropdowns when clicking outside dropdown areas
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      // Check if click is outside any dropdown
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-dropdown]')) {
-        closeAllDropdowns();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [closeAllDropdowns]);
+  }, [onClose]);
 
   const selectedColor = COLORS.find(c => c.key === color) || COLORS[0];
   const selectedType = EVENT_TYPES.find(t => t.value === type) || EVENT_TYPES[0];
@@ -285,6 +376,14 @@ export default function UnifiedEventModal({
     };
     return formatTime(endH, endM);
   }, [startTime, duration]);
+
+  // Format start time for display (12-hour)
+  const startTimeDisplay = useMemo(() => {
+    const [h, m] = startTime.split(':').map(Number);
+    const h12 = h % 12 || 12;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    return m === 0 ? `${h12} ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }, [startTime]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -332,11 +431,13 @@ export default function UnifiedEventModal({
         time: startTime,
         durationMinutes: duration,
         location: location.trim() || null,
+        description: description.trim() || null,
         course_id: selectedModule?.id || null, // Link to module
         meta: { 
           color: selectedModule?.color || color, 
           durationMinutes: duration, 
           location: location.trim() || null,
+          description: description.trim() || null,
           course_id: selectedModule?.id || null,
         },
         ...(recurrenceDays.length > 0 && {
@@ -369,104 +470,143 @@ export default function UnifiedEventModal({
 
   if (typeof window === 'undefined') return null;
 
-  // VIEW MODE
+  // VIEW MODE - Vibrant detail card
   if (mode === 'view' && event) {
     const eventDate = parseDatePreserveLocal(event.startDate) || new Date(String(event.startDate));
     const eventEndDate = parseDatePreserveLocal(event.endDate) || new Date(String(event.endDate));
+    const ev = resolvedEvent || event;
+    const evLocation = (ev as any)?.location || null;
+    const evCourses = (ev as any)?.courses || null;
+    const evType = (ev as any)?.type || 'event';
+    const evDescRaw = ((ev as any)?.description || '').replace(/\[META\][\s\S]*?\[META\]/g, '').trim();
+    const evDesc = (evLocation && evDescRaw && evDescRaw.trim().toLowerCase() === String(evLocation).trim().toLowerCase()) ? '' : evDescRaw;
+    const durMins = Math.round((eventEndDate.getTime() - eventDate.getTime()) / 60000);
+    const durLabel = durMins < 60 ? `${durMins}m` : durMins % 60 === 0 ? `${durMins / 60}h` : `${Math.floor(durMins / 60)}h ${durMins % 60}m`;
     
     return createPortal(
       <AnimatePresence mode="wait">
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md"
             onClick={onClose}
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.92, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-lg mx-4 rounded-xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900"
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-[#1a1a2e]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-base font-medium text-slate-700 dark:text-slate-200">{event.title}</h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X size={18} />
-              </button>
+            {/* Vibrant colored header */}
+            <div 
+              className="relative px-6 pt-6 pb-8 overflow-hidden"
+              style={{ 
+                background: `linear-gradient(135deg, ${effectiveColor} 0%, ${hexToRgba(effectiveColor, 0.8)} 100%)`,
+              }}
+            >
+              {/* Decorative circles */}
+              <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              
+              <div className="relative flex items-start justify-between">
+                <div className="flex-1 min-w-0 pr-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-sm mb-3">
+                    <selectedType.Icon size={12} />
+                    {evType}
+                  </span>
+                  <h2 className="text-xl font-bold text-white leading-snug mb-1">{event.title}</h2>
+                  {evCourses && (
+                    <p className="text-white/80 text-sm font-medium">
+                      {evCourses.code ? `${evCourses.code} · ` : ''}{evCourses.name}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all duration-200 backdrop-blur-sm"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
+            {/* Details */}
             <div className="px-6 py-5 space-y-4">
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="w-4 h-4 text-slate-400" />
-                <span className="min-w-[80px] text-slate-500">Date</span>
-                <span className="font-medium text-slate-900 dark:text-white">
-                  {format(eventDate, "EEEE, MMMM d, yyyy")}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span className="min-w-[80px] text-slate-500">Time</span>
-                <span className="font-medium text-slate-900 dark:text-white">
-                  {format(eventDate, "h:mm a")} – {format(eventEndDate, "h:mm a")}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <BookOpen className="w-4 h-4 text-slate-400" />
-                <span className="min-w-[80px] text-slate-500">Type</span>
-                <span 
-                  className="px-2.5 py-1 rounded-md text-xs font-medium capitalize"
-                  style={{ backgroundColor: `${selectedColor.hex}15`, color: selectedColor.hex }}
+              {/* Date & Time card */}
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: hexToRgba(effectiveColor, 0.1) }}
                 >
-                  {event.type || 'Event'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 text-sm">
-                <Palette className="w-4 h-4 text-slate-400" />
-                <span className="min-w-[80px] text-slate-500">Color</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: selectedColor.hex }} />
-                  <span className="font-medium text-slate-900 dark:text-white capitalize">{color}</span>
+                  <Calendar className="w-5 h-5" style={{ color: effectiveColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {format(eventDate, "EEEE, MMM d")}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {format(eventDate, "h:mm a")} – {format(eventEndDate, "h:mm a")} · {durLabel}
+                  </p>
                 </div>
               </div>
 
-              {(event as any).location && (
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-4 h-4 text-slate-400" />
-                  <span className="min-w-[80px] text-slate-500">Location</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{(event as any).location}</span>
+              {/* Location */}
+              {evLocation && (
+                <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: hexToRgba(effectiveColor, 0.1) }}
+                  >
+                    <MapPin className="w-5 h-5" style={{ color: effectiveColor }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{evLocation}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Location</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              {evDesc && (
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</span>
+                  </div>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">{evDesc}</p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 px-6 py-4 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
               {onDelete && (
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all duration-200"
                 >
+                  <Trash2 size={15} />
                   {isDeleting ? "Deleting..." : "Delete"}
                 </button>
               )}
               {onEdit && (
                 <button
                   onClick={() => setMode('edit')}
-                  className="ml-auto px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors"
-                  style={{ backgroundColor: selectedColor.hex }}
+                  className="ml-auto flex items-center gap-1.5 px-5 py-2.5 text-sm font-bold text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${effectiveColor} 0%, ${hexToRgba(effectiveColor, 0.85)} 100%)`,
+                    boxShadow: `0 4px 14px ${hexToRgba(effectiveColor, 0.35)}`
+                  }}
                 >
                   Edit Event
+                  <ChevronRight size={15} />
                 </button>
               )}
             </div>
@@ -477,322 +617,382 @@ export default function UnifiedEventModal({
     );
   }
 
-  // CREATE/EDIT MODE
+  // CREATE/EDIT MODE - Vibrant, card-based form
   return createPortal(
     <AnimatePresence mode="wait">
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-md"
           onClick={onClose}
         />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.94, y: 24 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 10 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-white dark:bg-slate-900 max-h-[90vh] flex flex-col"
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden bg-white dark:bg-[#1a1a2e] max-h-[92vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - compact and subtle */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-            <h2 className="text-base font-medium text-slate-700 dark:text-slate-200">
-              {mode === 'edit' ? 'Edit Event' : 'Create Event'}
-            </h2>
-            <div className="flex items-center gap-2">
-              {mode === 'edit' && onDelete && (
+          {/* Vibrant gradient header */}
+          <div 
+            className="relative px-6 py-5 flex-shrink-0 overflow-hidden"
+            style={{ 
+              background: `linear-gradient(135deg, ${effectiveColor} 0%, ${hexToRgba(effectiveColor, 0.8)} 100%)`,
+            }}
+          >
+            <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
+            <div className="absolute -bottom-3 -left-3 w-16 h-16 rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }} />
+            
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  {(() => {
+                    const SelectedTypeIcon = EVENT_TYPES.find(t => t.value === type)?.Icon || BookOpen;
+                    return <SelectedTypeIcon size={20} className="text-white" />;
+                  })()}
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    {mode === 'edit' ? 'Edit Event' : 'New Event'}
+                  </h2>
+                  <p className="text-white/70 text-xs font-medium">
+                    {mode === 'edit' ? 'Update event details' : 'Fill in the details below'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {mode === 'edit' && onDelete && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="p-2 rounded-xl bg-white/15 hover:bg-red-500/80 text-white transition-all duration-200 backdrop-blur-sm"
+                    title={isDeleting ? 'Deleting...' : 'Delete event'}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
                 <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  title={isDeleting ? 'Deleting...' : 'Delete event'}
+                  onClick={onClose}
+                  className="p-2 rounded-xl bg-white/15 hover:bg-white/25 text-white transition-all duration-200 backdrop-blur-sm"
                 >
-                  <Trash2 size={18} />
+                  <X size={18} />
                 </button>
-              )}
-              <button
-                onClick={onClose}
-                className="p-2 -mr-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X size={20} />
-              </button>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-            <div className="px-6 py-6 space-y-5">
-              {/* Title Input - Large and prominent */}
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full border-none bg-transparent text-xl font-semibold text-slate-900 dark:text-white outline-none placeholder:text-slate-400"
-                placeholder="Event title"
-              />
+          {/* Loading indicator */}
+          {loadingEvent && (
+            <div className="px-6 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/30 flex-shrink-0">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                Loading event details...
+              </div>
+            </div>
+          )}
 
-              <div className="space-y-4">
-                {/* Date Row */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Date</span>
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+            <div className="px-6 py-5 space-y-5">
+              {/* Title Input - Large and prominent with colored underline */}
+              <div className="relative">
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full border-none bg-transparent text-xl font-bold text-slate-900 dark:text-white outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600 pb-2"
+                  placeholder="Event title"
+                />
+                <div 
+                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
+                  style={{ 
+                    background: title.trim() 
+                      ? `linear-gradient(90deg, ${effectiveColor} 0%, ${hexToRgba(effectiveColor, 0.3)} 100%)` 
+                      : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'
+                  }}
+                />
+              </div>
+
+              <div className="space-y-3">
+                {/* Date & Time Card */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="w-4 h-4" style={{ color: effectiveColor }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Date & Time</span>
+                  </div>
+                  
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="flex-1 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200"
+                    style={{ '--tw-ring-color': effectiveColor } as any}
                   />
-                </div>
-
-                {/* Time Row - Start and End */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Time</span>
-                  <div className="flex items-center gap-2 flex-1">
-                    <input
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="w-[110px] h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    />
-                    <span className="text-slate-400 font-medium">→</span>
-                    <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium">
-                      {endTimeDisplay}
-                    </span>
+                  
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Start</label>
+                      <input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200"
+                        style={{ '--tw-ring-color': effectiveColor } as any}
+                      />
+                    </div>
+                    <div className="flex items-center justify-center pt-5">
+                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">End</label>
+                      <div className="h-10 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center">
+                        <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{endTimeDisplay}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Duration Row - Input with quick presets */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <div className="w-4 h-4 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Duration</span>
-                  <div className="flex-1 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      value={duration}
-                      onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
-                      className="w-20 h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    />
-                    <span className="text-slate-500 text-xs">min</span>
-                    <div className="flex flex-wrap gap-1">
-                      {[30, 60, 90, 120].map((mins) => (
-                        <button
-                          key={mins}
-                          type="button"
-                          onClick={() => setDuration(mins)}
-                          className={cn(
-                            "px-2 py-1 text-[10px] font-medium rounded transition-all",
-                            duration === mins
-                              ? "bg-purple-600 text-white"
-                              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                          )}
-                        >
-                          {mins < 60 ? `${mins}m` : `${mins/60}h`}
-                        </button>
-                      ))}
+                  {/* Duration quick picks */}
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Duration</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={duration}
+                        onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+                        className="w-20 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200"
+                        style={{ '--tw-ring-color': effectiveColor } as any}
+                      />
+                      <span className="text-xs text-slate-400 mr-1">min</span>
+                      <div className="flex gap-1.5">
+                        {[30, 60, 90, 120].map((mins) => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => setDuration(mins)}
+                            className={cn(
+                              "px-2.5 py-1.5 text-[11px] font-bold rounded-lg transition-all duration-200",
+                              duration === mins
+                                ? "text-white shadow-md"
+                                : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                            )}
+                            style={duration === mins ? { 
+                              background: effectiveColor,
+                              boxShadow: `0 2px 8px ${hexToRgba(effectiveColor, 0.35)}`
+                            } : undefined}
+                          >
+                            {mins < 60 ? `${mins}m` : `${mins/60}h`}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Event Type Row */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <BookOpen className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Type</span>
-                  <div className="relative flex-1" data-dropdown>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown('type'); }}
-                      className={cn(
-                        "w-full h-9 px-3 rounded-lg border text-sm text-left flex items-center justify-between transition-all",
-                        activeDropdown === 'type' 
-                          ? "border-purple-500 ring-2 ring-purple-500 bg-white dark:bg-slate-800" 
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                      )}
-                    >
-                      <span className="flex items-center gap-2 text-slate-900 dark:text-white">
-                        <selectedType.Icon />
-                        {selectedType.label}
-                      </span>
-                      <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeDropdown === 'type' && "rotate-180")} />
-                    </button>
-                    {activeDropdown === 'type' && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full max-h-52 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
-                        {EVENT_TYPES.map((t) => (
-                          <button
-                            key={t.value}
-                            type="button"
-                            onClick={() => { setType(t.value); closeAllDropdowns(); }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between",
-                              type === t.value && "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <t.Icon />
-                              {t.label}
-                            </span>
-                            {type === t.value && <Check className="w-4 h-4" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                {/* Event Type card */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BookOpen className="w-4 h-4" style={{ color: effectiveColor }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Event Type</span>
                   </div>
-                </div>
-
-                {/* Module/Course Row - Links event to a module for color */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <GraduationCap className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Module</span>
-                  <div className="relative flex-1" data-dropdown>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown('module'); }}
-                      className={cn(
-                        "w-full h-9 px-3 rounded-lg border text-sm text-left flex items-center justify-between transition-all",
-                        activeDropdown === 'module' 
-                          ? "border-purple-500 ring-2 ring-purple-500 bg-white dark:bg-slate-800" 
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                      )}
-                      style={selectedModule?.color ? { 
-                        backgroundColor: `${getHexColor(selectedModule.color)}08`,
-                        borderColor: activeDropdown === 'module' ? undefined : `${getHexColor(selectedModule.color)}40`
-                      } : undefined}
-                    >
-                      <span className="flex items-center gap-2">
-                        {selectedModule ? (
-                          <>
-                            <span 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: getHexColor(selectedModule.color) }}
-                            />
-                            <span style={{ color: getHexColor(selectedModule.color) }} className="font-medium truncate">
-                              {selectedModule.name || selectedModule.code || 'Module'}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-slate-400">No module linked</span>
-                        )}
-                      </span>
-                      <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeDropdown === 'module' && "rotate-180")} />
-                    </button>
-                    {activeDropdown === 'module' && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl animate-in fade-in-0 zoom-in-95 duration-150">
-                        {/* Clear selection */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {EVENT_TYPES.map((t) => {
+                      const active = type === t.value;
+                      return (
                         <button
+                          key={t.value}
                           type="button"
-                          onClick={() => { setSelectedModule(null); closeAllDropdowns(); }}
+                          onClick={() => setType(t.value)}
                           className={cn(
-                            "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between",
-                            !selectedModule && "bg-slate-50 dark:bg-slate-700"
+                            "h-9 px-2.5 rounded-xl border text-xs font-semibold transition-all flex items-center justify-center gap-1.5",
+                            active
+                              ? "text-white border-transparent"
+                              : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                           )}
+                          style={active ? { background: effectiveColor, boxShadow: `0 4px 10px ${hexToRgba(effectiveColor, 0.3)}` } : undefined}
                         >
-                          <span className="flex items-center gap-2 text-slate-500">
-                            <span className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            No module
-                          </span>
-                          {!selectedModule && <Check className="w-4 h-4 text-slate-500" />}
+                          <t.Icon size={12} />
+                          <span className="truncate">{t.label}</span>
                         </button>
-                        {modules.map((mod) => {
-                          const modColor = getHexColor(mod.color);
-                          const isSelected = selectedModule?.id === mod.id;
-                          return (
-                            <button
-                              key={mod.id}
-                              type="button"
-                              onClick={() => { setSelectedModule(mod); closeAllDropdowns(); }}
-                              className={cn(
-                                "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between"
-                              )}
-                              style={isSelected ? { backgroundColor: `${modColor}10` } : undefined}
-                            >
-                              <span className="flex items-center gap-2 truncate">
-                                <span 
-                                  className="w-3 h-3 rounded-full flex-shrink-0" 
-                                  style={{ backgroundColor: modColor }}
-                                />
-                                <span style={{ color: modColor }} className="font-medium truncate">
-                                  {mod.name || mod.code}
-                                </span>
-                              </span>
-                              {isSelected && <Check className="w-4 h-4 flex-shrink-0" style={{ color: modColor }} />}
-                            </button>
-                          );
-                        })}
-                        {modules.length === 0 && (
-                          <div className="px-4 py-3 text-sm text-slate-400 text-center">
-                            No modules found. Create modules in /modules first.
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Color Row - Only show if no module selected */}
-                {!selectedModule && (
-                <div className="flex items-center gap-3 text-[13px]">
-                  <Palette className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Color</span>
-                  <div className="relative flex-1" data-dropdown>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); toggleDropdown('color'); }}
-                      className={cn(
-                        "w-full h-9 px-3 rounded-lg border text-sm text-left flex items-center justify-between transition-all",
-                        activeDropdown === 'color' 
-                          ? "border-purple-500 ring-2 ring-purple-500 bg-white dark:bg-slate-800" 
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600"
-                      )}
-                      style={{ backgroundColor: `${selectedColor.hex}08` }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: selectedColor.hex }} />
-                        <span style={{ color: selectedColor.hex }} className="font-medium">{selectedColor.name}</span>
-                      </span>
-                      <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeDropdown === 'color' && "rotate-180")} />
-                    </button>
-                    {activeDropdown === 'color' && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150">
-                        {COLORS.map((c) => (
-                          <button
-                            key={c.key}
-                            type="button"
-                            onClick={() => { setColor(c.key); closeAllDropdowns(); }}
-                            className={cn(
-                              "w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-between",
-                              color === c.key && "bg-opacity-10"
-                            )}
-                            style={{ backgroundColor: color === c.key ? `${c.hex}15` : undefined }}
-                          >
-                            <span className="flex items-center gap-2">
-                              <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: c.hex }} />
-                              <span style={{ color: c.hex }} className="font-medium">{c.name}</span>
-                            </span>
-                            {color === c.key && <Check className="w-4 h-4" style={{ color: c.hex }} />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                {/* Location card - placed higher for faster access */}
+                {(selectedModule || ['class', 'lab', 'tutorial', 'exam', 'workshop', 'presentation', 'meeting'].includes(type)) && (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4" style={{ color: effectiveColor }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Location</span>
                   </div>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Room, building, or link..."
+                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200 placeholder:text-slate-400"
+                    style={{ '--tw-ring-color': effectiveColor } as any}
+                  />
                 </div>
                 )}
 
-                {/* Recurrence Row - Preset buttons with custom option */}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <Repeat className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <span className="min-w-[80px] text-slate-500">Repeat</span>
-                  <div className="flex-1 flex flex-wrap gap-1.5">
+                {/* Module/Course card */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <GraduationCap className="w-4 h-4" style={{ color: effectiveColor }} />
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Module / Course</span>
+                  </div>
+                  {activeSemester?.name && (
+                    <p className="mb-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      {activeSemester.name}
+                    </p>
+                  )}
+                  <div className="relative">
+                    <select
+                      value={selectedModule?.id || ''}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        if (!id) {
+                          setSelectedModule(null);
+                          return;
+                        }
+                        const found = filteredModules.find((m) => String(m.id) === String(id)) || null;
+                        setSelectedModule(found);
+                      }}
+                      className="w-full h-11 px-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-semibold focus:outline-none focus:ring-2 transition-all duration-200 appearance-none"
+                      style={{ '--tw-ring-color': effectiveColor } as any}
+                    >
+                      <option value="">No module</option>
+                      {filteredModules.map((mod) => (
+                        <option key={mod.id} value={mod.id}>
+                          {mod.code ? `${mod.code} · ` : ''}{mod.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {filteredModules.length === 0 && (
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">No modules available for active semester</p>
+                  )}
+                </div>
+
+                {/* Color picker - only when no module */}
+                {!selectedModule && (
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Palette className="w-4 h-4" style={{ color: effectiveColor }} />
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Color</span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-2">
+                      {COLORS.map((c) => (
+                        <button
+                          key={c.key}
+                          type="button"
+                          onClick={() => setColor(c.key)}
+                          className={cn(
+                            "h-9 rounded-xl border transition-all",
+                            color === c.key ? "ring-2 ring-offset-2 dark:ring-offset-[#1a1a2e]" : "hover:scale-[1.03]"
+                          )}
+                          style={{
+                            background: c.hex,
+                            borderColor: color === c.key ? c.hex : 'transparent',
+                            '--tw-ring-color': c.hex,
+                          } as any}
+                          title={c.name}
+                        >
+                          <span className="sr-only">{c.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes - only shown in edit mode or if existing content */}
+                {false && (mode === 'edit' && (showNotes || description)) && (
+                <div className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowNotes(!showNotes)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" style={{ color: effectiveColor }} />
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Notes</span>
+                      {description && <span className="text-[10px] text-slate-400 font-medium ml-1">({description.length} chars)</span>}
+                    </div>
+                    <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", showNotes ? "rotate-180" : "")} style={{ color: hexToRgba(effectiveColor, 0.5) }} />
+                  </button>
+                  <AnimatePresence>
+                    {showNotes && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4">
+                          <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Add notes or description..."
+                            rows={3}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all duration-200 placeholder:text-slate-400 resize-none"
+                            style={{ '--tw-ring-color': effectiveColor } as any}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                )}
+
+                {/* Recurrence - only shown in edit mode */}
+                {false && mode === 'edit' && (
+                <div className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowRecurrence(!showRecurrence)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100/50 dark:hover:bg-white/[0.03] transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4" style={{ color: effectiveColor }} />
+                      <span className="text-xs font-bold uppercase tracking-wider" style={{ color: effectiveColor }}>Repeat</span>
+                      {recurrencePreset !== 'No repeat' && (
+                        <span 
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                          style={{ backgroundColor: effectiveColor }}
+                        >
+                          {recurrencePreset}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", showRecurrence ? "rotate-180" : "")} style={{ color: hexToRgba(effectiveColor, 0.5) }} />
+                  </button>
+                  <AnimatePresence>
+                    {showRecurrence && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4 space-y-3">
+                  <div className="flex flex-wrap gap-1.5">
                     {[
                       { label: 'None', value: 'No repeat' },
                       { label: 'Daily', value: 'Daily' },
                       { label: 'Weekly', value: 'Weekly' },
                       { label: 'MWF', value: 'MWF' },
+                      { label: 'T/Th', value: 'Tue/Thu' },
                     ].map((opt) => (
                       <button
                         key={opt.value}
@@ -803,11 +1003,15 @@ export default function UnifiedEventModal({
                           setCustomRecurrenceDays([]);
                         }}
                         className={cn(
-                          "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                          "px-3 py-2 text-xs font-bold rounded-xl transition-all duration-200",
                           recurrencePreset === opt.value && !showCustomRecurrence
-                            ? "bg-purple-600 text-white shadow-sm"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            ? "text-white shadow-md"
+                            : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
                         )}
+                        style={recurrencePreset === opt.value && !showCustomRecurrence ? { 
+                          background: effectiveColor,
+                          boxShadow: `0 2px 8px ${hexToRgba(effectiveColor, 0.3)}`
+                        } : undefined}
                       >
                         {opt.label}
                       </button>
@@ -816,56 +1020,76 @@ export default function UnifiedEventModal({
                       type="button"
                       onClick={() => setShowCustomRecurrence(!showCustomRecurrence)}
                       className={cn(
-                        "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                        "px-3 py-2 text-xs font-bold rounded-xl transition-all duration-200",
                         showCustomRecurrence
-                          ? "bg-purple-600 text-white shadow-sm"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                          ? "text-white shadow-md"
+                          : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
                       )}
+                      style={showCustomRecurrence ? { 
+                        background: effectiveColor,
+                        boxShadow: `0 2px 8px ${hexToRgba(effectiveColor, 0.3)}`
+                      } : undefined}
                     >
                       Custom
                     </button>
                   </div>
+                  
+                  <AnimatePresence>
+                    {showCustomRecurrence && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex gap-1.5 mt-3 justify-center">
+                          {DAY_ABBREVIATIONS.map((day) => (
+                            <button
+                              key={day.value}
+                              type="button"
+                              onClick={() => {
+                                setCustomRecurrenceDays(prev => 
+                                  prev.includes(day.value) 
+                                    ? prev.filter(d => d !== day.value)
+                                    : [...prev, day.value].sort()
+                                );
+                              }}
+                              className={cn(
+                                "w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200",
+                                customRecurrenceDays.includes(day.value)
+                                  ? "text-white shadow-md scale-105"
+                                  : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                              )}
+                              style={customRecurrenceDays.includes(day.value) ? { 
+                                background: effectiveColor,
+                                boxShadow: `0 2px 8px ${hexToRgba(effectiveColor, 0.35)}`
+                              } : undefined}
+                              title={day.fullLabel}
+                            >
+                              {day.label}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                
-                {/* Custom Day Selector */}
-                {showCustomRecurrence && (
-                  <div className="flex items-center gap-3 text-[13px] ml-[100px]">
-                    <div className="flex-1 flex gap-1.5">
-                      {DAY_ABBREVIATIONS.map((day) => (
-                        <button
-                          key={day.value}
-                          type="button"
-                          onClick={() => {
-                            setCustomRecurrenceDays(prev => 
-                              prev.includes(day.value) 
-                                ? prev.filter(d => d !== day.value)
-                                : [...prev, day.value].sort()
-                            );
-                          }}
-                          className={cn(
-                            "w-8 h-8 rounded-full text-xs font-medium transition-all",
-                            customRecurrenceDays.includes(day.value)
-                              ? "bg-purple-600 text-white shadow-md"
-                              : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
-                          )}
-                          title={day.fullLabel}
-                        >
-                          {day.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 )}
-
               </div>
             </div>
           </form>
 
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex-shrink-0">
+          {/* Footer actions */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02] flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+              className="px-5 py-2.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5"
             >
               Cancel
             </button>
@@ -874,12 +1098,30 @@ export default function UnifiedEventModal({
               onClick={handleSubmit}
               disabled={!title.trim() || isSubmitting}
               className={cn(
-                "px-5 py-2 text-sm font-medium text-white rounded-lg transition-all shadow-lg",
-                !title.trim() || isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 hover:shadow-xl"
+                "px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all duration-200 active:scale-[0.97]",
+                !title.trim() || isSubmitting ? "opacity-50 cursor-not-allowed" : "hover:shadow-xl hover:-translate-y-0.5"
               )}
-              style={{ backgroundColor: effectiveColor, boxShadow: `0 4px 14px ${effectiveColor}40` }}
+              style={{ 
+                background: `linear-gradient(135deg, ${effectiveColor} 0%, ${hexToRgba(effectiveColor, 0.85)} 100%)`,
+                boxShadow: !title.trim() || isSubmitting ? 'none' : `0 4px 16px ${hexToRgba(effectiveColor, 0.4)}`
+              }}
             >
-              {isSubmitting ? "Saving..." : mode === 'edit' ? 'Save Changes' : 'Create Event'}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </span>
+              ) : mode === 'edit' ? (
+                <span className="flex items-center gap-1.5">
+                  <Check size={15} />
+                  Save Changes
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Sparkles size={15} />
+                  Create Event
+                </span>
+              )}
             </button>
           </div>
         </motion.div>

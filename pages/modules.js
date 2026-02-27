@@ -7,6 +7,7 @@ import { useSemesterContext } from '@/contexts/SemesterContext';
 import CourseDetailsPanel from '../src/components/courses/CourseDetailsPanel';
 import { showCustomConfirm } from '@/utils/dialogs';
 import HygraphSidebar from '@/components/HygraphSidebar';
+import CustomSelect from '@/components/CustomSelect';
 import { isSemesterActive } from '@/utils/semesterUtils';
 
 /* ─────────────────────────────────────────────────────────────
@@ -238,7 +239,7 @@ const ModulesManager = () => {
       code: '',
       credits: 3,
       color: '#3B82F6',
-      semester: '2025-1',
+      semester: currentSemester?.id ? String(currentSemester.id) : '',
       instructor: '',
       description: ''
     });
@@ -685,7 +686,7 @@ const ModulesManager = () => {
               role="dialog"
               aria-modal="true"
               style={{ transformOrigin: 'center', animation: 'popIn 160ms cubic-bezier(.2,.9,.25,1)' }}
-              className={`relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl transform transition-all duration-300 overflow-y-auto ${
+              className={`relative w-full max-w-2xl max-h-[85vh] bg-white dark:bg-[#0f0f17] rounded-2xl shadow-2xl transform transition-all duration-300 overflow-y-auto ${
                 modalVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
               }`}
             >
@@ -693,21 +694,27 @@ const ModulesManager = () => {
               <div className="p-5">
                 {/* Header */}
                 <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-0.5">
-                      {editingCourse ? 'Edit Module' : 'Create Module'}
-                    </h2>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      {editingCourse ? 'Update module details' : 'Add a new module to your schedule'}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                      {editingCourse ? <Edit size={18} className="text-white" /> : <Plus size={18} className="text-white" />}
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-0.5">
+                        {editingCourse ? 'Edit Module' : 'Create Module'}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {editingCourse ? 'Update module details' : 'Add a new module to your schedule'}
+                      </p>
+                    </div>
                   </div>
                   <button
                     onClick={closeModal}
-                    className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
                   >
                     <X size={20} />
                   </button>
                 </div>
+                <div className="h-px bg-slate-200/60 dark:bg-slate-800/60 mb-4" />
 
                 {/* Form */}
                 <div className="space-y-4">
@@ -724,10 +731,11 @@ const ModulesManager = () => {
                       value={courseForm.name}
                       onChange={(e) => setCourseForm(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="e.g., Web Technologies, Database Systems"
-                      className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                        formErrors.name ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                      className={`w-full h-11 px-4 rounded-xl border text-sm bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 transition-all ${
+                        formErrors.name ? 'border-red-500' : 'border-slate-200 dark:border-slate-700/60'
                       }`}
                       maxLength={100}
+                      autoFocus
                     />
                     {formErrors.name && (
                       <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
@@ -753,8 +761,8 @@ const ModulesManager = () => {
                         value={courseForm.code}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, code: e.target.value }))}
                         placeholder="e.g., CS301"
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.code ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                        className={`w-full h-11 px-4 rounded-xl border text-sm bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 transition-all ${
+                          formErrors.code ? 'border-red-500' : 'border-slate-200 dark:border-slate-700/60'
                         }`}
                         maxLength={20}
                       />
@@ -776,8 +784,8 @@ const ModulesManager = () => {
                         max="20"
                         value={courseForm.credits}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, credits: e.target.value }))}
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.credits ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                        className={`w-full h-11 px-4 rounded-xl border text-sm bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 transition-all ${
+                          formErrors.credits ? 'border-red-500' : 'border-slate-200 dark:border-slate-700/60'
                         }`}
                       />
                       {formErrors.credits && (
@@ -800,8 +808,8 @@ const ModulesManager = () => {
                         value={courseForm.instructor}
                         onChange={(e) => setCourseForm(prev => ({ ...prev, instructor: e.target.value }))}
                         placeholder="e.g., Dr. Smith"
-                        className={`w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
-                          formErrors.instructor ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                        className={`w-full h-11 px-4 rounded-xl border text-sm bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 transition-all ${
+                          formErrors.instructor ? 'border-red-500' : 'border-slate-200 dark:border-slate-700/60'
                         }`}
                         maxLength={100}
                       />
@@ -822,63 +830,24 @@ const ModulesManager = () => {
                           </span>
                         )}
                       </label>
-                      <select
+                      <CustomSelect
                         value={courseForm.semester}
-                        onChange={(e) => setCourseForm(prev => ({ ...prev, semester: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-lg border text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-slate-300 dark:border-slate-700 appearance-none cursor-pointer"
-                      >
-                        <option value="">Select semester...</option>
-                        {/* Show configured semesters from semester_settings */}
-                        {semesters.map(semester => (
-                          <option 
-                            key={semester.id} 
-                            value={semester.id} 
-                            className="bg-white dark:bg-slate-800"
-                          >
-                            {semester.name}
-                            {currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}
-                          </option>
-                        ))}
-                        
-                        {/* Show legacy semester values from existing courses that aren't in semester_settings */}
-                        {(() => {
-                          const configuredSemesterIds = semesters.map(s => s.id);
-                          const legacySemesters = [...new Set(
-                            courses
-                              .map(c => c.semester)
-                              .filter(s => s && !configuredSemesterIds.includes(s))
-                          )];
-                          
-                          if (legacySemesters.length > 0) {
-                            return (
-                              <>
-                                <option disabled className="bg-slate-100 dark:bg-slate-900 text-slate-500">
-                                  ──────────
-                                </option>
-                                <option disabled className="bg-slate-100 dark:bg-slate-900 text-slate-500 text-xs">
-                                  Legacy semesters (migrate these)
-                                </option>
-                                {legacySemesters.map(sem => (
-                                  <option 
-                                    key={sem} 
-                                    value={sem}
-                                    className="bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
-                                  >
-                                    {sem} (legacy)
-                                  </option>
-                                ))}
-                              </>
-                            );
-                          }
-                          return null;
-                        })()}
-                        
-                        {semesters.length === 0 && (
-                          <option value="" disabled className="text-slate-500">
-                            Configure semesters below to assign modules
-                          </option>
-                        )}
-                      </select>
+                        onChange={(val) => setCourseForm(prev => ({ ...prev, semester: val }))}
+                        placeholder="Select semester..."
+                        options={[
+                          ...semesters.map(semester => ({
+                            value: semester.id,
+                            label: `${semester.name}${currentSemester && currentSemester.id === semester.id ? ' (Current)' : ''}`,
+                          })),
+                          ...(() => {
+                            const configuredSemesterIds = semesters.map(s => s.id);
+                            const legacySemesters = [...new Set(
+                              courses.map(c => c.semester).filter(s => s && !configuredSemesterIds.includes(s))
+                            )];
+                            return legacySemesters.map(sem => ({ value: sem, label: `${sem} (legacy)` }));
+                          })(),
+                        ]}
+                      />
                     </div>
                   </div>
 
@@ -890,7 +859,7 @@ const ModulesManager = () => {
                       </svg>
                       Color
                     </label>
-                    <div className="grid grid-cols-6 gap-2">
+                    <div className="grid grid-cols-6 gap-2.5">
                       {colorOptions.map(color => {
                         const isSelected = courseForm.color === color;
                         return (
@@ -898,10 +867,10 @@ const ModulesManager = () => {
                             key={color}
                             type="button"
                             onClick={() => setCourseForm(prev => ({ ...prev, color }))}
-                            className={`h-10 rounded-lg transition-all ${
+                            className={`h-10 rounded-xl transition-all duration-200 ${
                               isSelected 
-                                ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 scale-105' 
-                                 : 'hover:scale-105'
+                                ? 'ring-2 ring-purple-400 ring-offset-2 ring-offset-white dark:ring-offset-[#0f0f17] scale-110' 
+                                 : 'hover:scale-110'
                               }`}                              style={{ backgroundColor: color }}
                             title={color}
                           >
@@ -918,17 +887,17 @@ const ModulesManager = () => {
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between gap-3 pt-4 mt-4 border-t border-slate-200/60 dark:border-slate-800/60">
                   <button
                     onClick={closeModal}
-                    className="px-6 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="px-6 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveCourse}
                     disabled={saving || !courseForm.name?.trim()}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                    className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl transition-all font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-purple-500/20"
                   >
                     {saving ? (
                       <>
@@ -952,22 +921,18 @@ const ModulesManager = () => {
         {loading ? (
           <div className="min-h-[60vh] flex items-center justify-center">
             <div className="max-w-md w-full">
-              <div className="cozy rounded-2xl shadow-xl border border-gray-200 p-8">
+              <div className={`${ds.card} p-8`}>
                 <div className="flex flex-col items-center text-center">
-                  {/* Animated icon container */}
                   <div className="relative mb-6">
                     <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center animate-pulse">
                       <BookOpen className="w-8 h-8 text-white" strokeWidth={2} />
                     </div>
-                    {/* Spinning ring around icon */}
-                    <div className="absolute inset-0 border-4 border-indigo-200 border-t-indigo-600 rounded-2xl animate-spin"></div>
+                    <div className="absolute inset-0 border-4 border-indigo-200 dark:border-purple-500/30 border-t-indigo-600 dark:border-t-purple-400 rounded-2xl animate-spin"></div>
                   </div>
-                  
-                  {/* Loading text */}
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                     Loading your modules
                   </h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Setting up your course manager...
                   </p>
                 </div>
@@ -977,7 +942,7 @@ const ModulesManager = () => {
         ) : courses.length === 0 ? (
           <div className="flex items-center justify-center min-h-[50vh]">
             <div className="max-w-2xl w-full mx-auto">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-slate-700">
+              <div className={`${ds.card} overflow-hidden`}>
                 {/* Header Section */}
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8">
                   <div className="flex items-center gap-4">
@@ -993,7 +958,7 @@ const ModulesManager = () => {
 
                 {/* Content Section */}
                 <div className="px-8 py-10">
-                  <p className="text-gray-700 dark:text-gray-300 mb-2 leading-relaxed">
+                  <p className="text-slate-700 dark:text-slate-300 mb-2 leading-relaxed">
                     Start organizing your academic schedule by adding your first module.
                   </p>
                   {!currentSemester && (
@@ -1009,7 +974,7 @@ const ModulesManager = () => {
                       </button>
                     </div>
                   )}
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
                     Once you add modules, you'll be able to track attendance, manage assignments, and monitor your grades.
                   </p>
 
@@ -1023,31 +988,31 @@ const ModulesManager = () => {
                   </button>
 
                   {/* Feature Highlights */}
-                  <div className="mt-10 pt-8 border-t border-gray-100 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-6">
+                  <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6">
                       What you can do
                     </p>
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                           <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Track Attendance</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Monitor class participation</p>
+                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">Track Attendance</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Monitor class participation</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                           <CheckCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Manage Tasks</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Track assignments and deadlines</p>
+                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">Manage Tasks</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Track assignments and deadlines</p>
                       </div>
                       <div className="text-center">
-                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                           <GraduationCap className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">Track Grades</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">Monitor your academic progress</p>
+                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">Track Grades</h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Monitor your academic progress</p>
                       </div>
                     </div>
                   </div>
@@ -1059,18 +1024,18 @@ const ModulesManager = () => {
           <>
             {/* Selected Semester - Single Dynamic View */}
             {getActiveSemester() ? (
-              <div className="cozy rounded-xl shadow-lg mb-6">
-                <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <div className={`${ds.card} mb-6`}>
+                <div className="p-6 border-b border-slate-200/60 dark:border-slate-800/60">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                      <div className="p-2.5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 dark:from-indigo-500/15 dark:to-purple-500/15 rounded-xl">
                         <Calendar className="text-indigo-600 dark:text-indigo-400" size={20} />
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                           {getActiveSemester()?.name}
                         </h2>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                           <span className="flex items-center gap-1">
                             <BookOpen size={14} />
                             {getSelectedSemesterCourses().length} modules
@@ -1088,18 +1053,18 @@ const ModulesManager = () => {
                         </div>
                       </div>
                     </div>
-                    <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-medium rounded-full">
+                    <span className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-full">
                       Selected
                     </span>
                   </div>
                 </div>
                 <div className="p-6">
                   {getSelectedSemesterCourses().length === 0 ? (
-                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-12 text-slate-500 dark:text-slate-400">
                       <GraduationCap size={64} className="mx-auto mb-4 opacity-30" />
-                      <h3 className="text-lg font-medium mb-2">No modules in this semester</h3>
+                      <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">No modules in this semester</h3>
                       <p className="mb-6">Add your first module for {getActiveSemester()?.name}</p>
-                      <button onClick={handleAddCourse} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">Add Module</button>
+                      <button onClick={handleAddCourse} className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-indigo-500/20">Add Module</button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1159,85 +1124,91 @@ const ModulesManager = () => {
 const CourseCard = ({ course, onEdit, onDelete, onShowDetails, isCurrentlyActive = false }) => {
   const getStatusBadge = () => {
     if (isCurrentlyActive) {
-      return <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">Active</span>;
+      return <span className="text-xs px-2.5 py-1 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 rounded-full font-medium">Active</span>;
     }
-    return null;  // Don't show badge if semester is not currently active
+    return null;
   };
 
   return (
   <div 
-    className={`course-card-container border rounded-xl hover:shadow-lg transition-all duration-200 cozy hover:-translate-y-1`}
-    style={{ padding: '1.25rem' }}
+    className="group relative bg-white/80 dark:bg-[#12121a] border border-slate-200/60 dark:border-slate-800/60 rounded-2xl hover:shadow-xl hover:shadow-purple-500/5 dark:hover:shadow-purple-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm overflow-hidden"
   >
-      <div className="course-card-header flex items-start justify-between mb-4 gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div
-            className="w-5 h-5 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm"
-            style={{ backgroundColor: course.color || '#3B82F6' }}
-          />
-          <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-gray-900 leading-tight text-base break-words">
-              {course.name}
-            </h3>
-            {course.code && (
-              <p className="text-sm text-gray-500 font-mono">{course.code}</p>
-            )}
+      {/* Color accent strip */}
+      <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${course.color || '#3B82F6'}, ${course.color || '#3B82F6'}88)` }} />
+      
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div
+              className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm"
+              style={{ backgroundColor: `${course.color || '#3B82F6'}20` }}
+            >
+              <BookOpen size={18} style={{ color: course.color || '#3B82F6' }} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-900 dark:text-white leading-tight text-base break-words">
+                {course.name}
+              </h3>
+              {course.code && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-mono">{course.code}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onShowDetails(course)}
+              className="text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors p-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-500/10"
+              aria-label="View details"
+              title="Contact info & resources"
+            >
+              <Info size={16} />
+            </button>
+            <button
+              onClick={() => onEdit(course)}
+              className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+              aria-label="Edit course"
+            >
+              <Edit size={16} />
+            </button>
+            <button
+              onClick={() => onDelete(course.id, course.name)}
+              className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
+              aria-label="Delete course"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            onClick={() => onShowDetails(course)}
-            className="text-gray-400 hover:text-purple-600 transition-colors p-1.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-            aria-label="View details"
-            title="Contact info & resources"
-          >
-            <Info size={16} />
-          </button>
-          <button
-            onClick={() => onEdit(course)}
-            className="text-gray-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-indigo-50"
-            aria-label="Edit course"
-          >
-            <Edit size={16} />
-          </button>
-          <button
-            onClick={() => onDelete(course.id, course.name)}
-            className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50"
-            aria-label="Delete course"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      </div>
 
-      <div className="course-card-body space-y-3 text-sm text-gray-600">
-        {course.instructor && (
-          <div className="flex items-center gap-2">
-            <Users size={16} className="text-gray-400 flex-shrink-0" />
-            <span className="truncate">{course.instructor}</span>
+        <div className="space-y-2.5 text-sm">
+          {course.instructor && (
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+              <Users size={15} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
+              <span className="truncate">{course.instructor}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+              <GraduationCap size={15} className="text-slate-400 dark:text-slate-500" />
+              <span>{course.credits} credit{course.credits !== 1 ? 's' : ''}</span>
+            </div>
+            {getStatusBadge()}
           </div>
-        )}
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GraduationCap size={16} className="text-gray-400" />
-            <span>{course.credits} credit{course.credits !== 1 ? 's' : ''}</span>
-          </div>
-          {getStatusBadge()}
+          
+          {course.attendanceSessionsCount > 0 && (
+            <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+              <Calendar size={14} />
+              <span>{course.attendanceSessionsCount} attendance session{course.attendanceSessionsCount !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+          
+          {course.description && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed border-t border-slate-100 dark:border-slate-800 pt-3 mt-3">
+              {course.description}
+            </p>
+          )}
         </div>
-        
-        {course.attendanceSessionsCount > 0 && (
-          <div className="flex items-center gap-2 text-xs text-indigo-600">
-            <Calendar size={14} />
-            <span>{course.attendanceSessionsCount} attendance session{course.attendanceSessionsCount !== 1 ? 's' : ''}</span>
-          </div>
-        )}
-        
-        {course.description && (
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed border-t pt-3 mt-3">
-            {course.description}
-          </p>
-        )}
       </div>
     </div>
   );

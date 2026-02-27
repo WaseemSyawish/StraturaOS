@@ -33,7 +33,7 @@ export default function EditScopeModal({
       description: isEdit 
         ? 'Only update this occurrence' 
         : 'Remove only this occurrence',
-      gradient: 'from-blue-500 to-cyan-500'
+      gradient: 'from-purple-500 to-indigo-500'
     },
     // 'future' scope removed — we support only 'single' or 'all'
     {
@@ -47,7 +47,7 @@ export default function EditScopeModal({
       description: isEdit 
         ? 'Update all occurrences in the series' 
         : 'Remove all occurrences in the series',
-      gradient: 'from-orange-500 to-red-500'
+      gradient: 'from-purple-600 to-indigo-600'
     }
   ];
 

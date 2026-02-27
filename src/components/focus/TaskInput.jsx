@@ -121,13 +121,13 @@ export const TaskInput = ({ value, onChange, onTaskSelect, availableTasks = [], 
       {lastTask && !value && (
         <button
           onClick={() => handleTaskClick(lastTask)}
-          className="mb-3 w-full px-4 py-3.5 bg-gradient-to-r from-indigo-50 to-indigo-50 dark:from-indigo-900/20 dark:to-indigo-900/20
+          className="mb-3 w-full px-4 py-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20
                      border border-indigo-200 dark:border-indigo-700 rounded-xl
-                     hover:from-indigo-100 hover:to-indigo-100 dark:hover:from-indigo-900/30 dark:hover:to-indigo-900/30 
+                     hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/30 dark:hover:to-indigo-900/30 
                      transition-all duration-200 text-left group shadow-sm"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-500 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-md">
               <Clock className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -208,7 +208,7 @@ export const TaskInput = ({ value, onChange, onTaskSelect, availableTasks = [], 
               role="option"
               aria-selected={selectedIndex === 0}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-indigo-500 
                             flex items-center justify-center flex-shrink-0 shadow-md">
                 <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>

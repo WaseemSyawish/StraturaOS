@@ -550,9 +550,11 @@ export default function UnifiedEventModal({
                   <p className="text-sm font-bold text-slate-900 dark:text-white">
                     {format(eventDate, "EEEE, MMM d")}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {format(eventDate, "h:mm a")} – {format(eventEndDate, "h:mm a")} · {durLabel}
-                  </p>
+                  {!(event as any)?.isDateOnly && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {format(eventDate, "h:mm a")} – {format(eventEndDate, "h:mm a")} · {durLabel}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -735,30 +737,32 @@ export default function UnifiedEventModal({
                     style={{ '--tw-ring-color': effectiveColor } as any}
                   />
                   
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Start</label>
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200"
-                        style={{ '--tw-ring-color': effectiveColor } as any}
-                      />
-                    </div>
-                    <div className="flex items-center justify-center pt-5">
-                      <ChevronRight className="w-4 h-4 text-slate-300" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">End</label>
-                      <div className="h-10 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center">
-                        <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{endTimeDisplay}</span>
+                  {!(event as any)?.isDateOnly && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Start</label>
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 transition-all duration-200"
+                          style={{ '--tw-ring-color': effectiveColor } as any}
+                        />
+                      </div>
+                      <div className="flex items-center justify-center pt-5">
+                        <ChevronRight className="w-4 h-4 text-slate-300" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">End</label>
+                        <div className="h-10 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center">
+                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">{endTimeDisplay}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Duration quick picks */}
-                  <div>
+                  {!(event as any)?.isDateOnly && <div>
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 block">Duration</label>
                     <div className="flex items-center gap-2">
                       <input
@@ -792,7 +796,8 @@ export default function UnifiedEventModal({
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </div>}
+
                 </div>
 
                 {/* Event Type card */}

@@ -405,7 +405,7 @@ export default function ModernMonthView({
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLButtonElement).style.filter = 'brightness(1)';
                       }}
-                      title={`${event.title} at ${timeStr}`}
+                      title={(event as any)?.isDateOnly ? event.title : `${event.title} at ${timeStr}`}
                     >
                       <span className="font-medium truncate">
                         {event.title}

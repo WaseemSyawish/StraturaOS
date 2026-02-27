@@ -580,8 +580,8 @@ export default function DailyView({
                 ))}
                 
                 {/* Render events */}
-                {dayEvents && dayEvents?.length
-                  ? dayEvents?.map((event, eventIndex) => {
+                {dayEvents && dayEvents?.filter((e: any) => !e.isDateOnly)?.length
+                  ? dayEvents?.filter((e: any) => !e.isDateOnly)?.map((event, eventIndex) => {
                       let eventsInSamePeriod = 1;
                       let periodIndex = 0;
                       

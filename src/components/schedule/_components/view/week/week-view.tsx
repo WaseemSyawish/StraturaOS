@@ -415,7 +415,7 @@ export default function WeeklyView({
                     new Date().getFullYear() === currentDate.getFullYear();
                   
                   const dayEvents = getters.getEventsForDay(day.getDate(), currentDate);
-                  const eventCount = dayEvents?.length || 0;
+                  const eventCount = dayEvents?.filter((e: any) => !e.isDateOnly)?.length || 0;
 
                   const handleDayHeaderClick = () => {
                     const selectedDay = new Date(

@@ -100,8 +100,8 @@ function mapToSchedulerEvents(list) {
         if (parseTimeStr && String(parseTimeStr).includes('-')) {
           parseTimeStr = String(parseTimeStr).split('-')[0].trim();
         }
-        const [hh, mm] = hasTime && parseTimeStr ? String(parseTimeStr).split(':').map(Number) : [12, 0];
-        start = new Date(y, (m || 1) - 1, d, hh || 12, mm || 0, 0);
+        const [hh, mm] = hasTime && parseTimeStr ? String(parseTimeStr).split(':').map(Number) : [0, 0];
+        start = new Date(y, (m || 1) - 1, d, hh || 0, mm || 0, 0);
       } else if (e.startDate) {
         // Fallback to API's startDate for events without date field
         start = new Date(e.startDate);
@@ -223,6 +223,13 @@ function mapToSchedulerEvents(list) {
         raw: e
       })
     } catch (inner) { }
+
+    // For date-only tasks (no explicit time), force start to midnight and end to 23:59:59.
+    // This prevents them from ever appearing in any timed slot (e.g. 12 PM – 1 PM).
+    if (!eventHasTime) {
+      start.setHours(0, 0, 0, 0);
+      endDate = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 23, 59, 59, 999);
+    }
 
     return {
       id: String(e.id ?? `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),

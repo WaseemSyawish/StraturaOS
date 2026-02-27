@@ -432,7 +432,7 @@ export default function EventStyled({ event, onDelete, CustomEventModal }: Event
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            {formatTime(event?.startDate)}
+            {!(event as any)?.isDateOnly && formatTime(event?.startDate)}
           </div>
           {(event as any)?.meta?.schedulePattern && (
             <div style={{

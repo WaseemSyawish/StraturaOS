@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin, LayoutGrid, List } from 'lucide-react';
-import AddEventModal from '@/components/schedule/_modals/add-event-modal';
+import TaskDetailPanel from '@/components/tasks/TaskDetailPanel';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
 import { toYMDLocal } from '@/lib/dateHelpers';
@@ -202,7 +202,7 @@ export default function CalendarPage() {
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
   /* ─── Modal integration ─── */
-  const { setOpen, isOpen } = useModal();
+  const { setOpen, setClose, isOpen } = useModal();
   const prevModalOpenRef = useRef(false);
   useEffect(() => {
     const anyOpen = Object.keys(isOpen || {}).some(k => isOpen[k]);
@@ -210,19 +210,147 @@ export default function CalendarPage() {
     prevModalOpenRef.current = anyOpen;
   }, [isOpen, loadEvents]);
 
-  const openModal = (mode, ev = null) => {
+  /* ─── Task CRUD helpers ─── */
+  const createTask = useCallback(async (data) => {
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (json.success || json.task || json.id) return { success: true, task: json.task || json };
+      return { success: false, error: json.error || 'Failed to create task' };
+    } catch (err) {
+      return { success: false, error: 'Network error' };
+    }
+  }, []);
+
+  const handleDeleteTask = useCallback(async (taskId) => {
+    try {
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      loadEvents(true);
+      return { success: true };
+    } catch (err) {
+      return { success: false };
+    }
+  }, [loadEvents]);
+
+  const handleFieldUpdate = useCallback(async (taskId, updates) => {
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      loadEvents(true);
+    } catch (err) {}
+  }, [loadEvents]);
+
+  const openModal = useCallback((mode, ev = null) => {
     if (mode === 'create') {
       setOpen(
-        <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}><AddEventModal /></CustomModal>,
-        async () => ({ default: { date: selectedDate || toYMD(new Date()) } })
+        <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}>
+          <TaskDetailPanel
+            mode="create"
+            initialDueDate={selectedDate || toYMD(new Date())}
+            setOpen={setOpen}
+            setClose={setClose}
+            onCreate={async (data) => {
+              const result = await createTask(data);
+              if (result?.success) {
+                setClose();
+                loadEvents(true);
+              }
+              return result;
+            }}
+            onClose={() => setClose()}
+          />
+        </CustomModal>
       );
     } else if ((mode === 'edit' || mode === 'delete') && ev) {
-      setOpen(
-        <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}><AddEventModal /></CustomModal>,
-        async () => ({ default: ev })
-      );
+      // Map calendar event to task-like object for TaskDetailPanel
+      const taskLike = {
+        id: ev.id,
+        title: ev.title || '',
+        description: ev.description || '',
+        dueDate: ev.date ? `${ev.date}T${ev.startTime || '00:00'}:00` : null,
+        hasTime: ev.hasTime,
+        type: ev.type || 'task',
+        course: ev.courseName || null,
+        courseColor: ev.color || null,
+        status: 'todo',
+        priority: 'not-urgent-not-important',
+        tags: [],
+        subtasks: [],
+        meta: { hasTime: ev.hasTime },
+      };
+      const TaskDetailModal = () => {
+        const [isStarred, setIsStarred] = React.useState(false);
+        const [hasReminder, setHasReminder] = React.useState(Boolean(ev.hasTime || ev.startTime));
+        const [showMenu, setShowMenu] = React.useState(false);
+        const menuRef = React.useRef(null);
+        React.useEffect(() => {
+          if (!showMenu) return;
+          const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
+          };
+          document.addEventListener('mousedown', handleClickOutside);
+          return () => document.removeEventListener('mousedown', handleClickOutside);
+        }, [showMenu]);
+        return (
+          <CustomModal
+            title=""
+            showMinimalHeader={true}
+            size="3xl"
+            noPadding={true}
+            isStarred={isStarred}
+            hasReminder={hasReminder}
+            headerActions={
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMenu(p => !p)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-white/[0.06] transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                {showMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-40 overflow-hidden rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-xl z-50">
+                    <button
+                      type="button"
+                      onClick={() => { handleDeleteTask(ev.id); setClose(); }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            }
+          >
+            <TaskDetailPanel
+              task={taskLike}
+              onUpdateFields={(taskId, updates) => {
+                handleFieldUpdate(taskId, updates);
+                if (updates.dueDate !== undefined) setHasReminder(Boolean(updates.dueDate));
+              }}
+              onDeleteTask={(taskId) => { handleDeleteTask(taskId); setClose(); }}
+              onToggleComplete={() => {}}
+              onQuickAction={() => {}}
+              onStatusChange={() => {}}
+              onTagsChange={() => {}}
+              setOpen={setOpen}
+              setClose={setClose}
+            />
+          </CustomModal>
+        );
+      };
+      setOpen(<TaskDetailModal />);
     }
-  };
+  }, [selectedDate, createTask, handleDeleteTask, handleFieldUpdate, loadEvents, setClose, setOpen]);
 
   /* ─── Load holidays ─── */
   useEffect(() => {

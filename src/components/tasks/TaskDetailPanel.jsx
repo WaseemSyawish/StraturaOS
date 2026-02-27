@@ -474,8 +474,8 @@ const TaskDetailPanel = ({
                   {openDetailMenu === 'due' && dueBtnRect && (
                     <div data-detail-menu style={{
                       position: 'fixed',
-                      ...(dueBtnRect.placement === 'right' ? { left: dueBtnRect.modalRight + 12, top: Math.max(8, Math.min(dueBtnRect.top - 92, (dueBtnRect.vh || 800) - 580)) }
-                        : dueBtnRect.placement === 'left' ? { right: typeof window !== 'undefined' ? window.innerWidth - dueBtnRect.modalLeft + 12 : 20, top: Math.max(8, Math.min(dueBtnRect.top - 92, (dueBtnRect.vh || 800) - 580)) }
+                      ...(dueBtnRect.placement === 'right' ? { left: dueBtnRect.modalRight + 12, top: Math.max(8, Math.min(dueBtnRect.top - 170, (dueBtnRect.vh || 800) - 580)) }
+                        : dueBtnRect.placement === 'left' ? { right: typeof window !== 'undefined' ? window.innerWidth - dueBtnRect.modalLeft + 12 : 20, top: Math.max(8, Math.min(dueBtnRect.top - 170, (dueBtnRect.vh || 800) - 580)) }
                         : { top: Math.min(dueBtnRect.bottom + 8, (dueBtnRect.vh || 800) - 580), right: typeof window !== 'undefined' ? window.innerWidth - dueBtnRect.right : 20 }),
                       zIndex: 999999, width: 270, maxHeight: 'calc(100vh - 16px)', overflowY: 'auto'
                     }} className="overflow-hidden rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#1a1a1d] shadow-2xl">

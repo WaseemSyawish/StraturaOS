@@ -213,12 +213,12 @@ export default function CalendarPage() {
   const openModal = (mode, ev = null) => {
     if (mode === 'create') {
       setOpen(
-        <CustomModal title="Add Event"><AddEventModal /></CustomModal>,
+        <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}><AddEventModal /></CustomModal>,
         async () => ({ default: { date: selectedDate || toYMD(new Date()) } })
       );
     } else if ((mode === 'edit' || mode === 'delete') && ev) {
       setOpen(
-        <CustomModal title={ev.title || 'Edit Event'}><AddEventModal /></CustomModal>,
+        <CustomModal title="" showMinimalHeader={true} size="3xl" noPadding={true}><AddEventModal /></CustomModal>,
         async () => ({ default: ev })
       );
     }

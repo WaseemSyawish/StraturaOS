@@ -882,7 +882,7 @@ const TaskDetailPanel = ({
       return;
     }
 
-    const candidate = new Date(`${dateToken}T${timeToken || '23:59'}:00`);
+    const candidate = new Date(`${dateToken}T${timeToken || '00:00'}:00`);
     if (Number.isNaN(candidate.getTime())) return;
     const isoValue = candidate.toISOString();
 
@@ -1041,10 +1041,10 @@ const TaskDetailPanel = ({
     setDueStartInput(newDate);
     if (!isCreateMode) {
       if (newDate) {
-        const dateObj = new Date(newDate + 'T23:59:00');
-        onUpdateFields?.(task.id, { dueDate: dateObj.toISOString() });
+        const dateObj = new Date(newDate + 'T00:00:00');
+        onUpdateFields?.(task.id, { dueDate: dateObj.toISOString(), meta: { ...(task?.meta || {}), hasTime: false } });
       } else {
-        onUpdateFields?.(task.id, { dueDate: null });
+        onUpdateFields?.(task.id, { dueDate: null, meta: { ...(task?.meta || {}), hasTime: false } });
       }
     }
   };
@@ -1052,8 +1052,8 @@ const TaskDetailPanel = ({
   const handleDueEndChange = (newDate) => {
     setDueEndInput(newDate);
     if (!isCreateMode && newDate) {
-      const dateObj = new Date(newDate + 'T23:59:00');
-      onUpdateFields?.(task.id, { dueDate: dateObj.toISOString() });
+      const dateObj = new Date(newDate + 'T00:00:00');
+      onUpdateFields?.(task.id, { dueDate: dateObj.toISOString(), meta: { ...(task?.meta || {}), hasTime: false } });
     }
   };
 
@@ -1069,7 +1069,7 @@ const TaskDetailPanel = ({
       return;
     }
     setBusy(true);
-    const dueDate = dueStartInput ? new Date(dueStartInput) : null;
+    const dueDate = dueStartInput ? new Date(`${dueStartInput}T${dueDraftTime || '00:00'}:00`) : null;
     const meta = {
       myDay: includeMyDay,
       course: localCourse || null,
@@ -1079,6 +1079,7 @@ const TaskDetailPanel = ({
       subtasks: localSubtasks,
       status: localStatus,
       type: localEventType,
+      hasTime: Boolean(dueDraftTime),
     };
     const result = await onCreate({
       title: localTitle,
@@ -1953,7 +1954,7 @@ const TaskDetailPanel = ({
       )}
 
       {isCreateMode && (
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-white/[0.06] px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-white/[0.06] px-6 py-4 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
           <button
             type="button"
             onClick={onClose}
@@ -2899,10 +2900,10 @@ const TaskContextMenu = ({ task, onOpenDetail, onToggleComplete, onQuickAction, 
   }, [onClose]);
 
   const dateShortcuts = [
-    { label: 'Today', value: () => new Date().toISOString(), color: '#10b981' },
-    { label: 'Tomorrow', value: () => new Date(Date.now() + 86400000).toISOString(), color: '#f59e0b' },
-    { label: 'Weekend', value: () => { const d = new Date(); d.setDate(d.getDate() + (6 - d.getDay())); return d.toISOString(); }, color: '#3b82f6' },
-    { label: 'Next week', value: () => { const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay())); return d.toISOString(); }, color: '#8b5cf6' },
+    { label: 'Today', value: () => { const d = new Date(); d.setHours(0,0,0,0); return d.toISOString(); }, color: '#10b981' },
+    { label: 'Tomorrow', value: () => { const d = new Date(Date.now() + 86400000); d.setHours(0,0,0,0); return d.toISOString(); }, color: '#f59e0b' },
+    { label: 'Weekend', value: () => { const d = new Date(); d.setDate(d.getDate() + (6 - d.getDay())); d.setHours(0,0,0,0); return d.toISOString(); }, color: '#3b82f6' },
+    { label: 'Next week', value: () => { const d = new Date(); d.setDate(d.getDate() + (8 - d.getDay())); d.setHours(0,0,0,0); return d.toISOString(); }, color: '#8b5cf6' },
     { label: 'No date', value: () => null, color: '#94a3b8' },
   ];
 
@@ -3037,7 +3038,7 @@ const TaskContextMenu = ({ task, onOpenDetail, onToggleComplete, onQuickAction, 
                 if (dateVal) {
                   const d = new Date(dateVal);
                   if (ctxDraftTime) { const [hh, mm] = ctxDraftTime.split(':').map(Number); d.setHours(hh, mm, 0, 0); }
-                  else { d.setHours(23, 59, 0, 0); }
+                  else { d.setHours(0, 0, 0, 0); }
                   onQuickAction?.(task.id, 'set-date', d.toISOString());
                 }
                 onClose();
@@ -4991,8 +4992,7 @@ export default function TasksPage() {
       } else if (actionId === 'set-date') {
         if (value) {
           const d = new Date(value);
-          const isSentinel = d.getHours() === 23 && d.getMinutes() === 59;
-          const hasTime = !isSentinel && Boolean(d.getHours() || d.getMinutes());
+          const hasTime = Boolean(d.getHours() || d.getMinutes());
           const timeStr = hasTime ? `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : null;
           updates = { dueDate: value, time: timeStr, dueTime: timeStr, meta: { ...(task.meta || {}), hasTime } };
         } else {

@@ -85,6 +85,7 @@ function mapToSchedulerEvents(list) {
     let start = new Date();
     let dateStr = null;
     let timeStr = null;
+    let eventHasTime = false;
     try {
       if (e.date && typeof e.date === 'string') {
         // Use date field directly - this is what tasks store
@@ -93,6 +94,7 @@ function mapToSchedulerEvents(list) {
         const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
         // If no explicit time or hasTime is false, use a neutral hour to avoid day shifts
         const hasTime = e.meta?.hasTime === true || (timeStr && timeStr !== '00:00');
+        eventHasTime = Boolean(hasTime);
         // Extract start time from range format "HH:MM-HH:MM" before parsing
         let parseTimeStr = timeStr;
         if (parseTimeStr && String(parseTimeStr).includes('-')) {
@@ -103,6 +105,7 @@ function mapToSchedulerEvents(list) {
       } else if (e.startDate) {
         // Fallback to API's startDate for events without date field
         start = new Date(e.startDate);
+        eventHasTime = true; // startDate events assumed to have time
       }
     } catch (err) {
       start = new Date();
@@ -228,6 +231,7 @@ function mapToSchedulerEvents(list) {
       startDate: start,
       endDate: endDate,
       raw: e,
+      isDateOnly: !eventHasTime,
       color: color || (e.color ?? null),
       variant: variant || (e.variant ?? null),
       // Pass through all event metadata for modals and views

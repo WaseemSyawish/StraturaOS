@@ -197,7 +197,7 @@ const TaskDetailPanel = ({
       else { setLocalDueDate(''); onUpdateFields?.(task.id, { dueDate: null, meta: { ...(task?.meta || {}), hasTime: false } }); }
       setDueDraftDate(''); setDueDraftTime(''); setOpenDetailMenu(null); return;
     }
-    const candidate = new Date(`${dateToken}T${timeToken || '23:59'}:00`);
+    const candidate = new Date(`${dateToken}T${timeToken || '00:00'}:00`);
     if (Number.isNaN(candidate.getTime())) return;
     const isoValue = candidate.toISOString();
     if (isCreateMode) { setDueStartInput(dateToken); setDueEndInput(dateToken); }
@@ -232,8 +232,8 @@ const TaskDetailPanel = ({
     event?.preventDefault(); if (busy || !isCreateMode) return;
     if (!localTitle.trim()) { if (toast) toast.showToast('Title is required', 'error'); else setError('Title is required'); return; }
     setBusy(true);
-    const dueDate = dueStartInput ? new Date(dueStartInput) : null;
-    const meta = { myDay: includeMyDay, course: localCourse || null, courseColor: localCourseColor || null, priority: localPriority, tags: localTags, subtasks: localSubtasks, status: localStatus, type: localEventType };
+    const dueDate = dueStartInput ? new Date(`${dueStartInput}T${dueDraftTime || '00:00'}:00`) : null;
+    const meta = { myDay: includeMyDay, course: localCourse || null, courseColor: localCourseColor || null, priority: localPriority, tags: localTags, subtasks: localSubtasks, status: localStatus, type: localEventType, hasTime: Boolean(dueDraftTime) };
     const result = await onCreate({ title: localTitle, dueDate: dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate.toISOString() : null, meta });
     setBusy(false);
     if (result?.success) { setError(null); if (toast) toast.showToast('Task created', 'success'); onClose?.(); }
@@ -611,7 +611,7 @@ const TaskDetailPanel = ({
       </div>
 
       {isCreateMode && (
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-white/[0.06] px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 dark:border-white/[0.06] px-6 py-4 sticky bottom-0 bg-white dark:bg-slate-900 z-10">
           <button type="button" onClick={onClose} disabled={busy} className="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
           <button type="submit" disabled={busy} className="rounded-lg bg-purple-600 hover:bg-purple-700 px-6 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 shadow-sm">{busy ? 'Adding...' : 'Add task'}</button>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin, LayoutGrid, Columns3, CalendarDays, List } from 'lucide-react';
+import { Calendar, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, Clock, MapPin, LayoutGrid, List } from 'lucide-react';
 import AddEventModal from '@/components/schedule/_modals/add-event-modal';
 import CustomModal from '@/components/ui/custom-modal';
 import { useModal } from '@/providers/modal-context';
@@ -32,13 +32,6 @@ const fallbackTypeColor = { bg: 'bg-slate-50 dark:bg-slate-800/40', border: 'bor
 const getTypeStyle = (type) => eventTypeColors[type?.toLowerCase()] || fallbackTypeColor;
 
 /* ─── Helpers ─── */
-const startOfWeek = (date) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() - d.getDay());
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
 const addDays = (date, n) => {
   const d = new Date(date);
   d.setDate(d.getDate() + n);
@@ -68,8 +61,6 @@ const formatTimeStr = (timeStr) => {
 /* ─── VIEW TABS ─── */
 const VIEW_OPTIONS = [
   { id: 'month', label: 'Month', icon: LayoutGrid },
-  { id: 'week', label: 'Week', icon: Columns3 },
-  { id: 'day', label: 'Day', icon: CalendarDays },
   { id: 'agenda', label: 'Agenda', icon: List },
 ];
 
@@ -113,12 +104,6 @@ export default function CalendarPage() {
   const monthDays = useMemo(() => getDaysInMonth(currentDate), [currentDate, getDaysInMonth]);
   const gridRowsCount = monthDays.length > 35 ? 6 : 5;
 
-  /* ─── Week calculation ─── */
-  const weekDays = useMemo(() => {
-    const ws = startOfWeek(currentDate);
-    return Array.from({ length: 7 }, (_, i) => addDays(ws, i));
-  }, [currentDate]);
-
   /* ─── Event helpers ─── */
   const getEventsForDate = useCallback((date) => {
     const ymd = toYMD(date);
@@ -135,13 +120,7 @@ export default function CalendarPage() {
 
   /* ─── Navigation ─── */
   const navigate = (dir) => {
-    if (view === 'month') {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1));
-    } else if (view === 'week') {
-      setCurrentDate(addDays(currentDate, dir * 7));
-    } else {
-      setCurrentDate(addDays(currentDate, dir));
-    }
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1));
   };
 
   const goToToday = () => {
@@ -265,14 +244,8 @@ export default function CalendarPage() {
   /* ─── Header label ─── */
   const headerLabel = useMemo(() => {
     if (view === 'month') return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-    if (view === 'week') {
-      const ws = weekDays[0];
-      const we = weekDays[6];
-      if (ws.getMonth() === we.getMonth()) return `${monthNames[ws.getMonth()]} ${ws.getDate()}–${we.getDate()}, ${ws.getFullYear()}`;
-      return `${monthNames[ws.getMonth()]} ${ws.getDate()} – ${monthNames[we.getMonth()]} ${we.getDate()}, ${we.getFullYear()}`;
-    }
     return currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  }, [view, currentDate, weekDays]);
+  }, [view, currentDate]);
 
   const formatSelectedDate = () => {
     if (!selectedDate) return 'Select a date';
@@ -406,128 +379,6 @@ export default function CalendarPage() {
                               </div>
                             );
                           })}
-                        </div>
-                      </div>
-                    ) : view === 'week' ? (
-                      /* ══════ WEEK VIEW ══════ */
-                      <div className="flex-1 flex flex-col min-h-0 overflow-auto">
-                        <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-[#12121a] sticky top-0 z-10">
-                          <div className="border-r border-slate-100 dark:border-slate-800/40" />
-                          {weekDays.map((d, i) => {
-                            const today = isToday(d);
-                            const isSel = selectedDate && toYMD(d) === selectedDate;
-                            return (
-                              <div key={i} onClick={() => handleDateClick(d)}
-                                className={`text-center py-2 sm:py-3 cursor-pointer transition-colors border-r border-slate-100/50 dark:border-slate-800/30 ${isSel ? 'bg-purple-50/60 dark:bg-purple-900/10' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'}`}>
-                                <div className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 dark:text-slate-500">{WEEKDAY_LABELS[d.getDay()]}</div>
-                                <div className={`text-sm sm:text-lg font-black mt-0.5 ${today ? 'text-purple-600 dark:text-purple-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                                  {today ? (
-                                    <span className="inline-flex items-center justify-center w-7 h-7 bg-purple-600 text-white rounded-lg text-sm">{d.getDate()}</span>
-                                  ) : d.getDate()}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div className="flex-1 grid grid-cols-[56px_repeat(7,1fr)] min-h-0">
-                          <div className="border-r border-slate-100 dark:border-slate-800/40">
-                            {HOURS.map(h => (
-                              <div key={h} className="h-14 sm:h-16 flex items-start justify-end pr-2 pt-0 text-[10px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 border-b border-slate-50 dark:border-slate-800/20">
-                                {formatTime12(h)}
-                              </div>
-                            ))}
-                          </div>
-                          {weekDays.map((d, dayIdx) => {
-                            const dayEvents = getEventsForDate(d);
-                            const isSel = selectedDate && toYMD(d) === selectedDate;
-                            return (
-                              <div key={dayIdx} className={`relative border-r border-slate-100/50 dark:border-slate-800/30 ${isSel ? 'bg-purple-50/30 dark:bg-purple-900/5' : ''}`}>
-                                {HOURS.map(h => (
-                                  <div key={h} className="h-14 sm:h-16 border-b border-slate-50 dark:border-slate-800/20" />
-                                ))}
-                                {dayEvents.map(ev => {
-                                  const st = parseTime(ev.startTime);
-                                  if (!st) return null;
-                                  const slotH = 64; // sm:h-16 = 64px
-                                  const topH = (st.hours - 7) * slotH + (st.minutes / 60) * slotH;
-                                  if (topH < 0) return null;
-                                  const et = parseTime(ev.endTime);
-                                  const durationH = et ? ((et.hours - st.hours) * 60 + (et.minutes - st.minutes)) / 60 * slotH : slotH * 0.875;
-                                  const ts = getTypeStyle(ev.type);
-                                  return (
-                                    <div key={ev.id} onClick={(e) => { e.stopPropagation(); openModal('edit', ev); }}
-                                      className={`absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-lg border px-1.5 py-1 cursor-pointer hover:shadow-md transition-shadow overflow-hidden z-[1] ${ts.bg} ${ts.border}`}
-                                      style={{ top: `${Math.max(topH, 0)}px`, height: `${Math.max(durationH, 28)}px` }}
-                                    >
-                                      <div className={`text-[9px] sm:text-[10px] font-bold truncate ${ts.text}`}>{ev.title}</div>
-                                      {ev.hasTime && <div className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 truncate">{formatTimeStr(ev.startTime)}{ev.endTime ? ` – ${formatTimeStr(ev.endTime)}` : ''}</div>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : view === 'day' ? (
-                      /* ══════ DAY VIEW ══════ */
-                      <div className="flex-1 flex flex-col min-h-0 overflow-auto">
-                        <div className="p-3 sm:p-4 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#12121a]/50 sticky top-0 z-10">
-                          <div className="text-lg font-black text-slate-800 dark:text-white">
-                            {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                          </div>
-                          {isHoliday(currentDate) && (
-                            <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs font-semibold text-amber-700 dark:text-amber-400">
-                              <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                              {isHoliday(currentDate)?.name}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 grid grid-cols-[56px_1fr] min-h-0">
-                          <div className="border-r border-slate-100 dark:border-slate-800/40">
-                            {HOURS.map(h => (
-                              <div key={h} className="h-16 sm:h-20 flex items-start justify-end pr-2 pt-0 text-xs font-semibold text-slate-400 dark:text-slate-500 border-b border-slate-50 dark:border-slate-800/20">
-                                {formatTime12(h)}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="relative">
-                            {HOURS.map(h => (
-                              <div key={h} className="h-16 sm:h-20 border-b border-slate-50 dark:border-slate-800/20" />
-                            ))}
-                            {getEventsForDate(currentDate).map(ev => {
-                              const st = parseTime(ev.startTime);
-                              if (!st) return null;
-                              const slotH = 80; // sm:h-20 = 80px
-                              const topH = (st.hours - 7) * slotH + (st.minutes / 60) * slotH;
-                              if (topH < 0) return null;
-                              const et = parseTime(ev.endTime);
-                              const durationH = et ? ((et.hours - st.hours) * 60 + (et.minutes - st.minutes)) / 60 * slotH : slotH;
-                              const ts = getTypeStyle(ev.type);
-                              return (
-                                <div key={ev.id} onClick={() => openModal('edit', ev)}
-                                  className={`absolute left-2 right-2 rounded-xl border-2 px-3 py-2 cursor-pointer hover:shadow-lg transition-shadow ${ts.bg} ${ts.border}`}
-                                  style={{ top: `${Math.max(topH, 0)}px`, minHeight: `${Math.max(durationH, 40)}px` }}
-                                >
-                                  <div className={`text-sm font-bold ${ts.text}`}>{ev.title}</div>
-                                  <div className="flex items-center gap-3 mt-1">
-                                    {ev.hasTime && (
-                                      <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
-                                        <Clock className="w-3 h-3" />
-                                        {formatTimeStr(ev.startTime)}{ev.endTime ? ` – ${formatTimeStr(ev.endTime)}` : ''}
-                                      </span>
-                                    )}
-                                    {ev.location && (
-                                      <span className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
-                                        <MapPin className="w-3 h-3" />{ev.location}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {ev.courseName && <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-1">{ev.courseName}</div>}
-                                </div>
-                              );
-                            })}
-                          </div>
                         </div>
                       </div>
                     ) : (

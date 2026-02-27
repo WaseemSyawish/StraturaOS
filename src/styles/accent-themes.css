@@ -543,7 +543,6 @@ html.dark [data-accent]:not([data-accent="purple"]) .accent-text {
   color: var(--accent-400) !important;
 }
 
-
 /* ════════════════════════════════════════════════════════════
    GRADIENT TOGGLE — html[data-gradients="off"]
    Strips gradient bg-image from any element that uses a purple
@@ -563,12 +562,24 @@ html[data-gradients="off"] .from-purple-900 {
 }
 
 /* Apply the first-stop shade as a flat solid bg */
-html[data-gradients="off"] .from-purple-400 { background-color: rgb(var(--ac-400)) !important; }
-html[data-gradients="off"] .from-purple-500 { background-color: rgb(var(--ac-500)) !important; }
-html[data-gradients="off"] .from-purple-600 { background-color: rgb(var(--ac-600)) !important; }
-html[data-gradients="off"] .from-purple-700 { background-color: rgb(var(--ac-700)) !important; }
-html[data-gradients="off"] .from-purple-800 { background-color: rgb(var(--ac-800)) !important; }
-html[data-gradients="off"] .from-purple-900 { background-color: rgb(var(--ac-900)) !important; }
+html[data-gradients="off"] .from-purple-400 {
+  background-color: rgb(var(--ac-400)) !important;
+}
+html[data-gradients="off"] .from-purple-500 {
+  background-color: rgb(var(--ac-500)) !important;
+}
+html[data-gradients="off"] .from-purple-600 {
+  background-color: rgb(var(--ac-600)) !important;
+}
+html[data-gradients="off"] .from-purple-700 {
+  background-color: rgb(var(--ac-700)) !important;
+}
+html[data-gradients="off"] .from-purple-800 {
+  background-color: rgb(var(--ac-800)) !important;
+}
+html[data-gradients="off"] .from-purple-900 {
+  background-color: rgb(var(--ac-900)) !important;
+}
 
 /* Dark-mode gradient classes */
 html.dark[data-gradients="off"] .dark\:from-purple-400,
@@ -577,7 +588,15 @@ html.dark[data-gradients="off"] .dark\:from-purple-800,
 html.dark[data-gradients="off"] .dark\:from-purple-900 {
   background-image: none !important;
 }
-html.dark[data-gradients="off"] .dark\:from-purple-400 { background-color: rgb(var(--ac-400)) !important; }
-html.dark[data-gradients="off"] .dark\:from-purple-700 { background-color: rgb(var(--ac-700)) !important; }
-html.dark[data-gradients="off"] .dark\:from-purple-800 { background-color: rgb(var(--ac-800)) !important; }
-html.dark[data-gradients="off"] .dark\:from-purple-900 { background-color: rgb(var(--ac-900)) !important; }
+html.dark[data-gradients="off"] .dark\:from-purple-400 {
+  background-color: rgb(var(--ac-400)) !important;
+}
+html.dark[data-gradients="off"] .dark\:from-purple-700 {
+  background-color: rgb(var(--ac-700)) !important;
+}
+html.dark[data-gradients="off"] .dark\:from-purple-800 {
+  background-color: rgb(var(--ac-800)) !important;
+}
+html.dark[data-gradients="off"] .dark\:from-purple-900 {
+  background-color: rgb(var(--ac-900)) !important;
+}

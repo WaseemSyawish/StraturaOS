@@ -290,7 +290,9 @@ export default function DailyView({
       .join('|');
   }, [dayEvents]);
 
-  const timeGroups = React.useMemo(() => groupEventsByTimePeriod(dayEvents), [eventsKey]);
+  const timeGroups = React.useMemo(() => groupEventsByTimePeriod(
+    (dayEvents || []).filter((e: any) => !e.isDateOnly)
+  ), [eventsKey]);
 
   const computeMinaStyle = React.useCallback((event: Event, allDayEvents: Event[] | undefined) => {
     const ROW_PX_PER_HOUR = 64;

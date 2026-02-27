@@ -508,8 +508,9 @@ export default function WeeklyView({
                       {/* Events - FIXED RENDERING */}
                       <div className="absolute inset-0 pointer-events-none">
                         <AnimatePresence initial={false}>
-                          {dayEvents?.map((event) => {
-                            const style = computeMinaStyle(event, dayEvents);
+                          {dayEvents?.filter((e: any) => !e.isDateOnly).map((event) => {
+                            const timedEvents = dayEvents.filter((e: any) => !e.isDateOnly);
+                            const style = computeMinaStyle(event, timedEvents);
                             const manyEvents = (dayEvents?.length || 0) > 30;
 
                             const eventElement = (

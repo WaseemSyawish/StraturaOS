@@ -286,8 +286,8 @@ export default function ModernDayView({
       return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), dt.getHours(), dt.getMinutes(), 0, 0).getTime();
     };
 
-    // Sort by start time
-    const sorted = [...dayEvents].sort(
+    // Sort by start time, excluding date-only (no-time) tasks from the timed grid
+    const sorted = [...dayEvents].filter((e: any) => !e.isDateOnly).sort(
       (a, b) => ensureDate(a.startDate).getTime() - ensureDate(b.startDate).getTime()
     );
 
@@ -785,14 +785,12 @@ export default function ModernDayView({
               transition={{ duration: 0.2 }}
               className="text-sm font-medium text-slate-500 dark:text-slate-400"
             >
-              {dayEvents.length === 0
-                ? "No events scheduled"
-                : `${dayEvents.length} event${dayEvents.length > 1 ? "s" : ""} scheduled`}
+              {(() => { const c = dayEvents.filter((e: any) => !e.isDateOnly).length; return c === 0 ? 'No events scheduled' : `${c} event${c > 1 ? 's' : ''} scheduled`; })()}
             </motion.p>
           </AnimatePresence>
-          {dayEvents.length > 0 && (
+          {dayEvents.filter((e: any) => !e.isDateOnly).length > 0 && (
             <div className="flex -space-x-1">
-              {dayEvents.slice(0, 4).map((e, i) => {
+              {dayEvents.filter((e: any) => !e.isDateOnly).slice(0, 4).map((e, i) => {
                 const colorKey = e.color || (e as any).variant || 'purple';
                 const hexColors: Record<string, string> = {
                   purple: '#9333EA', blue: '#3B82F6', green: '#10B981', emerald: '#10B981',
@@ -808,12 +806,12 @@ export default function ModernDayView({
                   />
                 );
               })}
-              {dayEvents.length > 4 && (
+              {dayEvents.filter((e: any) => !e.isDateOnly).length > 4 && (
                 <div 
                   className="w-5 h-5 rounded-full ring-2 ring-white dark:ring-slate-900 flex items-center justify-center"
                   style={{ background: 'rgba(148, 163, 184, 0.2)' }}
                 >
-                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">+{dayEvents.length - 4}</span>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">+{dayEvents.filter((e: any) => !e.isDateOnly).length - 4}</span>
                 </div>
               )}
             </div>

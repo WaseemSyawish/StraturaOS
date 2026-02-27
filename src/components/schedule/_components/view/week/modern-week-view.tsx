@@ -467,7 +467,7 @@ export default function ModernWeekView({
         <div className="w-14 flex-shrink-0" /> {/* Time column spacer */}
         {weekDays.map((day, idx) => {
           const isToday = idx === todayIndex;
-          const dayEvents = weekEvents[idx] || [];
+          const dayEvents = (weekEvents[idx] || []).filter((e: any) => !e.isDateOnly);
           return (
             <div
               key={idx}
@@ -537,7 +537,7 @@ export default function ModernWeekView({
           {/* Day columns */}
           {weekDays.map((day, dayIndex) => {
             const isToday = dayIndex === todayIndex;
-            const dayEventsPositioned = getPositionedEventsForDay(weekEvents[dayIndex]);
+            const dayEventsPositioned = getPositionedEventsForDay(weekEvents[dayIndex].filter((e: any) => !e.isDateOnly));
 
             return (
               <div
